@@ -46,13 +46,10 @@ jobs:
         include:
           - os: ubuntu-latest
             label: linux
-            extension: deb
           - os: macos-latest
             label: macos
-            extension: dmg
           - os: windows-latest
             label: windows
-            extension: msi
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -71,38 +68,40 @@ jobs:
       - name: Build desktop package
         if: runner.os == 'Windows'
         shell: pwsh
-        run: .\gradlew.bat :composeApp:packageDistributionForCurrentOS --stacktrace
+        run: .\gradlew.bat :composeApp:createReleaseDistributable --stacktrace
 
       - name: Build desktop package
         if: runner.os != 'Windows'
-        run: ./gradlew :composeApp:packageDistributionForCurrentOS --stacktrace
+        run: ./gradlew :composeApp:createReleaseDistributable --stacktrace
 
-      - name: Verify desktop artifact
+      - name: Bundle desktop artifact
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $files = Get-ChildItem -Path "composeApp/build/compose/binaries/main-release" -Recurse -Filter "*.${{ matrix.extension }}"
-          if ($files.Count -eq 0) {
-            Write-Error "No .${{ matrix.extension }} artifact found."
+          $source = "composeApp/build/compose/binaries"
+          if (!(Test-Path $source)) {
+            Write-Error "Desktop output directory not found: $source"
           }
-          $files | Select-Object FullName, Length
+          New-Item -ItemType Directory -Path "release-assets" -Force | Out-Null
+          Compress-Archive -Path "$source\\*" -DestinationPath "release-assets/TradeBuddy-${{ matrix.label }}-${{ github.ref_name }}.zip" -Force
 
-      - name: Verify desktop artifact
+      - name: Bundle desktop artifact
         if: runner.os != 'Windows'
         run: |
           set -e
-          files=$(find composeApp/build/compose/binaries/main-release -type f -name "*.${{ matrix.extension }}")
-          if [ -z "$files" ]; then
-            echo "No .${{ matrix.extension }} artifact found."
+          source_dir="composeApp/build/compose/binaries"
+          if [ ! -d "$source_dir" ]; then
+            echo "Desktop output directory not found: $source_dir"
             exit 1
           fi
-          echo "$files"
+          mkdir -p release-assets
+          zip -r "release-assets/TradeBuddy-${{ matrix.label }}-${{ github.ref_name }}.zip" "$source_dir"
 
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.label }}
-          path: composeApp/build/compose/binaries/main-release/**/*.${{ matrix.extension }}
+          path: release-assets/*.zip
           if-no-files-found: error
 
   publish-release:
@@ -136,7 +135,7 @@ jobs:
 
             Enthalten:
             - Android APK (Debug)
-            - Desktop Linux Paket (.deb)
-            - Desktop macOS Paket (.dmg)
-            - Desktop Windows Paket (.msi)
+            - Desktop Linux Bundle (.zip)
+            - Desktop macOS Bundle (.zip)
+            - Desktop Windows Bundle (.zip)
             - SHA256SUMS.txt

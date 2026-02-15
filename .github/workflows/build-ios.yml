@@ -18,5 +18,7 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
+      - name: Make Gradle executable
+        run: chmod +x gradlew
       - name: iOS debug build
         run: cd iosApp && xcodebuild -scheme iosApp -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO

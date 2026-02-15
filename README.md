@@ -101,9 +101,9 @@ git push origin v1.0.0
 Der Workflow laedt aktuell hoch:
 
 - Android APK (Debug)
-- Desktop Linux Paket (`.deb`)
-- Desktop macOS Paket (`.dmg`)
-- Desktop Windows Paket (`.msi`)
+- Desktop Linux Bundle (`.zip`)
+- Desktop macOS Bundle (`.zip`)
+- Desktop Windows Bundle (`.zip`)
 - `SHA256SUMS.txt` mit Checksummen
 
 ## GitHub-Standarddateien
