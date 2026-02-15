@@ -31,7 +31,7 @@ jobs:
         run: ./gradlew :androidApp:assembleDebug --stacktrace
 
       - name: Upload Android APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: android-apk
           path: androidApp/build/outputs/apk/debug/*.apk
@@ -98,7 +98,7 @@ jobs:
           zip -r "release-assets/TradeBuddy-${{ matrix.label }}-${{ github.ref_name }}.zip" "$source_dir"
 
       - name: Upload desktop artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: desktop-${{ matrix.label }}
           path: release-assets/*.zip
