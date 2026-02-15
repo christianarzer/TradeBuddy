@@ -25,6 +25,7 @@ import de.tradebuddy.domain.model.SunMoonTimes
 import de.tradebuddy.domain.util.azimuthToCardinalIndex
 import de.tradebuddy.domain.util.formatOffsetDiff
 import de.tradebuddy.domain.util.formatUtcOffset
+import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -49,6 +50,8 @@ fun CityCard(
     r: SunMoonTimes,
     userZone: ZoneId,
     timeFmt: DateTimeFormatter,
+    sunTimeOffsetMinutes: Int,
+    moonTimeOffsetMinutes: Int,
     showSun: Boolean,
     showMoon: Boolean,
     showRise: Boolean,
@@ -64,6 +67,14 @@ fun CityCard(
     val diffLabel = remember(diffSeconds) { formatOffsetDiff(diffSeconds) }
     val dash = stringResource(Res.string.value_dash)
 
+    fun adjust(z: ZonedDateTime?, sunEvent: Boolean): ZonedDateTime? =
+        z?.toInstant()
+            ?.plus(
+                Duration.ofMinutes(
+                    if (sunEvent) sunTimeOffsetMinutes.toLong() else moonTimeOffsetMinutes.toLong()
+                )
+            )
+            ?.atZone(cityZone)
     fun fmtCity(z: ZonedDateTime?) = z?.format(timeFmt) ?: dash
     fun fmtUser(z: ZonedDateTime?) = z?.withZoneSameInstant(userZone)?.format(timeFmt) ?: dash
 
@@ -122,16 +133,16 @@ fun CityCard(
                     EventRow(
                         stringResource(Res.string.event_sunrise),
                         r.sunriseAzimuthDeg,
-                        fmtCity(r.sunrise),
-                        fmtUser(r.sunrise)
+                        fmtCity(adjust(r.sunrise, sunEvent = true)),
+                        fmtUser(adjust(r.sunrise, sunEvent = true))
                     )
                 }
                 if (showSunSet) {
                     EventRow(
                         stringResource(Res.string.event_sunset),
                         r.sunsetAzimuthDeg,
-                        fmtCity(r.sunset),
-                        fmtUser(r.sunset)
+                        fmtCity(adjust(r.sunset, sunEvent = true)),
+                        fmtUser(adjust(r.sunset, sunEvent = true))
                     )
                 }
 
@@ -143,16 +154,16 @@ fun CityCard(
                     EventRow(
                         stringResource(Res.string.event_moonrise),
                         r.moonriseAzimuthDeg,
-                        fmtCity(r.moonrise),
-                        fmtUser(r.moonrise)
+                        fmtCity(adjust(r.moonrise, sunEvent = false)),
+                        fmtUser(adjust(r.moonrise, sunEvent = false))
                     )
                 }
                 if (showMoonSet) {
                     EventRow(
                         stringResource(Res.string.event_moonset),
                         r.moonsetAzimuthDeg,
-                        fmtCity(r.moonset),
-                        fmtUser(r.moonset)
+                        fmtCity(adjust(r.moonset, sunEvent = false)),
+                        fmtUser(adjust(r.moonset, sunEvent = false))
                     )
                 }
             }

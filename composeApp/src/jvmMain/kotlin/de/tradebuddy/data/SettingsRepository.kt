@@ -19,6 +19,9 @@ data class SettingsSnapshot(
     val themeStyle: AppThemeStyle?,
     val themeMode: AppThemeMode?,
     val selectedCityKeys: Set<String>?,
+    val sunTimeOffsetMinutes: Int?,
+    val moonTimeOffsetMinutes: Int?,
+    val astroTimeOffsetMinutes: Int?,
     val showUtcTime: Boolean?,
     val showAzimuth: Boolean?,
     val showSun: Boolean?,
@@ -56,6 +59,9 @@ class FileSettingsRepository(
             val showMoon = props.getProperty("showMoon")?.toBooleanStrictOrNull()
             val showRise = props.getProperty("showRise")?.toBooleanStrictOrNull()
             val showSet = props.getProperty("showSet")?.toBooleanStrictOrNull()
+            val sunTimeOffsetMinutes = props.getProperty("sunTimeOffsetMinutes")?.toIntOrNull()
+            val moonTimeOffsetMinutes = props.getProperty("moonTimeOffsetMinutes")?.toIntOrNull()
+            val astroTimeOffsetMinutes = props.getProperty("astroTimeOffsetMinutes")?.toIntOrNull()
             val aspectOrbs = parseAspectOrbs(props.getProperty("astroAspectOrbs"))
             val rawCities = props.getProperty("selectedCities")
             val selectedCityKeys = rawCities
@@ -67,6 +73,8 @@ class FileSettingsRepository(
             if (themeStyle == null && themeMode == null && darkTheme == null &&
                 selectedCityKeys == null && showUtcTime == null && showAzimuth == null &&
                 showSun == null && showMoon == null && showRise == null && showSet == null &&
+                sunTimeOffsetMinutes == null && moonTimeOffsetMinutes == null &&
+                astroTimeOffsetMinutes == null &&
                 aspectOrbs == null
             ) null
             else SettingsSnapshot(
@@ -75,6 +83,9 @@ class FileSettingsRepository(
                     if (it) AppThemeMode.Dark else AppThemeMode.Light
                 },
                 selectedCityKeys = selectedCityKeys,
+                sunTimeOffsetMinutes = sunTimeOffsetMinutes,
+                moonTimeOffsetMinutes = moonTimeOffsetMinutes,
+                astroTimeOffsetMinutes = astroTimeOffsetMinutes,
                 showUtcTime = showUtcTime,
                 showAzimuth = showAzimuth,
                 showSun = showSun,
@@ -99,6 +110,9 @@ class FileSettingsRepository(
             props.setProperty("themeStyle", settings.themeStyle.key)
             props.setProperty("themeMode", settings.themeMode.key)
             props.setProperty("selectedCities", settings.selectedCityKeys.joinToString(";"))
+            props.setProperty("sunTimeOffsetMinutes", settings.sunTimeOffsetMinutes.toString())
+            props.setProperty("moonTimeOffsetMinutes", settings.moonTimeOffsetMinutes.toString())
+            props.setProperty("astroTimeOffsetMinutes", settings.astroTimeOffsetMinutes.toString())
             props.setProperty("showUtcTime", settings.showUtcTime.toString())
             props.setProperty("showAzimuth", settings.showAzimuth.toString())
             props.setProperty("showSun", settings.showSun.toString())

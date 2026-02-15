@@ -175,6 +175,9 @@ class ZonedDateTime internal constructor(
 
     fun withZoneSameInstant(zoneId: ZoneId): ZonedDateTime = ZonedDateTime(instant, zoneId)
 
+    fun plusMinutes(minutes: Long): ZonedDateTime =
+        ZonedDateTime(instant.plus(Duration.ofMinutes(minutes)), zone)
+
     fun toLocalDate(): LocalDate = instant.raw.toLocalDateTime(zone.timeZone).date.toCompat()
 
     fun toLocalTime(): LocalTime {
@@ -204,6 +207,11 @@ external object JsDateCtor {
     fun now(): Double
 }
 
+@JsName("Date")
+external class JsDateInstance {
+    fun getTimezoneOffset(): Double
+}
+
 @JsName("Intl")
 external object JsIntl {
     class DateTimeFormat {
@@ -216,16 +224,31 @@ external interface JsResolvedOptions {
 }
 
 private fun systemTimeZoneId(): String {
-    val systemId = normalizedTimeZoneId(TimeZone.currentSystemDefault().id)
-    if (systemId != null) return systemId
-
     val browserId = runCatching {
         JsIntl.DateTimeFormat().resolvedOptions().timeZone
     }.getOrNull()
     val normalizedBrowserId = normalizedTimeZoneId(browserId)
-    if (normalizedBrowserId != null) return normalizedBrowserId
+    val browserOffsetZoneId = browserOffsetZoneId()
+
+    if (normalizedBrowserId != null && !normalizedBrowserId.equals("UTC", ignoreCase = true)) {
+        return normalizedBrowserId
+    }
+
+    val systemId = normalizedTimeZoneId(TimeZone.currentSystemDefault().id)
+    if (systemId != null && !systemId.equals("UTC", ignoreCase = true)) {
+        return systemId
+    }
+
+    if (browserOffsetZoneId != null) return browserOffsetZoneId
 
     return "Europe/Berlin"
+}
+
+private fun browserOffsetZoneId(): String? {
+    val minutes = runCatching { JsDateInstance().getTimezoneOffset().toInt() }.getOrNull() ?: return null
+    val totalSeconds = -minutes * 60
+    if (totalSeconds == 0) return null
+    return normalizedTimeZoneId(offsetId(totalSeconds))
 }
 
 private fun String.isUsableSystemZoneId(): Boolean =

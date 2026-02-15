@@ -15,6 +15,7 @@ import kotlinx.coroutines.withContext
 interface SunMoonRepository {
     fun cities(): List<City>
     suspend fun loadDaily(date: LocalDate): List<SunMoonTimes>
+    suspend fun loadCityDay(date: LocalDate, city: City): SunMoonTimes
     suspend fun loadMonthlyTrend(month: YearMonth, city: City): MonthTrend
 }
 
@@ -28,6 +29,10 @@ class DefaultSunMoonRepository(
 
     override suspend fun loadDaily(date: LocalDate): List<SunMoonTimes> = withContext(dispatcher) {
         cities().map { calculator.calculate(date, it) }
+    }
+
+    override suspend fun loadCityDay(date: LocalDate, city: City): SunMoonTimes = withContext(dispatcher) {
+        calculator.calculate(date, city)
     }
 
     override suspend fun loadMonthlyTrend(month: YearMonth, city: City): MonthTrend = withContext(dispatcher) {

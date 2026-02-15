@@ -19,6 +19,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import org.jetbrains.compose.resources.StringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.tab_compact
@@ -31,7 +32,9 @@ import trade_buddy.composeapp.generated.resources.tab_trend
 enum class AppScreen {
     SunMoon,
     AstroCalendar,
-    Settings
+    Settings,
+    Logs,
+    TimeOptimizer
 }
 
 enum class SunMoonTab(val label: StringResource) {
@@ -72,6 +75,25 @@ data class AstroCalendarUiState(
     val error: StringResource? = null
 )
 
+data class TimeOptimizerDayRow(
+    val date: LocalDate,
+    val sunrise: ZonedDateTime?,
+    val sunset: ZonedDateTime?,
+    val moonrise: ZonedDateTime?,
+    val moonset: ZonedDateTime?,
+    val astroEventCount: Int,
+    val firstAstroInstant: Instant?,
+    val lastAstroInstant: Instant?
+)
+
+data class TimeOptimizerUiState(
+    val month: YearMonth,
+    val selectedCityKey: String? = null,
+    val rows: List<TimeOptimizerDayRow> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: StringResource? = null
+)
+
 data class SunMoonUiState(
     val selectedDate: LocalDate,
     val userZone: ZoneId,
@@ -84,6 +106,9 @@ data class SunMoonUiState(
     val selectedTab: SunMoonTab = SunMoonTab.Compact,
     val selectedAstroTab: AstroCalendarTab = AstroCalendarTab.Aspects,
     val nowInstant: Instant = Instant.now(),
+    val sunTimeOffsetMinutes: Int = 0,
+    val moonTimeOffsetMinutes: Int = 0,
+    val astroTimeOffsetMinutes: Int = 0,
     val showUtcTime: Boolean = true,
     val showAzimuth: Boolean = true,
     val showSun: Boolean = true,
@@ -96,6 +121,7 @@ data class SunMoonUiState(
     val filteredResults: List<SunMoonTimes> = emptyList(),
     val compactSourceResults: List<SunMoonTimes> = emptyList(),
     val compactEvents: List<CompactEvent> = emptyList(),
+    val timeOptimizer: TimeOptimizerUiState = TimeOptimizerUiState(month = YearMonth.from(selectedDate)),
     val stats: List<StatEntry> = emptyList(),
     val isLoading: Boolean = false,
     val error: StringResource? = null,

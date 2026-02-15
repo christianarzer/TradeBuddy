@@ -53,8 +53,10 @@ import de.tradebuddy.presentation.AppScreen
 import de.tradebuddy.presentation.SunMoonUiState
 import de.tradebuddy.presentation.SunMoonViewModel
 import de.tradebuddy.ui.screens.AstroCalendarScreen
+import de.tradebuddy.ui.screens.LogsConsoleScreen
 import de.tradebuddy.ui.screens.SettingsScreen
 import de.tradebuddy.ui.screens.SunMoonScreen
+import de.tradebuddy.ui.screens.TimeOptimizerScreen
 import de.tradebuddy.ui.theme.AppTheme
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
@@ -175,6 +177,8 @@ private fun AppScaffold(
                                 AppScreen.SunMoon -> SunMoonScreen(state = state, viewModel = viewModel)
                                 AppScreen.AstroCalendar -> AstroCalendarScreen(state = state, viewModel = viewModel)
                                 AppScreen.Settings -> SettingsScreen(state = state, viewModel = viewModel)
+                                AppScreen.Logs -> LogsConsoleScreen(viewModel = viewModel)
+                                AppScreen.TimeOptimizer -> TimeOptimizerScreen(state = state, viewModel = viewModel)
                             }
                         }
                     }
@@ -280,7 +284,9 @@ private fun AppNavigationRail(
             }
         )
         NavigationRailItem(
-            selected = screen == AppScreen.Settings,
+            selected = screen == AppScreen.Settings ||
+                screen == AppScreen.Logs ||
+                screen == AppScreen.TimeOptimizer,
             onClick = { onScreenChange(AppScreen.Settings) },
             icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
             label = { Text(stringResource(Res.string.nav_settings)) }
@@ -325,7 +331,9 @@ private fun AppBottomBar(
             label = { Text(stringResource(Res.string.nav_astro_calendar)) }
         )
         NavigationBarItem(
-            selected = screen == AppScreen.Settings,
+            selected = screen == AppScreen.Settings ||
+                screen == AppScreen.Logs ||
+                screen == AppScreen.TimeOptimizer,
             onClick = { onScreenChange(AppScreen.Settings) },
             icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
             label = { Text(stringResource(Res.string.nav_settings)) }

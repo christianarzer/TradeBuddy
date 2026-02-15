@@ -1,5 +1,8 @@
 package de.tradebuddy.logging
 
-import kotlinx.browser.window
+@JsName("Date")
+private external object JsDateCtor {
+    fun now(): Double
+}
 
-internal actual fun nowEpochMillis(): Long = window.performance.now().toLong()
+internal actual fun nowEpochMillis(): Long = JsDateCtor.now().toLong()

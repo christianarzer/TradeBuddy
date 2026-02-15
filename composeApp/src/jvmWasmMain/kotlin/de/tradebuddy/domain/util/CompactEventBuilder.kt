@@ -3,6 +3,7 @@ package de.tradebuddy.domain.util
 import de.tradebuddy.domain.model.CompactEvent
 import de.tradebuddy.domain.model.CompactEventType
 import de.tradebuddy.domain.model.SunMoonTimes
+import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -12,7 +13,9 @@ import java.time.temporal.ChronoUnit
 fun buildCompactEvents(
     results: List<SunMoonTimes>,
     userZone: ZoneId,
-    targetDate: LocalDate
+    targetDate: LocalDate,
+    sunTimeOffsetMinutes: Int = 0,
+    moonTimeOffsetMinutes: Int = 0
 ): List<CompactEvent> {
     fun mk(
         r: SunMoonTimes,
@@ -20,19 +23,29 @@ fun buildCompactEvents(
         cityTime: ZonedDateTime?,
         az: Double?
     ): CompactEvent {
-        val userTime = cityTime?.withZoneSameInstant(userZone)
-        val utcTime = cityTime?.withZoneSameInstant(ZoneOffset.UTC)
-        val cityDayOffset = if (cityTime != null) {
-            ChronoUnit.DAYS.between(targetDate, cityTime.toLocalDate()).toInt()
-        } else {
-            0
+        val cityZone = ZoneId.of(r.city.zoneId)
+        val offsetMinutes = when (eventType) {
+            CompactEventType.Sunrise,
+            CompactEventType.Sunset -> sunTimeOffsetMinutes.toLong()
+
+            CompactEventType.Moonrise,
+            CompactEventType.Moonset -> moonTimeOffsetMinutes.toLong()
         }
+        val adjustedCityTime = cityTime
+            ?.toInstant()
+            ?.plus(Duration.ofMinutes(offsetMinutes))
+            ?.atZone(cityZone)
+        val userTime = adjustedCityTime?.withZoneSameInstant(userZone)
+        val utcTime = adjustedCityTime?.withZoneSameInstant(ZoneOffset.UTC)
+        val cityDayOffset = adjustedCityTime?.let {
+            ChronoUnit.DAYS.between(targetDate, it.toLocalDate()).toInt()
+        } ?: 0
         return CompactEvent(
             cityLabel = r.city.label,
             cityKey = r.city.key(),
             eventType = eventType,
             azimuthDeg = az,
-            cityTime = cityTime,
+            cityTime = adjustedCityTime,
             userTime = userTime,
             utcTime = utcTime,
             userInstant = userTime?.toInstant(),

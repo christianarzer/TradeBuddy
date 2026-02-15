@@ -469,6 +469,7 @@ fun AstroCalendarScreen(
                                 selectedDate = state.selectedDate,
                                 nowInstant = state.nowInstant,
                                 zoneId = state.userZone,
+                                astroTimeOffsetMinutes = state.astroTimeOffsetMinutes,
                                 dateFmt = dateFmt,
                                 timeFmt = preciseTimeFmt,
                                 orbDegrees = astroState.aspectOrbs[event.aspectType]
@@ -540,11 +541,13 @@ private fun AstroEventRow(
     selectedDate: LocalDate,
     nowInstant: Instant,
     zoneId: ZoneId,
+    astroTimeOffsetMinutes: Int,
     dateFmt: DateTimeFormatter,
     timeFmt: DateTimeFormatter,
     orbDegrees: Double
 ) {
-    val status = eventStatus(nowInstant = nowInstant, exactInstant = event.exactInstant)
+    val adjustedExactInstant = event.exactInstant.plus(Duration.ofMinutes(astroTimeOffsetMinutes.toLong()))
+    val status = eventStatus(nowInstant = nowInstant, exactInstant = adjustedExactInstant)
     val statusLabel = when (status) {
         AstroEventStatus.Upcoming -> stringResource(Res.string.astro_status_upcoming)
         AstroEventStatus.Exact -> stringResource(Res.string.astro_status_exact)
@@ -556,19 +559,19 @@ private fun AstroEventRow(
         AstroEventStatus.Passed -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
-    val exactLocal = event.exactInstant.formatForDay(
+    val exactLocal = adjustedExactInstant.formatForDay(
         selectedDate = selectedDate,
         zoneId = zoneId,
         dateFmt = dateFmt,
         timeFmt = timeFmt
     )
-    val exactUtc = event.exactInstant.formatForDay(
+    val exactUtc = adjustedExactInstant.formatForDay(
         selectedDate = selectedDate,
         zoneId = ZoneOffset.UTC,
         dateFmt = dateFmt,
         timeFmt = timeFmt
     )
-    val countdown = countdownState(nowInstant, event.exactInstant)
+    val countdown = countdownState(nowInstant, adjustedExactInstant)
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),

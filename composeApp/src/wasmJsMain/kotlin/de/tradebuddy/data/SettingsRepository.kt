@@ -18,6 +18,9 @@ data class SettingsSnapshot(
     val themeStyle: AppThemeStyle?,
     val themeMode: AppThemeMode?,
     val selectedCityKeys: Set<String>?,
+    val sunTimeOffsetMinutes: Int?,
+    val moonTimeOffsetMinutes: Int?,
+    val astroTimeOffsetMinutes: Int?,
     val showUtcTime: Boolean?,
     val showAzimuth: Boolean?,
     val showSun: Boolean?,
@@ -52,6 +55,9 @@ class FileSettingsRepository(
             val showMoon = props["showMoon"]?.toBooleanStrictOrNull()
             val showRise = props["showRise"]?.toBooleanStrictOrNull()
             val showSet = props["showSet"]?.toBooleanStrictOrNull()
+            val sunTimeOffsetMinutes = props["sunTimeOffsetMinutes"]?.toIntOrNull()
+            val moonTimeOffsetMinutes = props["moonTimeOffsetMinutes"]?.toIntOrNull()
+            val astroTimeOffsetMinutes = props["astroTimeOffsetMinutes"]?.toIntOrNull()
             val selectedCityKeys = props["selectedCities"]
                 ?.split(';')
                 ?.map { it.trim() }
@@ -63,6 +69,9 @@ class FileSettingsRepository(
                 themeStyle = themeStyle,
                 themeMode = themeMode,
                 selectedCityKeys = selectedCityKeys,
+                sunTimeOffsetMinutes = sunTimeOffsetMinutes,
+                moonTimeOffsetMinutes = moonTimeOffsetMinutes,
+                astroTimeOffsetMinutes = astroTimeOffsetMinutes,
                 showUtcTime = showUtcTime,
                 showAzimuth = showAzimuth,
                 showSun = showSun,
@@ -86,6 +95,9 @@ class FileSettingsRepository(
                 "themeStyle" to settings.themeStyle.key,
                 "themeMode" to settings.themeMode.key,
                 "selectedCities" to settings.selectedCityKeys.joinToString(";"),
+                "sunTimeOffsetMinutes" to settings.sunTimeOffsetMinutes.toString(),
+                "moonTimeOffsetMinutes" to settings.moonTimeOffsetMinutes.toString(),
+                "astroTimeOffsetMinutes" to settings.astroTimeOffsetMinutes.toString(),
                 "showUtcTime" to settings.showUtcTime.toString(),
                 "showAzimuth" to settings.showAzimuth.toString(),
                 "showSun" to settings.showSun.toString(),

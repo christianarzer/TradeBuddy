@@ -16,6 +16,7 @@ import de.tradebuddy.domain.model.AstroWeekDaySummary
 import de.tradebuddy.domain.model.ASTRO_MAX_ORB_DEGREES
 import de.tradebuddy.domain.model.ASTRO_MIN_ORB_DEGREES
 import de.tradebuddy.domain.model.ASTRO_ORB_STEP_DEGREES
+import de.tradebuddy.domain.model.City
 import de.tradebuddy.domain.model.CompactEvent
 import de.tradebuddy.domain.model.CompactEventType
 import de.tradebuddy.domain.model.DEFAULT_ASTRO_ASPECT_ORBS
@@ -91,6 +92,25 @@ class SunMoonViewModel(
         _state.update { it.copy(screen = screen) }
     }
 
+    fun openLogsConsole() {
+        setScreen(AppScreen.Logs)
+    }
+
+    fun openTimeOptimizer() {
+        _state.update { current ->
+            val month = YearMonth.from(current.selectedDate)
+            val cityKey = resolveTimeOptimizerCity(current, current.timeOptimizer.selectedCityKey)?.key()
+            current.copy(
+                screen = AppScreen.TimeOptimizer,
+                timeOptimizer = current.timeOptimizer.copy(
+                    month = month,
+                    selectedCityKey = cityKey
+                )
+            )
+        }
+        refreshTimeOptimizerMonth()
+    }
+
     fun toggleTheme() {
         val current = _state.value.themeMode
         val next = if (current == AppThemeMode.Dark) AppThemeMode.Light else AppThemeMode.Dark
@@ -138,6 +158,63 @@ class SunMoonViewModel(
 
     fun setShowSet(enabled: Boolean) {
         _state.update { it.copy(showSet = enabled) }
+        applyFilters()
+        persistSettings()
+    }
+
+    fun shiftSunTimeOffset(deltaMinutes: Int) {
+        _state.update { current ->
+            val next = clampOffsetMinutes(current.sunTimeOffsetMinutes + deltaMinutes)
+            if (next == current.sunTimeOffsetMinutes) {
+                current
+            } else {
+                current.copy(sunTimeOffsetMinutes = next)
+            }
+        }
+        applyFilters()
+        persistSettings()
+    }
+
+    fun shiftMoonTimeOffset(deltaMinutes: Int) {
+        _state.update { current ->
+            val next = clampOffsetMinutes(current.moonTimeOffsetMinutes + deltaMinutes)
+            if (next == current.moonTimeOffsetMinutes) {
+                current
+            } else {
+                current.copy(moonTimeOffsetMinutes = next)
+            }
+        }
+        applyFilters()
+        persistSettings()
+    }
+
+    fun shiftAstroTimeOffset(deltaMinutes: Int) {
+        _state.update { current ->
+            val next = clampOffsetMinutes(current.astroTimeOffsetMinutes + deltaMinutes)
+            if (next == current.astroTimeOffsetMinutes) {
+                current
+            } else {
+                current.copy(astroTimeOffsetMinutes = next)
+            }
+        }
+        persistSettings()
+    }
+
+    fun resetTimeOffsets() {
+        val current = _state.value
+        if (current.sunTimeOffsetMinutes == 0 &&
+            current.moonTimeOffsetMinutes == 0 &&
+            current.astroTimeOffsetMinutes == 0
+        ) {
+            return
+        }
+        _state.update {
+            it.copy(
+                sunTimeOffsetMinutes = 0,
+                moonTimeOffsetMinutes = 0,
+                astroTimeOffsetMinutes = 0
+            )
+        }
         applyFilters()
         persistSettings()
     }
@@ -297,9 +374,16 @@ class SunMoonViewModel(
     }
 
     fun applyCityFilter(keys: Set<String>) {
-        _state.update { it.copy(selectedCityKeys = keys) }
+        _state.update { current ->
+            val updated = current.copy(selectedCityKeys = keys)
+            val cityKey = resolveTimeOptimizerCity(updated, current.timeOptimizer.selectedCityKey)?.key()
+            updated.copy(timeOptimizer = updated.timeOptimizer.copy(selectedCityKey = cityKey))
+        }
         applyFilters()
         persistSettings()
+        if (_state.value.screen == AppScreen.TimeOptimizer) {
+            refreshTimeOptimizerMonth()
+        }
     }
 
     fun shiftDate(days: Long) {
@@ -317,12 +401,104 @@ class SunMoonViewModel(
         setDate(targetMonth.atDay(clampedDay))
     }
 
+    fun shiftTimeOptimizerMonth(delta: Long) {
+        _state.update { current ->
+            current.copy(
+                timeOptimizer = current.timeOptimizer.copy(
+                    month = current.timeOptimizer.month.plusMonths(delta)
+                )
+            )
+        }
+        refreshTimeOptimizerMonth()
+    }
+
+    fun setTimeOptimizerCity(cityKey: String) {
+        _state.update { current ->
+            current.copy(
+                timeOptimizer = current.timeOptimizer.copy(selectedCityKey = cityKey)
+            )
+        }
+        refreshTimeOptimizerMonth()
+    }
+
+    fun refreshTimeOptimizerMonth() {
+        scope.launch {
+            val snapshot = _state.value
+            val month = snapshot.timeOptimizer.month
+            val city = resolveTimeOptimizerCity(snapshot, snapshot.timeOptimizer.selectedCityKey)
+            if (city == null) {
+                _state.update { current ->
+                    current.copy(
+                        timeOptimizer = current.timeOptimizer.copy(
+                            isLoading = false,
+                            rows = emptyList(),
+                            error = Res.string.error_no_cities
+                        )
+                    )
+                }
+                return@launch
+            }
+
+            _state.update { current ->
+                current.copy(
+                    timeOptimizer = current.timeOptimizer.copy(
+                        selectedCityKey = city.key(),
+                        isLoading = true,
+                        error = null
+                    )
+                )
+            }
+
+            runCatching {
+                loadTimeOptimizerMonth(
+                    month = month,
+                    city = city,
+                    zoneId = snapshot.userZone,
+                    aspectOrbs = snapshot.astroCalendar.aspectOrbs,
+                    scope = snapshot.astroCalendar.scope
+                )
+            }.onSuccess { rows ->
+                val current = _state.value
+                if (month != current.timeOptimizer.month) return@launch
+                _state.update { current ->
+                    current.copy(
+                        timeOptimizer = current.timeOptimizer.copy(
+                            selectedCityKey = city.key(),
+                            rows = rows,
+                            isLoading = false,
+                            error = null
+                        )
+                    )
+                }
+            }.onFailure { error ->
+                AppLog.error(
+                    tag = "SunMoonViewModel",
+                    message = "Failed to load time optimizer for $month (${city.label})",
+                    throwable = error
+                )
+                val current = _state.value
+                if (month != current.timeOptimizer.month) return@launch
+                _state.update { current ->
+                    current.copy(
+                        timeOptimizer = current.timeOptimizer.copy(
+                            selectedCityKey = city.key(),
+                            rows = emptyList(),
+                            isLoading = false,
+                            error = Res.string.error_calc
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     fun setDate(date: LocalDate) {
         _state.update {
             it.copy(
                 selectedDate = date,
                 trend = it.trend.copy(month = YearMonth.from(date)),
-                moonPhases = it.moonPhases.copy(month = YearMonth.from(date))
+                moonPhases = it.moonPhases.copy(month = YearMonth.from(date)),
+                timeOptimizer = it.timeOptimizer.copy(month = YearMonth.from(date))
             )
         }
         refresh()
@@ -333,6 +509,9 @@ class SunMoonViewModel(
         }
         if (_state.value.selectedAstroTab == AstroCalendarTab.MoonPhases) {
             loadMoonPhases(YearMonth.from(date))
+        }
+        if (_state.value.screen == AppScreen.TimeOptimizer) {
+            refreshTimeOptimizerMonth()
         }
     }
 
@@ -382,7 +561,13 @@ class SunMoonViewModel(
                 current.results
             }
             val compactFiltered = compactBase.filter { it.city.key() in current.selectedCityKeys }
-            val compact = buildCompactEvents(compactFiltered, current.userZone, current.selectedDate)
+            val compact = buildCompactEvents(
+                results = compactFiltered,
+                userZone = current.userZone,
+                targetDate = current.selectedDate,
+                sunTimeOffsetMinutes = current.sunTimeOffsetMinutes,
+                moonTimeOffsetMinutes = current.moonTimeOffsetMinutes
+            )
                 .filter { shouldIncludeEvent(it, current) }
                 .sortedWith(
                     compareBy<CompactEvent> { it.userInstant ?: Instant.MAX }
@@ -557,6 +742,34 @@ class SunMoonViewModel(
         )
     }
 
+    private suspend fun loadTimeOptimizerMonth(
+        month: YearMonth,
+        city: City,
+        zoneId: ZoneId,
+        aspectOrbs: Map<AstroAspectType, Double>,
+        scope: AstroCalendarScope
+    ): List<TimeOptimizerDayRow> = coroutineScope {
+        val days = (1..month.lengthOfMonth()).map { month.atDay(it) }
+        val jobs = days.associateWith { day ->
+            async {
+                val sunMoon = repository.loadCityDay(day, city)
+                val astro = astroCalendarRepository.loadDay(day, zoneId, aspectOrbs, scope)
+                    .sortedBy { it.exactInstant }
+                TimeOptimizerDayRow(
+                    date = day,
+                    sunrise = sunMoon.sunrise,
+                    sunset = sunMoon.sunset,
+                    moonrise = sunMoon.moonrise,
+                    moonset = sunMoon.moonset,
+                    astroEventCount = astro.size,
+                    firstAstroInstant = astro.firstOrNull()?.exactInstant,
+                    lastAstroInstant = astro.lastOrNull()?.exactInstant
+                )
+            }
+        }
+        days.map { day -> jobs.getValue(day).await() }
+    }
+
     private data class AstroLoadResult(
         val dayEvents: List<AstroAspectEvent>,
         val weekSummaries: List<AstroWeekDaySummary>
@@ -583,16 +796,25 @@ class SunMoonViewModel(
                     savedKeys.isNotEmpty() && filteredKeys.isNullOrEmpty() -> current.selectedCityKeys
                     else -> filteredKeys ?: current.selectedCityKeys
                 }
+                val withResolvedKeys = current.copy(selectedCityKeys = resolvedKeys)
+                val optimizerCityKey = resolveTimeOptimizerCity(
+                    withResolvedKeys,
+                    current.timeOptimizer.selectedCityKey
+                )?.key()
                 current.copy(
                     themeStyle = snapshot.themeStyle ?: current.themeStyle,
                     themeMode = snapshot.themeMode ?: current.themeMode,
                     selectedCityKeys = resolvedKeys,
+                    sunTimeOffsetMinutes = snapshot.sunTimeOffsetMinutes ?: current.sunTimeOffsetMinutes,
+                    moonTimeOffsetMinutes = snapshot.moonTimeOffsetMinutes ?: current.moonTimeOffsetMinutes,
+                    astroTimeOffsetMinutes = snapshot.astroTimeOffsetMinutes ?: current.astroTimeOffsetMinutes,
                     showUtcTime = snapshot.showUtcTime ?: current.showUtcTime,
                     showAzimuth = snapshot.showAzimuth ?: current.showAzimuth,
                     showSun = snapshot.showSun ?: current.showSun,
                     showMoon = snapshot.showMoon ?: current.showMoon,
                     showRise = snapshot.showRise ?: current.showRise,
                     showSet = snapshot.showSet ?: current.showSet,
+                    timeOptimizer = current.timeOptimizer.copy(selectedCityKey = optimizerCityKey),
                     astroCalendar = current.astroCalendar.copy(
                         aspectOrbs = snapshot.aspectOrbs ?: current.astroCalendar.aspectOrbs
                     )
@@ -627,6 +849,9 @@ class SunMoonViewModel(
                         themeStyle = current.themeStyle,
                         themeMode = current.themeMode,
                         selectedCityKeys = current.selectedCityKeys,
+                        sunTimeOffsetMinutes = current.sunTimeOffsetMinutes,
+                        moonTimeOffsetMinutes = current.moonTimeOffsetMinutes,
+                        astroTimeOffsetMinutes = current.astroTimeOffsetMinutes,
                         showUtcTime = current.showUtcTime,
                         showAzimuth = current.showAzimuth,
                         showSun = current.showSun,
@@ -644,6 +869,19 @@ class SunMoonViewModel(
                 )
             }
         }
+    }
+
+    private fun clampOffsetMinutes(value: Int): Int = value.coerceIn(-720, 720)
+
+    private fun resolveTimeOptimizerCity(
+        state: SunMoonUiState,
+        preferredKey: String?
+    ): City? {
+        val selected = state.allCities.filter { it.key() in state.selectedCityKeys }
+        val candidates = if (selected.isNotEmpty()) selected else state.allCities
+        return preferredKey?.let { key ->
+            candidates.firstOrNull { it.key() == key }
+        } ?: candidates.firstOrNull()
     }
 
     private fun sanitizeAspectOrb(rawOrb: Double): Double {

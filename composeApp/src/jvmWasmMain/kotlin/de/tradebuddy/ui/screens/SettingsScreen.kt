@@ -2,8 +2,8 @@ package de.tradebuddy.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.LocationCity
 import androidx.compose.material.icons.outlined.Search
@@ -30,17 +31,14 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,16 +49,9 @@ import de.tradebuddy.domain.model.AppThemeMode
 import de.tradebuddy.domain.model.AppThemeStyle
 import de.tradebuddy.domain.model.City
 import de.tradebuddy.domain.util.key
-import de.tradebuddy.logging.AppLog
-import de.tradebuddy.logging.AppLogEntry
 import de.tradebuddy.presentation.SunMoonUiState
 import de.tradebuddy.presentation.SunMoonViewModel
-import de.tradebuddy.ui.components.rememberCopyTextToClipboard
 import de.tradebuddy.ui.theme.previewColorsFor
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.nav_settings
@@ -68,10 +59,16 @@ import trade_buddy.composeapp.generated.resources.settings_active_count
 import trade_buddy.composeapp.generated.resources.settings_cities_desc
 import trade_buddy.composeapp.generated.resources.settings_cities_empty
 import trade_buddy.composeapp.generated.resources.settings_cities_search
+import trade_buddy.composeapp.generated.resources.settings_logs_desc
+import trade_buddy.composeapp.generated.resources.settings_logs_open
+import trade_buddy.composeapp.generated.resources.settings_logs_title
+import trade_buddy.composeapp.generated.resources.settings_open_settings_dir
+import trade_buddy.composeapp.generated.resources.settings_open_stats_dir
 import trade_buddy.composeapp.generated.resources.settings_section_cities
 import trade_buddy.composeapp.generated.resources.settings_section_compact
 import trade_buddy.composeapp.generated.resources.settings_section_storage
 import trade_buddy.composeapp.generated.resources.settings_section_themes
+import trade_buddy.composeapp.generated.resources.settings_section_tools
 import trade_buddy.composeapp.generated.resources.settings_select_all
 import trade_buddy.composeapp.generated.resources.settings_select_none
 import trade_buddy.composeapp.generated.resources.settings_show_azimuth
@@ -91,18 +88,12 @@ import trade_buddy.composeapp.generated.resources.settings_storage_path
 import trade_buddy.composeapp.generated.resources.settings_subtitle
 import trade_buddy.composeapp.generated.resources.settings_theme_mode
 import trade_buddy.composeapp.generated.resources.settings_theme_mode_desc
+import trade_buddy.composeapp.generated.resources.settings_time_optimizer_desc
+import trade_buddy.composeapp.generated.resources.settings_time_optimizer_open
+import trade_buddy.composeapp.generated.resources.settings_time_optimizer_title
 import trade_buddy.composeapp.generated.resources.settings_title
 import trade_buddy.composeapp.generated.resources.settings_themes_desc
-import trade_buddy.composeapp.generated.resources.settings_open_settings_dir
-import trade_buddy.composeapp.generated.resources.settings_open_stats_dir
-import trade_buddy.composeapp.generated.resources.settings_logs_clear
-import trade_buddy.composeapp.generated.resources.settings_logs_copy
-import trade_buddy.composeapp.generated.resources.settings_logs_desc
-import trade_buddy.composeapp.generated.resources.settings_logs_empty
-import trade_buddy.composeapp.generated.resources.settings_logs_title
 import trade_buddy.composeapp.generated.resources.tab_statistics
-import trade_buddy.composeapp.generated.resources.settings_tab_general
-import trade_buddy.composeapp.generated.resources.settings_tab_logs
 import trade_buddy.composeapp.generated.resources.theme_active
 import trade_buddy.composeapp.generated.resources.theme_arctic
 import trade_buddy.composeapp.generated.resources.theme_aurora
@@ -127,10 +118,7 @@ fun SettingsScreen(
     val scroll = rememberScrollState()
     val cityScroll = rememberScrollState()
     var cityQuery by rememberSaveable { mutableStateOf("") }
-    var selectedTab by rememberSaveable { mutableStateOf(SettingsTab.General) }
     val storageUi = remember { settingsStorageSectionUi() }
-    val logEntries by AppLog.entries.collectAsState()
-    val copyToClipboard = rememberCopyTextToClipboard()
 
     Column(
         modifier = Modifier
@@ -151,21 +139,7 @@ fun SettingsScreen(
             )
         }
 
-        PrimaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-            Tab(
-                selected = selectedTab == SettingsTab.General,
-                onClick = { selectedTab = SettingsTab.General },
-                text = { Text(stringResource(Res.string.settings_tab_general)) }
-            )
-            Tab(
-                selected = selectedTab == SettingsTab.Logs,
-                onClick = { selectedTab = SettingsTab.Logs },
-                text = { Text(stringResource(Res.string.settings_tab_logs)) }
-            )
-        }
-
-        if (selectedTab == SettingsTab.General) {
-            ElevatedCard(Modifier.fillMaxWidth()) {
+        ElevatedCard(Modifier.fillMaxWidth()) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -349,6 +323,34 @@ fun SettingsScreen(
             }
         }
 
+        ElevatedCard(Modifier.fillMaxWidth()) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                SectionHeader(
+                    icon = Icons.Outlined.FolderOpen,
+                    title = stringResource(Res.string.settings_section_tools)
+                )
+                ToolEntryCard(
+                    icon = Icons.Outlined.Search,
+                    title = stringResource(Res.string.settings_logs_title),
+                    subtitle = stringResource(Res.string.settings_logs_desc),
+                    buttonLabel = stringResource(Res.string.settings_logs_open),
+                    onOpen = viewModel::openLogsConsole
+                )
+                ToolEntryCard(
+                    icon = Icons.Outlined.DateRange,
+                    title = stringResource(Res.string.settings_time_optimizer_title),
+                    subtitle = stringResource(Res.string.settings_time_optimizer_desc),
+                    buttonLabel = stringResource(Res.string.settings_time_optimizer_open),
+                    onOpen = viewModel::openTimeOptimizer
+                )
+            }
+        }
+
         if (storageUi.visible) {
             ElevatedCard(Modifier.fillMaxWidth()) {
                 Column(
@@ -386,130 +388,53 @@ fun SettingsScreen(
                 }
             }
         }
-        } else {
-            SettingsLogsSection(
-                entries = logEntries,
-                onClear = AppLog::clear,
-                onCopy = {
-                    val payload = buildString {
-                        logEntries.forEach { entry ->
-                            append(formatLogEntry(entry))
-                            if (!entry.details.isNullOrBlank()) {
-                                append('\n')
-                                append(entry.details)
-                            }
-                            append("\n\n")
-                        }
-                    }.trim()
-                    if (payload.isNotEmpty()) {
-                        copyToClipboard(payload)
-                    }
-                }
-            )
-        }
     }
-}
-
-private enum class SettingsTab {
-    General,
-    Logs
 }
 
 @Composable
-private fun SettingsLogsSection(
-    entries: List<AppLogEntry>,
-    onClear: () -> Unit,
-    onCopy: () -> Unit
+private fun ToolEntryCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    buttonLabel: String,
+    onOpen: () -> Unit
 ) {
-    ElevatedCard(Modifier.fillMaxWidth()) {
-        Column(
-            Modifier
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SectionHeader(
-                icon = Icons.Outlined.FolderOpen,
-                title = stringResource(Res.string.settings_logs_title),
-                subtitle = stringResource(Res.string.settings_logs_desc)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
             )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                OutlinedButton(
-                    onClick = onCopy,
-                    enabled = entries.isNotEmpty()
-                ) {
-                    Text(stringResource(Res.string.settings_logs_copy))
-                }
-                OutlinedButton(
-                    onClick = onClear,
-                    enabled = entries.isNotEmpty()
-                ) {
-                    Text(stringResource(Res.string.settings_logs_clear))
-                }
-            }
-
-            if (entries.isEmpty()) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
                 Text(
-                    stringResource(Res.string.settings_logs_empty),
+                    subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    entries.asReversed().forEach { entry ->
-                        OutlinedCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.outlinedCardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    formatLogEntry(entry),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                if (!entry.details.isNullOrBlank()) {
-                                    Text(
-                                        entry.details,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+            }
+            OutlinedButton(onClick = onOpen) {
+                Text(buttonLabel)
             }
         }
     }
 }
-
-private fun formatLogEntry(entry: AppLogEntry): String {
-    val timestamp = Instant.ofEpochMilli(entry.timestampMillis)
-        .atZone(ZoneId.systemDefault())
-        .format(LogTimeFormatter)
-    return "$timestamp [${entry.level.name}] ${entry.tag}: ${entry.message}"
-}
-
-private val LogTimeFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT)
 
 @Composable
 private fun ThemeGrid(
@@ -810,4 +735,3 @@ private fun StorageRow(
         }
     }
 }
-
