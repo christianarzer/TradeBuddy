@@ -10,6 +10,7 @@ materialIconsCore = "1.7.3"
 navigationCompose = "2.9.2"
 lifecycleCompose = "2.9.6"
 astronomy = "2.1.19"
+kotlinxDatetime = "0.7.1"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
@@ -26,6 +27,7 @@ material-icons-core = { module = "org.jetbrains.compose.material:material-icons-
 material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsCore" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 astronomy-engine = { module = "com.github.cosinekitty:astronomy", version.ref = "astronomy" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

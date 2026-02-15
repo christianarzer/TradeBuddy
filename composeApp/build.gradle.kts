@@ -61,6 +61,7 @@ kotlin {
                 implementation(libs.lifecycle.runtime.compose)
                 implementation(libs.material.icons.core)
                 implementation(libs.material.icons.extended)
+                implementation(libs.kotlinx.datetime)
             }
         }
 
@@ -97,6 +98,9 @@ kotlin {
 
         val wasmJsMain by getting {
             dependsOn(commonMain)
+            dependencies {
+                implementation(npm("astronomy-engine", "2.1.19"))
+            }
         }
     }
 }
