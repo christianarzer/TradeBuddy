@@ -45,6 +45,8 @@ Dieses Dokument beschreibt den empfohlenen Ablauf fuer Issues, Branches und Pull
   - `./gradlew :androidApp:assembleDebug`
 - Desktop-Build/Run:
   - `./gradlew :composeApp:run`
+- Web-Build:
+  - `./gradlew :composeApp:wasmJsBrowserDistribution`
 
 Wenn ein Check lokal nicht moeglich ist, bitte im PR begruenden.
 

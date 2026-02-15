@@ -9,6 +9,7 @@ Der Fokus liegt auf schnellen Tagesuebersichten, filterbaren Ereignissen und lok
 
 - Voll funktionsfaehig: Desktop (JVM) und Android
 - iOS: aktuell Platzhalteransicht (kein voller Feature-Umfang wie Desktop/Android)
+- Web (Wasm): online verfuegbare Browser-Version mit eigener UI
 
 ## Wichtigste Features (aktuell)
 
@@ -48,7 +49,7 @@ Der Fokus liegt auf schnellen Tagesuebersichten, filterbaren Ereignissen und lok
 
 ## Projektstruktur
 
-- `composeApp/` Gemeinsame App-Logik und UI (inkl. Desktop/Android/iOS target code)
+- `composeApp/` Gemeinsame App-Logik und UI (inkl. Desktop/Android/iOS/Web target code)
 - `androidApp/` Android-App-Modul
 - `iosApp/` iOS-Hostprojekt
 - `.github/workflows/` CI-Workflows
@@ -80,11 +81,28 @@ cd iosApp
 xcodebuild -scheme iosApp -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
 ```
 
+### Web Distribution bauen
+
+```bash
+./gradlew :composeApp:wasmJsBrowserDistribution
+```
+
+Ausgabe:
+
+- `composeApp/build/dist/wasmJs/productionExecutable`
+
 ## Release und spaeteres Hosting
 
 - Quellcode-Hosting: GitHub Repository
 - Artefakte: GitHub Releases (z. B. Desktop-Builds, Android APK/AAB)
 - Die Desktop-Distributionen koennen ueber Compose/Gradle erzeugt werden.
+
+### Web online oeffnen
+
+Die Web-Version wird per GitHub Pages ausgerollt.
+
+- Erwartete URL: `https://christianarzer.github.io/TradeBuddy/`
+- Deployment-Workflow: `.github/workflows/deploy-web-pages.yml`
 
 ### Tag-basierter Release-Prozess
 
@@ -114,7 +132,7 @@ Dieses Repo enthaelt wichtige Kollaborationsdateien:
 - `.github/ISSUE_TEMPLATE/` Vorlagen fuer Bug- und Feature-Issues
 - `.github/pull_request_template.md` PR-Checkliste
 - `.github/dependabot.yml` automatische Dependency-Updates
-- `.github/workflows/` CI fuer Android und iOS
+- `.github/workflows/` CI fuer Android, iOS, Desktop und Web
 
 ## Lizenz
 
