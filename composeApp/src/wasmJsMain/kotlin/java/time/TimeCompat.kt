@@ -239,19 +239,39 @@ private fun systemTimeZoneId(): String {
 private fun String.isUsableSystemZoneId(): Boolean =
     isNotBlank() &&
         !equals("SYSTEM", ignoreCase = true) &&
-        !equals("Etc/Unknown", ignoreCase = true) &&
-        !equals("Z", ignoreCase = true) &&
-        !OffsetZoneRegex.matches(this)
+        !equals("Etc/Unknown", ignoreCase = true)
 
 private val OffsetZoneRegex = Regex("^[+-][0-9]{2}:[0-9]{2}$")
+private val UtcOffsetZoneRegex = Regex("^(?:UTC|GMT)([+-][0-9]{2}:[0-9]{2})$", RegexOption.IGNORE_CASE)
+private val ZeroZuluRegex = Regex("^Z$", RegexOption.IGNORE_CASE)
 
 private fun normalizedTimeZoneId(candidate: String?): String? {
     val value = candidate?.takeIf { it.isUsableSystemZoneId() } ?: return null
+    if (ZeroZuluRegex.matches(value)) return "UTC"
+    UtcOffsetZoneRegex.matchEntire(value)?.groupValues?.getOrNull(1)?.let { return "UTC$it" }
+    if (OffsetZoneRegex.matches(value)) return "UTC$value"
     return runCatching { TimeZone.of(value).id }.getOrNull()
 }
 
 private fun parseTimeZone(id: String): TimeZone =
-    runCatching { TimeZone.of(id) }.getOrElse { TimeZone.UTC }
+    runCatching { TimeZone.of(id) }
+        .recoverCatching {
+            val normalizedOffsetId = when {
+                ZeroZuluRegex.matches(id) -> "UTC"
+                UtcOffsetZoneRegex.matches(id) -> {
+                    val offset = UtcOffsetZoneRegex.matchEntire(id)!!.groupValues[1]
+                    "UTC$offset"
+                }
+                OffsetZoneRegex.matches(id) -> "UTC$id"
+                else -> null
+            }
+            if (normalizedOffsetId != null) {
+                TimeZone.of(normalizedOffsetId)
+            } else {
+                throw it
+            }
+        }
+        .getOrElse { TimeZone.UTC }
 
 private fun offsetId(totalSeconds: Int): String {
     if (totalSeconds == 0) return "Z"
