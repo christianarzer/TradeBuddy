@@ -1,0 +1,58 @@
+name: Bug Report
+description: Melde einen Fehler in TradeBuddy
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke fuer den Report. Bitte gib so viele reproduzierbare Details wie moeglich an.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Fehlerbeschreibung
+      description: Was ist passiert?
+      placeholder: Kurze, klare Beschreibung des Problems.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zur Reproduktion
+      description: Wie kann man den Fehler reproduzieren?
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+      description: Was sollte stattdessen passieren?
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plattform
+      options:
+        - Desktop
+        - Android
+        - iOS
+        - Sonstiges
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Umgebung
+      description: OS, Version, App-Version, relevante Build-Infos
+      placeholder: z. B. Windows 11, JDK 17, Branch xyz
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs/Screenshots
+      description: Falls vorhanden, relevante Ausgaben oder Screenshots einfuegen
+      render: shell
