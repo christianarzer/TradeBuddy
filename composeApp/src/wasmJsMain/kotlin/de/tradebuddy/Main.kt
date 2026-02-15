@@ -1,12 +1,13 @@
-@file:OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
-
 package de.tradebuddy
 
-import androidx.compose.ui.window.CanvasBasedWindow
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.window.ComposeViewport
 import de.tradebuddy.ui.AppRoot
+import kotlinx.browser.document
 
+@OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    CanvasBasedWindow(title = "TradeBuddy") {
+    ComposeViewport(document.body!!) {
         AppRoot()
     }
 }
