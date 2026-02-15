@@ -207,11 +207,6 @@ external object JsDateCtor {
     fun now(): Double
 }
 
-@JsName("Date")
-external class JsDateInstance {
-    fun getTimezoneOffset(): Double
-}
-
 @JsName("Intl")
 external object JsIntl {
     class DateTimeFormat {
@@ -228,7 +223,6 @@ private fun systemTimeZoneId(): String {
         JsIntl.DateTimeFormat().resolvedOptions().timeZone
     }.getOrNull()
     val normalizedBrowserId = normalizedTimeZoneId(browserId)
-    val browserOffsetZoneId = browserOffsetZoneId()
 
     if (normalizedBrowserId != null && !normalizedBrowserId.equals("UTC", ignoreCase = true)) {
         return normalizedBrowserId
@@ -239,22 +233,17 @@ private fun systemTimeZoneId(): String {
         return systemId
     }
 
-    if (browserOffsetZoneId != null) return browserOffsetZoneId
-
     return "Europe/Berlin"
-}
-
-private fun browserOffsetZoneId(): String? {
-    val minutes = runCatching { JsDateInstance().getTimezoneOffset().toInt() }.getOrNull() ?: return null
-    val totalSeconds = -minutes * 60
-    if (totalSeconds == 0) return null
-    return normalizedTimeZoneId(offsetId(totalSeconds))
 }
 
 private fun String.isUsableSystemZoneId(): Boolean =
     isNotBlank() &&
         !equals("SYSTEM", ignoreCase = true) &&
-        !equals("Etc/Unknown", ignoreCase = true)
+        !equals("Etc/Unknown", ignoreCase = true) &&
+        !equals("Z", ignoreCase = true) &&
+        !OffsetZoneRegex.matches(this)
+
+private val OffsetZoneRegex = Regex("^[+-][0-9]{2}:[0-9]{2}$")
 
 private fun normalizedTimeZoneId(candidate: String?): String? {
     val value = candidate?.takeIf { it.isUsableSystemZoneId() } ?: return null

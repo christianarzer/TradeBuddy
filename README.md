@@ -4,6 +4,8 @@
 [![Build Android](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-android.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-android.yml)
 [![Build Desktop](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-desktop.yml)
 [![Build Web](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-web.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-web.yml)
+[![Deploy Pages](https://github.com/christianarzer/TradeBuddy/actions/workflows/deploy-web-pages.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/deploy-web-pages.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender auf Kotlin Multiplatform.
 
@@ -19,8 +21,8 @@ Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender auf Kotlin Mu
 - Astro-Kalender mit Aspektliste, Orb-Steuerung, Planet-/Aspektfiltern und Countdown
 - Mondphasenansicht pro Monat
 - Statistik mit Up/Down-Bewertung, Offset in Minuten, Filtern und Kennzahlen
-- Settings mit moderner Theme-Auswahl, City-Filter, Log-Konsole und Time-Optimizer
-- Time-Optimizer fuer Sun/Moon/Astro Offsets mit Monatsvorschau
+- Settings mit moderner Theme-Auswahl, City-Filter, Log-Konsole und Monats-Export
+- Monats-Export zum direkten Kopieren von Sun/Moon/Astro Zeiten
 
 ## Platform Status
 
@@ -79,6 +81,18 @@ xcodebuild -scheme iosApp -configuration Debug -destination 'generic/platform=iO
 - Platform Builds: Android/Desktop/iOS/Web in separaten Workflows
 - Web Deploy: `.github/workflows/deploy-web-pages.yml`
 - Tag Release (`v*`): `.github/workflows/release-tag.yml`
+
+### Pipeline Matrix
+
+| Pipeline | Zweck | Workflow |
+| --- | --- | --- |
+| Android | APK Build + Checks | `build-android.yml` |
+| Desktop | JVM Desktop Build | `build-desktop.yml` |
+| Web | Wasm Build | `build-web.yml` |
+| iOS | iOS Host Build | `build-ios.yml` |
+| Quality | Lint/Test/Checks | `quality-checks.yml` |
+| Deploy | GitHub Pages Deployment | `deploy-web-pages.yml` |
+| Release | Tag-basierter Artefakt-Release | `release-tag.yml` |
 
 Beispiel Tag Release:
 

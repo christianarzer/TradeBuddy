@@ -762,6 +762,7 @@ class SunMoonViewModel(
                     moonrise = sunMoon.moonrise,
                     moonset = sunMoon.moonset,
                     astroEventCount = astro.size,
+                    astroInstants = astro.map { it.exactInstant },
                     firstAstroInstant = astro.firstOrNull()?.exactInstant,
                     lastAstroInstant = astro.lastOrNull()?.exactInstant
                 )

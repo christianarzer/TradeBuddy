@@ -10,14 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,10 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.tradebuddy.domain.util.key
 import de.tradebuddy.presentation.AppScreen
+import de.tradebuddy.presentation.TimeOptimizerDayRow
 import de.tradebuddy.presentation.SunMoonUiState
 import de.tradebuddy.presentation.SunMoonViewModel
-import java.time.Duration
+import de.tradebuddy.ui.components.rememberCopyTextToClipboard
 import java.time.ZoneId
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import org.jetbrains.compose.resources.stringResource
@@ -47,14 +44,10 @@ import trade_buddy.composeapp.generated.resources.time_optimizer_col_astro
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_date
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_moon
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_sun
+import trade_buddy.composeapp.generated.resources.time_optimizer_copy_month
 import trade_buddy.composeapp.generated.resources.time_optimizer_empty
 import trade_buddy.composeapp.generated.resources.time_optimizer_month_next
 import trade_buddy.composeapp.generated.resources.time_optimizer_month_prev
-import trade_buddy.composeapp.generated.resources.time_optimizer_offset_astro
-import trade_buddy.composeapp.generated.resources.time_optimizer_offset_moon
-import trade_buddy.composeapp.generated.resources.time_optimizer_offset_sun
-import trade_buddy.composeapp.generated.resources.time_optimizer_offsets_reset
-import trade_buddy.composeapp.generated.resources.time_optimizer_offsets_title
 import trade_buddy.composeapp.generated.resources.time_optimizer_recalculate
 import trade_buddy.composeapp.generated.resources.time_optimizer_subtitle
 import trade_buddy.composeapp.generated.resources.time_optimizer_table_title
@@ -68,6 +61,7 @@ fun TimeOptimizerScreen(
     viewModel: SunMoonViewModel
 ) {
     val optimizerState = state.timeOptimizer
+    val copyToClipboard = rememberCopyTextToClipboard()
     val cityCandidates = remember(state.allCities, state.selectedCityKeys) {
         val selected = state.allCities.filter { it.key() in state.selectedCityKeys }
         if (selected.isEmpty()) state.allCities else selected
@@ -80,6 +74,15 @@ fun TimeOptimizerScreen(
     val timePattern = stringResource(Res.string.format_time_short)
     val timeFmt = remember(timePattern) { DateTimeFormatter.ofPattern(timePattern, Locale.GERMANY) }
     val dash = stringResource(Res.string.value_dash)
+    val exportText = remember(optimizerState.month, selectedCity?.label, displayZone.id, optimizerState.rows, timeFmt) {
+        buildMonthlyExportText(
+            month = optimizerState.month,
+            cityLabel = selectedCity?.label,
+            zone = displayZone,
+            rows = optimizerState.rows,
+            timeFmt = timeFmt
+        )
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -143,45 +146,15 @@ fun TimeOptimizerScreen(
                         )
                     }
                 }
-            }
-        }
-
-        ElevatedCard(Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    stringResource(Res.string.time_optimizer_offsets_title),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                OffsetControlRow(
-                    label = stringResource(Res.string.time_optimizer_offset_sun),
-                    value = state.sunTimeOffsetMinutes,
-                    onDecrease = { viewModel.shiftSunTimeOffset(-1) },
-                    onIncrease = { viewModel.shiftSunTimeOffset(1) }
-                )
-                OffsetControlRow(
-                    label = stringResource(Res.string.time_optimizer_offset_moon),
-                    value = state.moonTimeOffsetMinutes,
-                    onDecrease = { viewModel.shiftMoonTimeOffset(-1) },
-                    onIncrease = { viewModel.shiftMoonTimeOffset(1) }
-                )
-                OffsetControlRow(
-                    label = stringResource(Res.string.time_optimizer_offset_astro),
-                    value = state.astroTimeOffsetMinutes,
-                    onDecrease = { viewModel.shiftAstroTimeOffset(-1) },
-                    onIncrease = { viewModel.shiftAstroTimeOffset(1) }
-                )
-
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(onClick = viewModel::resetTimeOffsets) {
-                        Text(stringResource(Res.string.time_optimizer_offsets_reset))
-                    }
                     OutlinedButton(onClick = viewModel::refreshTimeOptimizerMonth) {
                         Text(stringResource(Res.string.time_optimizer_recalculate))
+                    }
+                    OutlinedButton(
+                        onClick = { copyToClipboard(exportText) },
+                        enabled = optimizerState.rows.isNotEmpty()
+                    ) {
+                        Text(stringResource(Res.string.time_optimizer_copy_month))
                     }
                 }
             }
@@ -217,35 +190,29 @@ fun TimeOptimizerScreen(
                 items(optimizerState.rows, key = { it.date.toString() }) { row ->
                     val sunrise = row.sunrise
                         ?.toInstant()
-                        ?.plus(Duration.ofMinutes(state.sunTimeOffsetMinutes.toLong()))
                         ?.atZone(displayZone)
                         ?.format(timeFmt)
                         ?: dash
                     val sunset = row.sunset
                         ?.toInstant()
-                        ?.plus(Duration.ofMinutes(state.sunTimeOffsetMinutes.toLong()))
                         ?.atZone(displayZone)
                         ?.format(timeFmt)
                         ?: dash
                     val moonrise = row.moonrise
                         ?.toInstant()
-                        ?.plus(Duration.ofMinutes(state.moonTimeOffsetMinutes.toLong()))
                         ?.atZone(displayZone)
                         ?.format(timeFmt)
                         ?: dash
                     val moonset = row.moonset
                         ?.toInstant()
-                        ?.plus(Duration.ofMinutes(state.moonTimeOffsetMinutes.toLong()))
                         ?.atZone(displayZone)
                         ?.format(timeFmt)
                         ?: dash
                     val astroFirst = row.firstAstroInstant
-                        ?.plus(Duration.ofMinutes(state.astroTimeOffsetMinutes.toLong()))
                         ?.atZone(displayZone)
                         ?.toLocalTime()
                         ?.format(timeFmt)
                     val astroLast = row.lastAstroInstant
-                        ?.plus(Duration.ofMinutes(state.astroTimeOffsetMinutes.toLong()))
                         ?.atZone(displayZone)
                         ?.toLocalTime()
                         ?.format(timeFmt)
@@ -291,30 +258,40 @@ fun TimeOptimizerScreen(
     }
 }
 
-@Composable
-private fun OffsetControlRow(
-    label: String,
-    value: Int,
-    onDecrease: () -> Unit,
-    onIncrease: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onDecrease) {
-                Icon(Icons.Outlined.Remove, contentDescription = null)
-            }
-            Text(
-                text = "${value}m",
-                style = MaterialTheme.typography.titleSmall
-            )
-            IconButton(onClick = onIncrease) {
-                Icon(Icons.Outlined.Add, contentDescription = null)
+private fun buildMonthlyExportText(
+    month: YearMonth,
+    cityLabel: String?,
+    zone: ZoneId,
+    rows: List<TimeOptimizerDayRow>,
+    timeFmt: DateTimeFormatter
+): String {
+    fun formatZoned(value: java.time.ZonedDateTime?): String =
+        value?.toInstant()?.atZone(zone)?.format(timeFmt) ?: "-"
+
+    fun formatAstro(instants: List<java.time.Instant>): String =
+        if (instants.isEmpty()) {
+            "-"
+        } else {
+            instants.joinToString("|") { instant ->
+                instant.atZone(zone).toLocalTime().format(timeFmt)
             }
         }
-    }
+
+    return buildString {
+        appendLine("# TradeBuddy Monthly Export")
+        appendLine("month,$month")
+        appendLine("city,${cityLabel ?: "-"}")
+        appendLine("zone,${zone.id}")
+        appendLine("date,sunrise,sunset,moonrise,moonset,astro_times")
+        rows.forEach { row ->
+            appendLine(
+                "${row.date}," +
+                    "${formatZoned(row.sunrise)}," +
+                    "${formatZoned(row.sunset)}," +
+                    "${formatZoned(row.moonrise)}," +
+                    "${formatZoned(row.moonset)}," +
+                    formatAstro(row.astroInstants)
+            )
+        }
+    }.trim()
 }

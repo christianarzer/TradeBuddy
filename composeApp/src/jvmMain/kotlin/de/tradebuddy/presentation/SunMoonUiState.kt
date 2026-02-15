@@ -82,6 +82,7 @@ data class TimeOptimizerDayRow(
     val moonrise: ZonedDateTime?,
     val moonset: ZonedDateTime?,
     val astroEventCount: Int,
+    val astroInstants: List<Instant> = emptyList(),
     val firstAstroInstant: Instant?,
     val lastAstroInstant: Instant?
 )
