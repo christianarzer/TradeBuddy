@@ -3,7 +3,27 @@ name: Quality Checks
 on:
   push:
     branches: [main]
+    paths:
+      - androidApp/**
+      - composeApp/**
+      - gradle/**
+      - gradle.properties
+      - settings.gradle.kts
+      - build.gradle.kts
+      - .github/workflows/quality-checks.yml
   pull_request:
+    paths:
+      - androidApp/**
+      - composeApp/**
+      - gradle/**
+      - gradle.properties
+      - settings.gradle.kts
+      - build.gradle.kts
+      - .github/workflows/quality-checks.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   actions: read
@@ -23,13 +43,17 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-          cache: gradle
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Make Gradle executable
         run: chmod +x gradlew
 
       - name: Run lint
-        run: ./gradlew :androidApp:lintDebug --stacktrace
+        run: ./gradlew :androidApp:lintDebug --stacktrace --build-cache
 
   sast:
     name: SAST (CodeQL Java)

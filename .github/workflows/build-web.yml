@@ -1,9 +1,19 @@
 name: Build Web app
 
 on:
-  push:
-    branches: [main]
   pull_request:
+    paths:
+      - composeApp/**
+      - gradle/**
+      - gradle.properties
+      - settings.gradle.kts
+      - build.gradle.kts
+      - .github/workflows/build-web.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -18,13 +28,17 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-          cache: gradle
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Make Gradle executable
         run: chmod +x gradlew
 
       - name: Build web distribution
-        run: ./gradlew :composeApp:wasmJsBrowserDistribution --stacktrace
+        run: ./gradlew :composeApp:wasmJsBrowserDistribution --stacktrace --build-cache
 
       - name: Ensure index.html for static hosting
         run: |

@@ -3,7 +3,25 @@ name: Build Desktop app
 on:
   push:
     branches: [main]
+    paths:
+      - composeApp/**
+      - gradle/**
+      - gradle.properties
+      - settings.gradle.kts
+      - build.gradle.kts
+      - .github/workflows/build-desktop.yml
   pull_request:
+    paths:
+      - composeApp/**
+      - gradle/**
+      - gradle.properties
+      - settings.gradle.kts
+      - build.gradle.kts
+      - .github/workflows/build-desktop.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -18,10 +36,14 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-          cache: gradle
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Make Gradle executable
         run: chmod +x gradlew
 
       - name: Desktop compile
-        run: ./gradlew :composeApp:compileKotlinDesktop --stacktrace
+        run: ./gradlew :composeApp:compileKotlinDesktop --stacktrace --build-cache

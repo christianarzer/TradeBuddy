@@ -3,7 +3,27 @@ name: Build Android app
 on:
   push:
     branches: [main]
+    paths:
+      - androidApp/**
+      - composeApp/**
+      - gradle/**
+      - gradle.properties
+      - settings.gradle.kts
+      - build.gradle.kts
+      - .github/workflows/build-android.yml
   pull_request:
+    paths:
+      - androidApp/**
+      - composeApp/**
+      - gradle/**
+      - gradle.properties
+      - settings.gradle.kts
+      - build.gradle.kts
+      - .github/workflows/build-android.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -17,8 +37,14 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-          cache: gradle
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
       - name: Make Gradle executable
         run: chmod +x gradlew
+
       - name: Android debug build
-        run: ./gradlew :androidApp:assembleDebug --stacktrace
+        run: ./gradlew :androidApp:assembleDebug --stacktrace --build-cache
