@@ -64,8 +64,11 @@ kotlin {
             }
         }
 
-        val iosMain = maybeCreate("iosMain").apply {
+        val nativeMain = maybeCreate("nativeMain").apply {
             dependsOn(commonMain)
+        }
+        val iosMain = maybeCreate("iosMain").apply {
+            dependsOn(nativeMain)
         }
         val iosX64Main by getting
         val iosArm64Main by getting

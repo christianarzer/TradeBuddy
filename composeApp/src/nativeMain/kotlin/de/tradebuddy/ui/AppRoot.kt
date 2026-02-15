@@ -13,8 +13,7 @@ import androidx.compose.ui.Modifier
 actual fun AppRoot() {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("TradeBuddy ist auf Desktop und Android verfügbar.")
+            Text("TradeBuddy ist auf Desktop und Android verfuegbar.")
         }
     }
 }
-
