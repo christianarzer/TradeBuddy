@@ -112,7 +112,7 @@ jobs:
       - build-desktop
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: release-assets
           pattern: "*"
