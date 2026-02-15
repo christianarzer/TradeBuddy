@@ -1,141 +1,99 @@
 # TradeBuddy
 
-**Direkt zur Website:** [https://christianarzer.github.io/TradeBuddy/](https://christianarzer.github.io/TradeBuddy/)
+[![Quality Checks](https://github.com/christianarzer/TradeBuddy/actions/workflows/quality-checks.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/quality-checks.yml)
+[![Build Android](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-android.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-android.yml)
+[![Build Desktop](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-desktop.yml)
+[![Build Web](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-web.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-web.yml)
 
-TradeBuddy ist eine Kotlin-Multiplatform-Anwendung fuer Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender.
-Der Fokus liegt auf schnellen Tagesuebersichten, filterbaren Ereignissen und lokaler Auswertung.
+Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender auf Kotlin Multiplatform.
+
+- Live Web: https://christianarzer.github.io/TradeBuddy/
+- Stack: Kotlin Multiplatform, Compose Multiplatform, Material 3, Coroutines/StateFlow
 
 ![Screenshots der App](images/screenshots.png)
 
-## Aktueller Projektstatus
+## Highlights
 
-- Voll funktionsfaehig: Desktop (JVM) und Android
-- iOS: aktuell Platzhalteransicht (kein voller Feature-Umfang wie Desktop/Android)
-- Web (Wasm): online verfuegbare Browser-Version mit eigener UI
+- Sun/Moon Tagesansicht fuer Sonnenaufgang, Sonnenuntergang, Mondaufgang, Monduntergang
+- Kompakt-Zeitstrahl mit lokaler Zeit, optional UTC, Azimut und Status fuer bereits vergangene Events
+- Astro-Kalender mit Aspektliste, Orb-Steuerung, Planet-/Aspektfiltern und Countdown
+- Mondphasenansicht pro Monat
+- Statistik mit Up/Down-Bewertung, Offset in Minuten, Filtern und Kennzahlen
+- Settings mit moderner Theme-Auswahl, City-Filter, Log-Konsole und Time-Optimizer
+- Time-Optimizer fuer Sun/Moon/Astro Offsets mit Monatsvorschau
 
-## Wichtigste Features (aktuell)
+## Platform Status
 
-- Tagesansicht fuer Sonnenaufgang, Sonnenuntergang, Mondaufgang und Monduntergang
-- Weltweite Markt-/Stadtauswahl mit Suchfunktion und Aktiv/Inaktiv-Filter
-- Kompakt-Zeitstrahl mit:
-  - lokaler Zeit und optional UTC
-  - Azimut-Richtung (optional)
-  - Markierung bereits vergangener Ereignisse (am aktuellen Tag)
-  - schneller Kopierfunktion der Zeitwerte
-- Statistik-Modul mit:
-  - manueller Trendbewertung (Up/Down) je Ereignis
-  - Offset in Minuten
-  - Filter (Suche, Richtung, Event-Typ, Zeitraum, Sortierung)
-  - Kennzahlen und Trendverteilung
-- Monats-Trendansicht (Azimut-Verlauf) fuer Sonne und Mond
-- Astro-Kalender mit:
-  - Aspektliste und 7-Tage-Uebersicht
-  - Planeten-/Aspekt-Filter
-  - konfigurierbaren Orb-Grenzen
-  - Countdown und Status (bevorstehend/exakt/vorbei)
-- Mondphasen-Tab fuer den gewaehlten Monat
-- Umfangreiche Theme-Konfiguration:
-  - Tag/Nacht-Modus
-  - mehrere visuelle Styles
-- Persistente lokale Speicherung:
-  - `settings.properties` fuer App-Einstellungen
-  - `stats.csv` fuer Statistik-Eintraege
+- Desktop (JVM): voll funktionsfaehig
+- Android: voll funktionsfaehig
+- Web (Wasm): online verfuegbar
+- iOS: Host vorhanden, Feature-Umfang noch reduziert
 
-## Technologie-Stack
+## Repository Structure
 
-- Kotlin Multiplatform
-- Compose Multiplatform + Material 3
-- Kotlin Coroutines + StateFlow
-- Astronomy Engine (`com.github.cosinekitty:astronomy`) fuer astronomische Berechnungen
-- Gradle (Kotlin DSL)
+- `composeApp/`: gemeinsame Domain-, Data- und UI-Logik (Desktop/Android/iOS/Web Targets)
+- `androidApp/`: Android App Modul
+- `iosApp/`: iOS Host Projekt
+- `.github/workflows/`: Build-, Quality-, Deploy- und Release-Pipelines
 
-## Projektstruktur
+## Requirements
 
-- `composeApp/` Gemeinsame App-Logik und UI (inkl. Desktop/Android/iOS/Web target code)
-- `androidApp/` Android-App-Modul
-- `iosApp/` iOS-Hostprojekt
-- `.github/workflows/` CI-Workflows
+- JDK 17+ (empfohlen: Temurin), `JAVA_HOME` entsprechend gesetzt
+- Android Studio fuer Android Builds
+- Xcode fuer iOS Builds (macOS)
 
-## Voraussetzungen
+## Quick Start
 
-- JDK 17 (empfohlen: Temurin) und `JAVA_HOME` auf dieses JDK gesetzt
-- Android Studio fuer Android-Builds
-- Xcode fuer iOS-Builds (macOS)
-
-## Lokale Entwicklung
-
-### Desktop starten
+### Desktop Run
 
 ```bash
-./gradlew :composeApp:run
+./gradlew :composeApp:desktopRun
 ```
 
-### Android Debug-Build
+### Android Debug Build
 
 ```bash
 ./gradlew :androidApp:assembleDebug
 ```
 
-### iOS in Xcode bauen
+### Web Production Distribution
+
+```bash
+./gradlew :composeApp:wasmJsBrowserDistribution
+```
+
+Output:
+
+- `composeApp/build/dist/wasmJs/productionExecutable`
+
+### iOS Build (Xcode CLI)
 
 ```bash
 cd iosApp
 xcodebuild -scheme iosApp -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
 ```
 
-### Web Distribution bauen
+## CI and Release
 
-```bash
-./gradlew :composeApp:wasmJsBrowserDistribution
-```
+- Quality Checks: `.github/workflows/quality-checks.yml`
+- Platform Builds: Android/Desktop/iOS/Web in separaten Workflows
+- Web Deploy: `.github/workflows/deploy-web-pages.yml`
+- Tag Release (`v*`): `.github/workflows/release-tag.yml`
 
-Ausgabe:
-
-- `composeApp/build/dist/wasmJs/productionExecutable`
-
-## Release und spaeteres Hosting
-
-- Quellcode-Hosting: GitHub Repository
-- Artefakte: GitHub Releases (z. B. Desktop-Builds, Android APK/AAB)
-- Die Desktop-Distributionen koennen ueber Compose/Gradle erzeugt werden.
-
-### Web online oeffnen
-
-Die Web-Version wird per GitHub Pages ausgerollt.
-
-- Erwartete URL: `https://christianarzer.github.io/TradeBuddy/`
-- Deployment-Workflow: `.github/workflows/deploy-web-pages.yml`
-
-### Tag-basierter Release-Prozess
-
-Bei jedem Push eines Versions-Tags `v*` startet automatisch der Workflow
-`.github/workflows/release-tag.yml` und erstellt einen GitHub Release mit Artefakten.
-
-Beispiel:
+Beispiel Tag Release:
 
 ```bash
 git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```
 
-Der Workflow laedt aktuell hoch:
+## Collaboration Files
 
-- Android APK (Debug)
-- Desktop Linux Bundle (`.zip`)
-- Desktop macOS Bundle (`.zip`)
-- Desktop Windows Bundle (`.zip`)
-- `SHA256SUMS.txt` mit Checksummen
+- `CONTRIBUTING.md`
+- `.github/ISSUE_TEMPLATE/`
+- `.github/pull_request_template.md`
+- `.github/dependabot.yml`
 
-## GitHub-Standarddateien
+## License
 
-Dieses Repo enthaelt wichtige Kollaborationsdateien:
-
-- `CONTRIBUTING.md` Richtlinien fuer Commits und Pull Requests
-- `.github/ISSUE_TEMPLATE/` Vorlagen fuer Bug- und Feature-Issues
-- `.github/pull_request_template.md` PR-Checkliste
-- `.github/dependabot.yml` automatische Dependency-Updates
-- `.github/workflows/` CI fuer Android, iOS, Desktop und Web
-
-## Lizenz
-
-Apache-2.0 (siehe `LICENSE`)
+Apache-2.0 (`LICENSE`)
