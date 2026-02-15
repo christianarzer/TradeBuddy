@@ -77,7 +77,7 @@ Der Fokus liegt auf schnellen Tagesuebersichten, filterbaren Ereignissen und lok
 
 ```bash
 cd iosApp
-xcodebuild -scheme iosApp -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
+xcodebuild -scheme iosApp -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
 ```
 
 ## Release und spaeteres Hosting
