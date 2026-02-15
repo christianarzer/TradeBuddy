@@ -32,7 +32,7 @@ jobs:
         run: ./gradlew :androidApp:lintDebug --stacktrace
 
   sast:
-    name: SAST (CodeQL)
+    name: SAST (CodeQL Java)
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -45,16 +45,14 @@ jobs:
           java-version: 21
           cache: gradle
 
-      - name: Make Gradle executable
-        run: chmod +x gradlew
-
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
-          languages: java-kotlin
-
-      - name: Build for analysis
-        run: ./gradlew :androidApp:assembleDebug :composeApp:compileKotlinDesktop --stacktrace
+          # CodeQL currently lags Kotlin 2.3.20-Beta2 and fails extraction.
+          # Keep project on latest Kotlin and run Java-only CodeQL until supported.
+          languages: java
+          build-mode: none
+          dependency-caching: true
 
       - name: Analyze
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
