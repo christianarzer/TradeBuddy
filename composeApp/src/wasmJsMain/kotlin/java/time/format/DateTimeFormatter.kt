@@ -15,8 +15,8 @@ class DateTimeFormatter private constructor(
     }
 
     fun format(value: LocalDate): String {
-        val day = value.raw.dayOfMonth
-        val month = value.raw.monthNumber
+        val day = value.raw.day
+        val month = value.raw.month.ordinal + 1
         val year = value.raw.year
         val weekday = weekdayIndex(value)
         return render(pattern, year, month, day, weekday, null)
@@ -36,12 +36,12 @@ class DateTimeFormatter private constructor(
         val local = value.localDateTime()
         val date = local.date
         val time = local.time
-        val weekday = weekdayIndex(date.year, date.monthNumber, date.dayOfMonth)
+        val weekday = weekdayIndex(date.year, date.month.ordinal + 1, date.day)
         return render(
             pattern = pattern,
             year = date.year,
-            month = date.monthNumber,
-            day = date.dayOfMonth,
+            month = date.month.ordinal + 1,
+            day = date.day,
             weekday = weekday,
             time = TimeParts(time.hour, time.minute, time.second)
         )
@@ -99,7 +99,7 @@ private fun weekdayNamesShort(locale: Locale): List<String> = when (locale.langu
 }
 
 private fun weekdayIndex(value: LocalDate): Int =
-    weekdayIndex(value.raw.year, value.raw.monthNumber, value.raw.dayOfMonth)
+    weekdayIndex(value.raw.year, value.raw.month.ordinal + 1, value.raw.day)
 
 private fun weekdayIndex(year: Int, month: Int, day: Int): Int {
     // Zeller style; returns Monday=0 ... Sunday=6.
@@ -123,4 +123,3 @@ private fun weekdayIndex(year: Int, month: Int, day: Int): Int {
     }
     return zellerToMonday
 }
-

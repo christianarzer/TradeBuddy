@@ -2,7 +2,6 @@ package java.time
 
 import java.time.format.DateTimeFormatter
 import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.Instant as KInstant
 import kotlinx.datetime.LocalDate as KLocalDate
 import kotlinx.datetime.LocalDateTime as KLocalDateTime
 import kotlinx.datetime.TimeZone
@@ -11,6 +10,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
+import kotlin.time.Instant as KInstant
 
 class Duration private constructor(
     val seconds: Long
@@ -36,7 +36,7 @@ open class ZoneId internal constructor(
 
     companion object {
         fun of(id: String): ZoneId = ZoneId(id)
-        fun systemDefault(): ZoneId = ZoneId(TimeZone.currentSystemDefault().id)
+        fun systemDefault(): ZoneId = ZoneId(systemTimeZoneId())
     }
 }
 
@@ -98,7 +98,7 @@ class Instant internal constructor(
 class LocalDate internal constructor(
     internal val raw: KLocalDate
 ) : Comparable<LocalDate> {
-    val dayOfMonth: Int get() = raw.dayOfMonth
+    val dayOfMonth: Int get() = raw.day
 
     companion object {
         fun now(zoneId: ZoneId): LocalDate = Instant.now().raw.toLocalDate(zoneId)
@@ -113,9 +113,9 @@ class LocalDate internal constructor(
     }
 
     fun atTime(hour: Int, minute: Int): LocalDateTime =
-        LocalDateTime(KLocalDateTime(raw.year, raw.monthNumber, raw.dayOfMonth, hour, minute))
+        LocalDateTime(KLocalDateTime(raw.year, raw.month.ordinal + 1, raw.day, hour, minute))
 
-    fun lengthOfMonth(): Int = daysInMonth(raw.year, raw.monthNumber)
+    fun lengthOfMonth(): Int = daysInMonth(raw.year, raw.month.ordinal + 1)
 
     fun format(formatter: DateTimeFormatter): String = formatter.format(this)
 
@@ -145,7 +145,7 @@ class YearMonth private constructor(
     private val month: Int
 ) {
     companion object {
-        fun from(date: LocalDate): YearMonth = YearMonth(date.raw.year, date.raw.monthNumber)
+        fun from(date: LocalDate): YearMonth = YearMonth(date.raw.year, date.raw.month.ordinal + 1)
         fun from(zonedDateTime: ZonedDateTime): YearMonth = from(zonedDateTime.toLocalDate())
     }
 
@@ -202,6 +202,40 @@ private fun KInstant.toLocalDate(zoneId: ZoneId): LocalDate =
 @JsName("Date")
 external object JsDateCtor {
     fun now(): Double
+}
+
+@JsName("Intl")
+external object JsIntl {
+    class DateTimeFormat {
+        fun resolvedOptions(): JsResolvedOptions
+    }
+}
+
+external interface JsResolvedOptions {
+    val timeZone: String?
+}
+
+private fun systemTimeZoneId(): String {
+    val systemId = normalizedTimeZoneId(TimeZone.currentSystemDefault().id)
+    if (systemId != null) return systemId
+
+    val browserId = runCatching {
+        JsIntl.DateTimeFormat().resolvedOptions().timeZone
+    }.getOrNull()
+    val normalizedBrowserId = normalizedTimeZoneId(browserId)
+    if (normalizedBrowserId != null) return normalizedBrowserId
+
+    return "Europe/Berlin"
+}
+
+private fun String.isUsableSystemZoneId(): Boolean =
+    isNotBlank() &&
+        !equals("SYSTEM", ignoreCase = true) &&
+        !equals("Etc/Unknown", ignoreCase = true)
+
+private fun normalizedTimeZoneId(candidate: String?): String? {
+    val value = candidate?.takeIf { it.isUsableSystemZoneId() } ?: return null
+    return runCatching { TimeZone.of(value).id }.getOrNull()
 }
 
 private fun parseTimeZone(id: String): TimeZone =

@@ -92,6 +92,7 @@ import trade_buddy.composeapp.generated.resources.astro_filters_section_title
 import trade_buddy.composeapp.generated.resources.astro_filters_toggle_collapse
 import trade_buddy.composeapp.generated.resources.astro_filters_toggle_expand
 import trade_buddy.composeapp.generated.resources.astro_label_countdown
+import trade_buddy.composeapp.generated.resources.astro_label_since_signal
 import trade_buddy.composeapp.generated.resources.astro_label_orb
 import trade_buddy.composeapp.generated.resources.astro_orb_controls_title
 import trade_buddy.composeapp.generated.resources.astro_orb_reset_defaults
@@ -132,7 +133,7 @@ fun AstroCalendarScreen(
     }
     val weekFmt = remember { DateTimeFormatter.ofPattern("EEE dd.MM", Locale.GERMANY) }
     val isAspectsTab = state.selectedAstroTab == AstroCalendarTab.Aspects
-    var filtersExpanded by rememberSaveable { mutableStateOf(true) }
+    var filtersExpanded by rememberSaveable { mutableStateOf(false) }
     val hasCustomOrbs = astroState.aspectOrbs != DEFAULT_ASTRO_ASPECT_ORBS
 
     val filteredEvents = remember(
@@ -567,7 +568,7 @@ private fun AstroEventRow(
         dateFmt = dateFmt,
         timeFmt = timeFmt
     )
-    val countdown = countdownLabel(nowInstant, event.exactInstant)
+    val countdown = countdownState(nowInstant, event.exactInstant)
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -623,7 +624,8 @@ private fun AstroEventRow(
                 localText = exactLocal,
                 utcText = exactUtc,
                 localZoneId = zoneId.id,
-                countdownText = countdown
+                countdownText = countdown.text,
+                countdownRelation = countdown.relation
             )
         }
     }
@@ -634,8 +636,14 @@ private fun TimeMetricRow(
     localText: String,
     utcText: String,
     localZoneId: String,
-    countdownText: String
+    countdownText: String,
+    countdownRelation: CountdownRelation
 ) {
+    val countdownLabel = when (countdownRelation) {
+        CountdownRelation.Since -> stringResource(Res.string.astro_label_since_signal)
+        CountdownRelation.Until,
+        CountdownRelation.Now -> stringResource(Res.string.astro_label_countdown)
+    }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = "${localZoneId}: $localText",
@@ -648,12 +656,7 @@ private fun TimeMetricRow(
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "${localZoneId} ${stringResource(Res.string.astro_label_countdown)}: $countdownText",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = "UTC ${stringResource(Res.string.astro_label_countdown)}: $countdownText",
+            text = "${localZoneId} $countdownLabel: $countdownText",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -710,11 +713,14 @@ private fun eventStatus(nowInstant: Instant, exactInstant: Instant): AstroEventS
 }
 
 @Composable
-private fun countdownLabel(nowInstant: Instant, exactInstant: Instant): String {
+private fun countdownState(nowInstant: Instant, exactInstant: Instant): CountdownState {
     val diffSeconds = Duration.between(nowInstant, exactInstant).seconds
     val absSeconds = abs(diffSeconds)
     if (absSeconds <= 59L) {
-        return stringResource(Res.string.astro_countdown_now)
+        return CountdownState(
+            text = stringResource(Res.string.astro_countdown_now),
+            relation = CountdownRelation.Now
+        )
     }
 
     val hours = absSeconds / 3600
@@ -726,11 +732,28 @@ private fun countdownLabel(nowInstant: Instant, exactInstant: Instant): String {
     }
 
     return if (diffSeconds >= 0L) {
-        stringResource(Res.string.astro_countdown_in, durationLabel)
+        CountdownState(
+            text = stringResource(Res.string.astro_countdown_in, durationLabel),
+            relation = CountdownRelation.Until
+        )
     } else {
-        stringResource(Res.string.astro_countdown_ago, durationLabel)
+        CountdownState(
+            text = stringResource(Res.string.astro_countdown_ago, durationLabel),
+            relation = CountdownRelation.Since
+        )
     }
 }
+
+private enum class CountdownRelation {
+    Until,
+    Since,
+    Now
+}
+
+private data class CountdownState(
+    val text: String,
+    val relation: CountdownRelation
+)
 
 private fun Instant.formatForDay(
     selectedDate: LocalDate,

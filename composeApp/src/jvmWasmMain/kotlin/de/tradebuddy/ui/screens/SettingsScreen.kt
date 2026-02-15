@@ -30,9 +30,9 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -151,7 +151,7 @@ fun SettingsScreen(
             )
         }
 
-        TabRow(selectedTabIndex = selectedTab.ordinal) {
+        PrimaryTabRow(selectedTabIndex = selectedTab.ordinal) {
             Tab(
                 selected = selectedTab == SettingsTab.General,
                 onClick = { selectedTab = SettingsTab.General },

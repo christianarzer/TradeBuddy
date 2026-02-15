@@ -213,6 +213,7 @@
     <string name="astro_label_exact_local">Exakt (lokal)</string>
     <string name="astro_label_exact_utc">Exakt (UTC)</string>
     <string name="astro_label_countdown">Zeit bis Signal</string>
+    <string name="astro_label_since_signal">Zeit seit Signal</string>
     <string name="astro_label_orb">Orb</string>
     <string name="astro_orb_controls_title">Orb-Einstellungen</string>
     <string name="astro_orb_reset_defaults">Orbs auf Standard zuruecksetzen</string>
