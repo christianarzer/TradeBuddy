@@ -62,7 +62,23 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v6
 
+      - name: Detect tracked Java sources
+        id: detect_java
+        run: |
+          if git ls-files '*.java' | grep -q .; then
+            echo "has_java=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_java=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip Java CodeQL when no Java sources exist
+        if: steps.detect_java.outputs.has_java != 'true'
+        run: |
+          echo "No tracked .java files found. Skipping Java CodeQL scan."
+          echo "Kotlin analysis remains disabled until CodeQL supports the current Kotlin version."
+
       - name: Set up JDK 21
+        if: steps.detect_java.outputs.has_java == 'true'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -70,6 +86,7 @@ jobs:
           cache: gradle
 
       - name: Initialize CodeQL
+        if: steps.detect_java.outputs.has_java == 'true'
         uses: github/codeql-action/init@v4
         with:
           # CodeQL currently lags Kotlin 2.3.20-Beta2 and fails extraction.
@@ -79,4 +96,5 @@ jobs:
           dependency-caching: true
 
       - name: Analyze
+        if: steps.detect_java.outputs.has_java == 'true'
         uses: github/codeql-action/analyze@v4
