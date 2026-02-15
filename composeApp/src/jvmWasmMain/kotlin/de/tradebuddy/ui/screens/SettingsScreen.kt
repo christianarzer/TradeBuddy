@@ -9,11 +9,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -46,7 +44,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import de.tradebuddy.data.AppStoragePaths
 import de.tradebuddy.domain.model.AppThemeMode
 import de.tradebuddy.domain.model.AppThemeStyle
 import de.tradebuddy.domain.model.City
@@ -54,8 +51,6 @@ import de.tradebuddy.domain.util.key
 import de.tradebuddy.presentation.SunMoonUiState
 import de.tradebuddy.presentation.SunMoonViewModel
 import de.tradebuddy.ui.theme.previewColorsFor
-import java.io.File
-import java.util.Locale
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.nav_settings
@@ -63,10 +58,10 @@ import trade_buddy.composeapp.generated.resources.settings_active_count
 import trade_buddy.composeapp.generated.resources.settings_cities_desc
 import trade_buddy.composeapp.generated.resources.settings_cities_empty
 import trade_buddy.composeapp.generated.resources.settings_cities_search
-import trade_buddy.composeapp.generated.resources.settings_section_themes
 import trade_buddy.composeapp.generated.resources.settings_section_cities
 import trade_buddy.composeapp.generated.resources.settings_section_compact
 import trade_buddy.composeapp.generated.resources.settings_section_storage
+import trade_buddy.composeapp.generated.resources.settings_section_themes
 import trade_buddy.composeapp.generated.resources.settings_select_all
 import trade_buddy.composeapp.generated.resources.settings_select_none
 import trade_buddy.composeapp.generated.resources.settings_show_azimuth
@@ -115,9 +110,7 @@ fun SettingsScreen(
     val scroll = rememberScrollState()
     val cityScroll = rememberScrollState()
     var cityQuery by rememberSaveable { mutableStateOf("") }
-    val showStorage = remember { !isAndroidRuntime() }
-    val settingsPath = remember { AppStoragePaths.settingsPath() }
-    val statsPath = remember { AppStoragePaths.statsPath() }
+    val storageUi = remember { settingsStorageSectionUi() }
 
     Column(
         modifier = Modifier
@@ -278,16 +271,16 @@ fun SettingsScreen(
                     )
                 }
 
-                val query = cityQuery.trim().lowercase(Locale.ROOT)
+                val query = cityQuery.trim().lowercase()
                 val filteredCities = remember(state.allCities, query) {
                     if (query.isBlank()) {
                         state.allCities
                     } else {
                         state.allCities.filter { city ->
-                            city.label.lowercase(Locale.ROOT).contains(query) ||
-                                city.country.lowercase(Locale.ROOT).contains(query) ||
-                                city.countryCode.lowercase(Locale.ROOT).contains(query) ||
-                                city.zoneId.lowercase(Locale.ROOT).contains(query)
+                            city.label.lowercase().contains(query) ||
+                                city.country.lowercase().contains(query) ||
+                                city.countryCode.lowercase().contains(query) ||
+                                city.zoneId.lowercase().contains(query)
                         }
                     }
                 }
@@ -322,7 +315,7 @@ fun SettingsScreen(
             }
         }
 
-        if (showStorage) {
+        if (storageUi.visible) {
             ElevatedCard(Modifier.fillMaxWidth()) {
                 Column(
                     Modifier
@@ -338,13 +331,23 @@ fun SettingsScreen(
 
                     StorageRow(
                         title = stringResource(Res.string.nav_settings),
-                        path = settingsPath.parentFile ?: settingsPath,
-                        buttonLabel = stringResource(Res.string.settings_open_settings_dir)
+                        path = storageUi.settingsPath,
+                        buttonLabel = if (storageUi.canOpen) {
+                            stringResource(Res.string.settings_open_settings_dir)
+                        } else {
+                            null
+                        },
+                        onOpen = ::openSettingsStoragePath
                     )
                     StorageRow(
                         title = stringResource(Res.string.tab_statistics),
-                        path = statsPath.parentFile ?: statsPath,
-                        buttonLabel = stringResource(Res.string.settings_open_stats_dir)
+                        path = storageUi.statsPath,
+                        buttonLabel = if (storageUi.canOpen) {
+                            stringResource(Res.string.settings_open_stats_dir)
+                        } else {
+                            null
+                        },
+                        onOpen = ::openStatsStoragePath
                     )
                 }
             }
@@ -596,10 +599,36 @@ private fun CityToggleRow(
 }
 
 @Composable
+private fun CountryFlagBadge(countryCode: String) {
+    val flag = remember(countryCode) { flagEmoji(countryCode) }
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(flag, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+private fun flagEmoji(countryCode: String): String {
+    val code = countryCode.trim().uppercase()
+    return if (code.length == 2) code else countryCode
+}
+
+internal data class StorageSectionUi(
+    val visible: Boolean,
+    val settingsPath: String,
+    val statsPath: String,
+    val canOpen: Boolean
+)
+
+@Composable
 private fun StorageRow(
     title: String,
-    path: File,
-    buttonLabel: String
+    path: String,
+    buttonLabel: String?,
+    onOpen: () -> Unit
 ) {
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -617,55 +646,19 @@ private fun StorageRow(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(title, style = MaterialTheme.typography.titleSmall)
                 Text(
-                    stringResource(Res.string.settings_storage_path, path.toString()),
+                    stringResource(Res.string.settings_storage_path, path),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            OutlinedButton(onClick = { openDirectory(path) }) {
-                Text(buttonLabel)
+            if (buttonLabel != null) {
+                OutlinedButton(onClick = onOpen) {
+                    Text(buttonLabel)
+                }
             }
         }
     }
 }
 
-@Composable
-private fun CountryFlagBadge(countryCode: String) {
-    val flag = remember(countryCode) { flagEmoji(countryCode) }
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(flag, style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-private fun flagEmoji(countryCode: String): String {
-    val code = countryCode.trim().uppercase(Locale.ROOT)
-    if (code.length != 2) return code
-    val first = Character.codePointAt(code, 0) - 'A'.code + 0x1F1E6
-    val second = Character.codePointAt(code, 1) - 'A'.code + 0x1F1E6
-    return StringBuilder()
-        .appendCodePoint(first)
-        .appendCodePoint(second)
-        .toString()
-}
-
-private fun isAndroidRuntime(): Boolean {
-    val runtime = System.getProperty("java.runtime.name") ?: return false
-    return runtime.contains("Android", ignoreCase = true)
-}
-
-private fun openDirectory(path: File) {
-    val os = System.getProperty("os.name").orEmpty().lowercase(Locale.ROOT)
-    val command = when {
-        os.contains("win") -> listOf("explorer", path.path)
-        os.contains("mac") -> listOf("open", path.path)
-        else -> listOf("xdg-open", path.path)
-    }
-    runCatching { ProcessBuilder(command).start() }
-}

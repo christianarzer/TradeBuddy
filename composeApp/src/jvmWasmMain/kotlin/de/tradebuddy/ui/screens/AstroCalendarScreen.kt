@@ -622,8 +622,7 @@ private fun AstroEventRow(
             TimeMetricRow(
                 localText = exactLocal,
                 utcText = exactUtc,
-                localZoneId = zoneId.id
-                ,
+                localZoneId = zoneId.id,
                 countdownText = countdown
             )
         }
@@ -756,7 +755,7 @@ private fun glyphGlyphKey(glyph: String): String = glyph
     .replace("\uFE0F", "")
     .replace("\uFE0E", "")
 
-private fun formatDegrees(value: Double): String = "%.1f".format(Locale.GERMANY, value)
+private fun formatDegrees(value: Double): String = (kotlin.math.round(value * 10.0) / 10.0).toString()
 
 private fun aspectColor(type: AstroAspectType): Color = when (type) {
     AstroAspectType.Conjunction -> Color(0xFFCA8A04)

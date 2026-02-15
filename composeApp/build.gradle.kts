@@ -67,6 +67,7 @@ kotlin {
 
         val jvmMain by creating {
             dependsOn(commonMain)
+            kotlin.srcDir("src/jvmWasmMain/kotlin")
             dependencies {
                 implementation(libs.astronomy.engine)
             }
@@ -98,6 +99,7 @@ kotlin {
 
         val wasmJsMain by getting {
             dependsOn(commonMain)
+            kotlin.srcDir("src/jvmWasmMain/kotlin")
             dependencies {
                 implementation(npm("astronomy-engine", "2.1.19"))
             }

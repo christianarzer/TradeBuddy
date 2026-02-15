@@ -1,4 +1,5 @@
 @file:JsModule("astronomy-engine")
+@file:OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
 
 package de.tradebuddy.data.astronomy
 
@@ -14,11 +15,6 @@ external object Body {
     val Uranus: String
     val Neptune: String
     val Pluto: String
-}
-
-external class JsDate {
-    constructor(value: Double)
-    fun getTime(): Double
 }
 
 external class Observer(latitude: Double, longitude: Double, height: Double)
