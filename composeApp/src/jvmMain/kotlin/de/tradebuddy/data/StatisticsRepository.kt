@@ -3,6 +3,7 @@ package de.tradebuddy.data
 import de.tradebuddy.domain.model.CompactEventType
 import de.tradebuddy.domain.model.MoveDirection
 import de.tradebuddy.domain.model.StatEntry
+import de.tradebuddy.logging.AppLog
 import java.io.File
 import java.time.Instant
 import java.util.Base64
@@ -37,6 +38,12 @@ class FileStatisticsRepository(
                 statsPath.parentFile?.mkdirs()
                 val line = serializeLine(entry)
                 statsPath.appendText(line + System.lineSeparator(), Charsets.UTF_8)
+            }.onFailure { error ->
+                AppLog.error(
+                    tag = "StatisticsRepository",
+                    message = "Failed to append stat entry to ${statsPath.absolutePath}",
+                    throwable = error
+                )
             }.getOrElse { }
         }
     }
@@ -51,6 +58,12 @@ class FileStatisticsRepository(
                 }
                 if (updated == current) return@runCatching
                 writeEntries(updated)
+            }.onFailure { error ->
+                AppLog.error(
+                    tag = "StatisticsRepository",
+                    message = "Failed to update stat entry ${entry.id}",
+                    throwable = error
+                )
             }.getOrElse { }
         }
     }
@@ -63,13 +76,27 @@ class FileStatisticsRepository(
                 val updated = current.filterNot { it.id == entryId }
                 if (updated.size == current.size) return@runCatching
                 writeEntries(updated)
+            }.onFailure { error ->
+                AppLog.error(
+                    tag = "StatisticsRepository",
+                    message = "Failed to delete stat entry $entryId",
+                    throwable = error
+                )
             }.getOrElse { }
         }
     }
 
     override suspend fun resetEntries() {
         withContext(dispatcher) {
-            runCatching { statsPath.delete() }.getOrElse { }
+            runCatching { statsPath.delete() }
+                .onFailure { error ->
+                    AppLog.error(
+                        tag = "StatisticsRepository",
+                        message = "Failed to reset stats file ${statsPath.absolutePath}",
+                        throwable = error
+                    )
+                }
+                .getOrElse { }
         }
     }
 
@@ -123,6 +150,12 @@ class FileStatisticsRepository(
             statsPath.readLines(Charsets.UTF_8)
                 .filter { it.isNotBlank() }
                 .mapNotNull(::parseLine)
+        }.onFailure { error ->
+            AppLog.error(
+                tag = "StatisticsRepository",
+                message = "Failed to read stats from ${statsPath.absolutePath}",
+                throwable = error
+            )
         }.getOrElse { emptyList() }
     }
 

@@ -1,18 +1,11 @@
 package de.tradebuddy.ui.screens
 
 import de.tradebuddy.data.AppStoragePaths
+import de.tradebuddy.logging.AppLog
 import java.io.File
 import java.util.Locale
 
 internal actual fun settingsStorageSectionUi(): StorageSectionUi {
-    if (isAndroidRuntime()) {
-        return StorageSectionUi(
-            visible = false,
-            settingsPath = "",
-            statsPath = "",
-            canOpen = false
-        )
-    }
     val settingsDir = AppStoragePaths.settingsPath().parentFile ?: AppStoragePaths.settingsPath()
     val statsDir = AppStoragePaths.statsPath().parentFile ?: AppStoragePaths.statsPath()
     return StorageSectionUi(
@@ -33,11 +26,6 @@ internal actual fun openStatsStoragePath() {
     openDirectory(directory)
 }
 
-private fun isAndroidRuntime(): Boolean {
-    val runtime = System.getProperty("java.runtime.name") ?: return false
-    return runtime.contains("Android", ignoreCase = true)
-}
-
 private fun openDirectory(path: File) {
     val os = System.getProperty("os.name").orEmpty().lowercase(Locale.ROOT)
     val command = when {
@@ -46,4 +34,11 @@ private fun openDirectory(path: File) {
         else -> listOf("xdg-open", path.path)
     }
     runCatching { ProcessBuilder(command).start() }
+        .onFailure { error ->
+            AppLog.warn(
+                tag = "SettingsPlatform",
+                message = "Failed to open directory ${path.path}",
+                throwable = error
+            )
+        }
 }

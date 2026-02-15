@@ -3,6 +3,7 @@ package de.tradebuddy.data
 import de.tradebuddy.domain.model.CompactEventType
 import de.tradebuddy.domain.model.MoveDirection
 import de.tradebuddy.domain.model.StatEntry
+import de.tradebuddy.logging.AppLog
 import java.time.Instant
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineDispatcher
@@ -30,30 +31,62 @@ class FileStatisticsRepository(
 
     override suspend fun addEntry(entry: StatEntry) {
         withContext(dispatcher) {
-            val updated = readEntries() + entry
-            writeEntries(updated)
+            runCatching {
+                val updated = readEntries() + entry
+                writeEntries(updated)
+            }.onFailure { error ->
+                AppLog.error(
+                    tag = "StatisticsRepository",
+                    message = "Failed to append stat entry in browser storage",
+                    throwable = error
+                )
+            }.getOrElse { }
         }
     }
 
     override suspend fun updateEntry(entry: StatEntry) {
         withContext(dispatcher) {
-            val updated = readEntries().map { existing ->
-                if (existing.id == entry.id) entry else existing
-            }
-            writeEntries(updated)
+            runCatching {
+                val updated = readEntries().map { existing ->
+                    if (existing.id == entry.id) entry else existing
+                }
+                writeEntries(updated)
+            }.onFailure { error ->
+                AppLog.error(
+                    tag = "StatisticsRepository",
+                    message = "Failed to update stat entry ${entry.id} in browser storage",
+                    throwable = error
+                )
+            }.getOrElse { }
         }
     }
 
     override suspend fun deleteEntry(entryId: String) {
         withContext(dispatcher) {
-            val updated = readEntries().filterNot { it.id == entryId }
-            writeEntries(updated)
+            runCatching {
+                val updated = readEntries().filterNot { it.id == entryId }
+                writeEntries(updated)
+            }.onFailure { error ->
+                AppLog.error(
+                    tag = "StatisticsRepository",
+                    message = "Failed to delete stat entry $entryId in browser storage",
+                    throwable = error
+                )
+            }.getOrElse { }
         }
     }
 
     override suspend fun resetEntries() {
         withContext(dispatcher) {
-            window.localStorage.removeItem(storageKey)
+            runCatching { window.localStorage.removeItem(storageKey) }
+                .onFailure { error ->
+                    AppLog.error(
+                        tag = "StatisticsRepository",
+                        message = "Failed to reset stats in browser storage",
+                        throwable = error
+                    )
+                }
+                .getOrElse { }
         }
     }
 
@@ -159,4 +192,3 @@ private fun splitEscaped(value: String, separator: Char): List<String> {
     out += current.toString()
     return out
 }
-

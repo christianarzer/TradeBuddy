@@ -136,7 +136,7 @@ fun StatisticsCard(
 
     val nowInstant = Instant.now()
     val cutoff = rangeFilter.cutoff(nowInstant)
-    val normalizedQuery = query.trim().lowercase(Locale.ROOT)
+    val normalizedQuery = query.trim().lowercase()
     val filtered = remember(
         stats,
         normalizedQuery,
@@ -150,8 +150,8 @@ fun StatisticsCard(
             .filter { entry ->
                 if (normalizedQuery.isBlank()) return@filter true
                 val eventLabel = eventLabels[entry.eventType].orEmpty()
-                entry.cityLabel.lowercase(Locale.ROOT).contains(normalizedQuery) ||
-                    eventLabel.lowercase(Locale.ROOT).contains(normalizedQuery)
+                entry.cityLabel.lowercase().contains(normalizedQuery) ||
+                    eventLabel.lowercase().contains(normalizedQuery)
             }
             .filter { entry -> directionFilter?.let { entry.direction == it } ?: true }
             .filter { entry -> eventFilter?.let { entry.eventType == it } ?: true }

@@ -49,6 +49,8 @@
     <string name="content_done">Vergangen</string>
     <string name="settings_title">Einstellungen</string>
     <string name="settings_subtitle">Kompaktansicht und Märkte verwalten.</string>
+    <string name="settings_tab_general">Allgemein</string>
+    <string name="settings_tab_logs">Logs</string>
     <string name="settings_section_themes">Themen</string>
     <string name="settings_themes_desc">Trading-Looks mit Tag- und Nachtmodus.</string>
     <string name="settings_theme_mode">Tag/Nacht-Modus</string>
@@ -93,6 +95,11 @@
     <string name="settings_open_settings_dir">Einstellungen öffnen</string>
     <string name="settings_open_stats_dir">Statistik öffnen</string>
     <string name="settings_storage_path">Pfad: %1$s</string>
+    <string name="settings_logs_title">Fehlerprotokoll</string>
+    <string name="settings_logs_desc">Hier siehst du Laufzeitfehler und Warnungen der App.</string>
+    <string name="settings_logs_empty">Noch keine Logs vorhanden.</string>
+    <string name="settings_logs_clear">Logs löschen</string>
+    <string name="settings_logs_copy">Logs kopieren</string>
     <string name="city_title">%1$s · %2$s</string>
     <string name="city_timezone_info">Zeitzone: %1$s (UTC%2$s) - Dein Offset (UTC%3$s): %4$s</string>
     <string name="city_local_time">Ortszeit</string>

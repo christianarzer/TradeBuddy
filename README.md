@@ -1,6 +1,6 @@
 # TradeBuddy
 
-[Website direkt oeffnen](https://christianarzer.github.io/TradeBuddy/)
+**Direkt zur Website:** [https://christianarzer.github.io/TradeBuddy/](https://christianarzer.github.io/TradeBuddy/)
 
 TradeBuddy ist eine Kotlin-Multiplatform-Anwendung fuer Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender.
 Der Fokus liegt auf schnellen Tagesuebersichten, filterbaren Ereignissen und lokaler Auswertung.
@@ -58,7 +58,7 @@ Der Fokus liegt auf schnellen Tagesuebersichten, filterbaren Ereignissen und lok
 
 ## Voraussetzungen
 
-- JDK 17 (empfohlen: Temurin)
+- JDK 17 (empfohlen: Temurin) und `JAVA_HOME` auf dieses JDK gesetzt
 - Android Studio fuer Android-Builds
 - Xcode fuer iOS-Builds (macOS)
 

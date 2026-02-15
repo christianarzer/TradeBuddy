@@ -39,13 +39,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,9 +60,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import de.tradebuddy.ui.createTextClipEntry
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.action_copy_times
 import trade_buddy.composeapp.generated.resources.azimuth_value
@@ -123,8 +118,7 @@ fun CompactTimelineCard(
             val copyPattern = stringResource(Res.string.format_datetime_copy)
             val dateFmt = remember(datePattern) { DateTimeFormatter.ofPattern(datePattern, Locale.GERMANY) }
             val copyFmt = remember(copyPattern) { DateTimeFormatter.ofPattern(copyPattern, Locale.ROOT) }
-            val clipboard = LocalClipboard.current
-            val scope = rememberCoroutineScope()
+            val copyToClipboard = rememberCopyTextToClipboard()
             val hasCopyTimes = events.any { it.userTime != null }
             val statsByKey = remember(stats) { stats.associateBy(::statKey) }
             val drafts = remember { mutableStateMapOf<String, CompactTrendDraft>() }
@@ -177,9 +171,7 @@ fun CompactTimelineCard(
                     onClick = {
                         val copyText = events.mapNotNull { it.userTime?.format(copyFmt) }
                             .joinToString(",")
-                        scope.launch {
-                            clipboard.setClipEntry(createTextClipEntry(AnnotatedString(copyText)))
-                        }
+                        copyToClipboard(copyText)
                     },
                     enabled = hasCopyTimes
                 ) {

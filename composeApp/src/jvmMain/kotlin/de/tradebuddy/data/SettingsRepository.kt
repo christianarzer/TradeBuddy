@@ -7,6 +7,7 @@ import de.tradebuddy.domain.model.ASTRO_MAX_ORB_DEGREES
 import de.tradebuddy.domain.model.ASTRO_MIN_ORB_DEGREES
 import de.tradebuddy.domain.model.DEFAULT_ASTRO_ASPECT_ORBS
 import de.tradebuddy.domain.model.UserSettings
+import de.tradebuddy.logging.AppLog
 import java.io.File
 import java.util.Locale
 import java.util.Properties
@@ -82,6 +83,12 @@ class FileSettingsRepository(
                 showSet = showSet,
                 aspectOrbs = aspectOrbs
             )
+        }.onFailure { error ->
+            AppLog.error(
+                tag = "SettingsRepository",
+                message = "Failed to load settings from ${settingsPath.absolutePath}",
+                throwable = error
+            )
         }.getOrNull()
     }
 
@@ -104,7 +111,13 @@ class FileSettingsRepository(
             }
             props.setProperty("astroAspectOrbs", serializedAspectOrbs)
             settingsPath.outputStream().use { props.store(it, "TradeBuddy settings") }
-        }.getOrElse {  }
+        }.onFailure { error ->
+            AppLog.error(
+                tag = "SettingsRepository",
+                message = "Failed to save settings to ${settingsPath.absolutePath}",
+                throwable = error
+            )
+        }.getOrElse { }
     }
 
     private fun parseAspectOrbs(rawValue: String?): Map<AstroAspectType, Double>? {

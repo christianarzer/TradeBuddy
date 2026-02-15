@@ -25,6 +25,7 @@ import de.tradebuddy.domain.model.SunMoonTimes
 import de.tradebuddy.domain.model.UserSettings
 import de.tradebuddy.domain.util.buildCompactEvents
 import de.tradebuddy.domain.util.key
+import de.tradebuddy.logging.AppLog
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -78,6 +79,7 @@ class SunMoonViewModel(
     val state: StateFlow<SunMoonUiState> = _state.asStateFlow()
 
     init {
+        AppLog.info("SunMoonViewModel", "Initialized")
         loadSettings()
         loadStatistics()
         refresh()
@@ -351,7 +353,12 @@ class SunMoonViewModel(
                     applyFilters()
                     loadCompactSources(date, results)
                 }
-                .onFailure {
+                .onFailure { error ->
+                    AppLog.error(
+                        tag = "SunMoonViewModel",
+                        message = "Failed to load daily data for $date",
+                        throwable = error
+                    )
                     _state.update {
                         it.copy(
                             results = emptyList(),
@@ -394,6 +401,12 @@ class SunMoonViewModel(
             if (date != _state.value.selectedDate) return
             _state.update { it.copy(compactSourceResults = combined) }
             applyFilters()
+        }.onFailure { error ->
+            AppLog.error(
+                tag = "SunMoonViewModel",
+                message = "Failed to load compact source window for $date",
+                throwable = error
+            )
         }
     }
 
@@ -414,7 +427,12 @@ class SunMoonViewModel(
                     if (targetMonth != _state.value.trend.month) return@launch
                     _state.update { it.copy(trend = it.trend.copy(isLoading = false, trend = trend)) }
                 }
-                .onFailure {
+                .onFailure { error ->
+                    AppLog.error(
+                        tag = "SunMoonViewModel",
+                        message = "Failed to load trend for $targetMonth",
+                        throwable = error
+                    )
                     _state.update {
                         it.copy(trend = it.trend.copy(isLoading = false, error = Res.string.error_trend))
                     }
@@ -433,7 +451,12 @@ class SunMoonViewModel(
                     if (targetMonth != _state.value.moonPhases.month) return@launch
                     _state.update { it.copy(moonPhases = it.moonPhases.copy(isLoading = false, phases = phases)) }
                 }
-                .onFailure {
+                .onFailure { error ->
+                    AppLog.error(
+                        tag = "SunMoonViewModel",
+                        message = "Failed to load moon phases for $targetMonth",
+                        throwable = error
+                    )
                     _state.update {
                         it.copy(
                             moonPhases = it.moonPhases.copy(
@@ -482,7 +505,12 @@ class SunMoonViewModel(
                         )
                     )
                 }
-            }.onFailure {
+            }.onFailure { error ->
+                AppLog.error(
+                    tag = "SunMoonViewModel",
+                    message = "Failed to load astro window for $date",
+                    throwable = error
+                )
                 val current = _state.value
                 if (date != current.selectedDate || scope != current.astroCalendar.scope) return@launch
                 _state.update { current ->
@@ -536,7 +564,16 @@ class SunMoonViewModel(
 
     private fun loadSettings() {
         scope.launch {
-            val snapshot = settingsRepository.loadSettings() ?: return@launch
+            val snapshot = runCatching { settingsRepository.loadSettings() }
+                .onFailure { error ->
+                    AppLog.error(
+                        tag = "SunMoonViewModel",
+                        message = "Failed to load persisted settings",
+                        throwable = error
+                    )
+                }
+                .getOrNull()
+                ?: return@launch
             _state.update { current ->
                 val availableKeys = current.allCities.map { it.key() }.toSet()
                 val savedKeys = snapshot.selectedCityKeys
@@ -568,7 +605,15 @@ class SunMoonViewModel(
 
     private fun loadStatistics() {
         scope.launch {
-            val entries = statisticsRepository.loadEntries()
+            val entries = runCatching { statisticsRepository.loadEntries() }
+                .onFailure { error ->
+                    AppLog.error(
+                        tag = "SunMoonViewModel",
+                        message = "Failed to load statistics",
+                        throwable = error
+                    )
+                }
+                .getOrElse { emptyList() }
             _state.update { it.copy(stats = entries.sortedByDescending { it.createdAt }) }
         }
     }
@@ -576,20 +621,28 @@ class SunMoonViewModel(
     private fun persistSettings() {
         val current = _state.value
         scope.launch {
-            settingsRepository.saveSettings(
-                UserSettings(
-                    themeStyle = current.themeStyle,
-                    themeMode = current.themeMode,
-                    selectedCityKeys = current.selectedCityKeys,
-                    showUtcTime = current.showUtcTime,
-                    showAzimuth = current.showAzimuth,
-                    showSun = current.showSun,
-                    showMoon = current.showMoon,
-                    showRise = current.showRise,
-                    showSet = current.showSet,
-                    aspectOrbs = current.astroCalendar.aspectOrbs
+            runCatching {
+                settingsRepository.saveSettings(
+                    UserSettings(
+                        themeStyle = current.themeStyle,
+                        themeMode = current.themeMode,
+                        selectedCityKeys = current.selectedCityKeys,
+                        showUtcTime = current.showUtcTime,
+                        showAzimuth = current.showAzimuth,
+                        showSun = current.showSun,
+                        showMoon = current.showMoon,
+                        showRise = current.showRise,
+                        showSet = current.showSet,
+                        aspectOrbs = current.astroCalendar.aspectOrbs
+                    )
                 )
-            )
+            }.onFailure { error ->
+                AppLog.error(
+                    tag = "SunMoonViewModel",
+                    message = "Failed to persist settings",
+                    throwable = error
+                )
+            }
         }
     }
 
