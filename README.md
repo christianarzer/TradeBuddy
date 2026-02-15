@@ -86,6 +86,26 @@ xcodebuild -scheme iosApp -configuration Debug -destination 'platform=iOS Simula
 - Artefakte: GitHub Releases (z. B. Desktop-Builds, Android APK/AAB)
 - Die Desktop-Distributionen koennen ueber Compose/Gradle erzeugt werden.
 
+### Tag-basierter Release-Prozess
+
+Bei jedem Push eines Versions-Tags `v*` startet automatisch der Workflow
+`.github/workflows/release-tag.yml` und erstellt einen GitHub Release mit Artefakten.
+
+Beispiel:
+
+```bash
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
+```
+
+Der Workflow laedt aktuell hoch:
+
+- Android APK (Debug)
+- Desktop Linux Paket (`.deb`)
+- Desktop macOS Paket (`.dmg`)
+- Desktop Windows Paket (`.msi`)
+- `SHA256SUMS.txt` mit Checksummen
+
 ## GitHub-Standarddateien
 
 Dieses Repo enthaelt wichtige Kollaborationsdateien:

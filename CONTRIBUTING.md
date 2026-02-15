@@ -47,3 +47,9 @@ Dieses Dokument beschreibt den empfohlenen Ablauf fuer Issues, Branches und Pull
   - `./gradlew :composeApp:run`
 
 Wenn ein Check lokal nicht moeglich ist, bitte im PR begruenden.
+
+## Releases und Tags
+
+- Release-Tags folgen dem Schema `vMAJOR.MINOR.PATCH` (z. B. `v1.2.0`).
+- Nach Push eines solchen Tags erstellt GitHub Actions automatisch einen Release
+  mit Build-Artefakten.
