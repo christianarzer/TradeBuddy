@@ -64,6 +64,16 @@ kotlin {
             }
         }
 
+        val iosMain = maybeCreate("iosMain").apply {
+            dependsOn(commonMain)
+        }
+        val iosX64Main by getting
+        val iosArm64Main by getting
+        val iosSimulatorArm64Main by getting
+        iosX64Main.dependsOn(iosMain)
+        iosArm64Main.dependsOn(iosMain)
+        iosSimulatorArm64Main.dependsOn(iosMain)
+
         val desktopMain by getting {
             dependsOn(jvmMain)
             dependencies {
