@@ -36,7 +36,34 @@ jobs:
         run: ./gradlew :composeApp:wasmJsBrowserDistribution --stacktrace
 
       - name: Prepare pages directory
-        run: touch composeApp/build/dist/wasmJs/productionExecutable/.nojekyll
+        run: |
+          set -e
+          DIST_DIR="composeApp/build/dist/wasmJs/productionExecutable"
+          if [ ! -f "$DIST_DIR/index.html" ]; then
+            cat > "$DIST_DIR/index.html" <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>TradeBuddy</title>
+            <style>
+              html, body {
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #0f1117;
+              }
+            </style>
+          </head>
+          <body>
+            <script src="./composeApp.js"></script>
+          </body>
+          </html>
+          HTML
+          fi
+          touch "$DIST_DIR/.nojekyll"
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
