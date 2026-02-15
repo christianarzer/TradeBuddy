@@ -4,7 +4,7 @@ import de.tradebuddy.data.AppStoragePaths
 import java.io.File
 import java.util.Locale
 
-internal fun settingsStorageSectionUi(): StorageSectionUi {
+internal actual fun settingsStorageSectionUi(): StorageSectionUi {
     if (isAndroidRuntime()) {
         return StorageSectionUi(
             visible = false,
@@ -23,12 +23,12 @@ internal fun settingsStorageSectionUi(): StorageSectionUi {
     )
 }
 
-internal fun openSettingsStoragePath() {
+internal actual fun openSettingsStoragePath() {
     val directory = AppStoragePaths.settingsPath().parentFile ?: AppStoragePaths.settingsPath()
     openDirectory(directory)
 }
 
-internal fun openStatsStoragePath() {
+internal actual fun openStatsStoragePath() {
     val directory = AppStoragePaths.statsPath().parentFile ?: AppStoragePaths.statsPath()
     openDirectory(directory)
 }

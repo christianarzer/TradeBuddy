@@ -616,13 +616,6 @@ private fun flagEmoji(countryCode: String): String {
     return if (code.length == 2) code else countryCode
 }
 
-internal data class StorageSectionUi(
-    val visible: Boolean,
-    val settingsPath: String,
-    val statsPath: String,
-    val canOpen: Boolean
-)
-
 @Composable
 private fun StorageRow(
     title: String,

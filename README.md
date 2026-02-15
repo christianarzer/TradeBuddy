@@ -1,5 +1,7 @@
 # TradeBuddy
 
+[Website direkt oeffnen](https://christianarzer.github.io/TradeBuddy/)
+
 TradeBuddy ist eine Kotlin-Multiplatform-Anwendung fuer Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender.
 Der Fokus liegt auf schnellen Tagesuebersichten, filterbaren Ereignissen und lokaler Auswertung.
 
