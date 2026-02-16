@@ -37,9 +37,14 @@ fun buildCompactEvents(
         val adjustedCityTime = adjustedInstant?.atZone(cityZone)
         val userTime = adjustedInstant?.atZone(userZone)
         val utcTime = adjustedInstant?.atZone(ZoneOffset.UTC)
-        val cityDayOffset = adjustedCityTime?.let {
-            ChronoUnit.DAYS.between(targetDate, it.toLocalDate()).toInt()
-        } ?: 0
+        val cityDayOffset = if (adjustedCityTime != null && userTime != null) {
+            ChronoUnit.DAYS.between(
+                userTime.toLocalDate(),
+                adjustedCityTime.toLocalDate()
+            ).toInt().coerceIn(-1, 1)
+        } else {
+            0
+        }
         return CompactEvent(
             cityLabel = r.city.label,
             cityKey = r.city.key(),
