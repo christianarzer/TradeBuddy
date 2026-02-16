@@ -35,8 +35,10 @@ import java.util.UUID
 import kotlin.collections.LinkedHashMap
 import kotlin.math.abs
 import kotlin.math.round
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
@@ -75,6 +77,7 @@ class SunMoonViewModel(
     private val initialDate = LocalDate.now(userZone)
     private val dailyCache = LinkedHashMap<LocalDate, List<SunMoonTimes>>()
     private val dailyCacheMutex = Mutex()
+    private var astroRefreshJob: Job? = null
 
     private val _state = MutableStateFlow(
         SunMoonUiState(
@@ -722,7 +725,8 @@ class SunMoonViewModel(
     }
 
     private fun refreshAstro() {
-        scope.launch {
+        astroRefreshJob?.cancel()
+        astroRefreshJob = scope.launch {
             val snapshot = _state.value
             val date = snapshot.selectedDate
             val zoneId = snapshot.userZone
@@ -776,6 +780,7 @@ class SunMoonViewModel(
                     )
                 }
             }.onFailure { error ->
+                if (error is CancellationException) return@launch
                 AppLog.error(
                     tag = "SunMoonViewModel",
                     message = "Failed to load astro window for $date",
