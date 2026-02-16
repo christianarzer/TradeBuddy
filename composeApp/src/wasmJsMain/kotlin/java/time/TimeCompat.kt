@@ -60,7 +60,7 @@ class ZoneRules internal constructor(
             val offsetMinutes = -JsDateFull(instant.toEpochMilli().toDouble()).getTimezoneOffset()
             return ZoneOffset.ofTotalSeconds(offsetMinutes * 60)
         }
-        val local = instantToLocalDateTime(instant.toEpochMilli(), zoneId.timeZone)
+        val local = instantToLocalDateTime(instant.toEpochMilli(), zoneId)
         val shifted = local.toInstant(TimeZone.UTC)
         val seconds = ((shifted.toEpochMilliseconds() - instant.toEpochMilli()) / 1_000L).toInt()
         return ZoneOffset.ofTotalSeconds(seconds)
@@ -193,7 +193,7 @@ class ZonedDateTime internal constructor(
     fun format(formatter: DateTimeFormatter): String = formatter.format(this)
 
     internal fun localDateTime(): KLocalDateTime =
-        instantToLocalDateTime(instant.toEpochMilli(), zone.timeZone)
+        instantToLocalDateTime(instant.toEpochMilli(), zone)
 
     override fun compareTo(other: ZonedDateTime): Int = instant.compareTo(other.instant)
     override fun equals(other: Any?): Boolean =
@@ -206,7 +206,7 @@ class ZonedDateTime internal constructor(
 private fun KInstant.toCompat(): Instant = Instant(this)
 private fun KLocalDate.toCompat(): LocalDate = LocalDate(this)
 private fun KInstant.toLocalDate(zoneId: ZoneId): LocalDate =
-    instantToLocalDateTime(toEpochMilliseconds(), zoneId.timeZone).date.toCompat()
+    instantToLocalDateTime(toEpochMilliseconds(), zoneId).date.toCompat()
 
 @JsName("Date")
 external object JsDateCtor {
@@ -218,6 +218,12 @@ private external class JsDateFull {
     constructor()
     constructor(millis: Double)
     fun getTimezoneOffset(): Int
+    fun getFullYear(): Int
+    fun getMonth(): Int
+    fun getDate(): Int
+    fun getHours(): Int
+    fun getMinutes(): Int
+    fun getSeconds(): Int
     fun getUTCFullYear(): Int
     fun getUTCMonth(): Int
     fun getUTCDate(): Int
@@ -264,6 +270,21 @@ private fun instantToLocalDateTime(epochMillis: Long, zone: TimeZone): KLocalDat
     // Named zone — kotlinx-datetime handles these correctly on WASM-JS
     return KInstant.fromEpochMilliseconds(epochMillis)
         .toLocalDateTime(zone)
+}
+
+private fun instantToLocalDateTime(epochMillis: Long, zoneId: ZoneId): KLocalDateTime {
+    if (zoneId.isSystemDefaultZone) {
+        val d = JsDateFull(epochMillis.toDouble())
+        return KLocalDateTime(
+            d.getFullYear(),
+            d.getMonth() + 1,
+            d.getDate(),
+            d.getHours(),
+            d.getMinutes(),
+            d.getSeconds()
+        )
+    }
+    return instantToLocalDateTime(epochMillis, zoneId.timeZone)
 }
 
 /**
