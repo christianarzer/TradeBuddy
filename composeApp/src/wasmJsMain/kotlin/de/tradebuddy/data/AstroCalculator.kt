@@ -29,6 +29,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.YearMonth
 import kotlin.math.abs
+import kotlinx.coroutines.yield
 
 class AstroCalculator {
     private companion object {
@@ -90,7 +91,7 @@ class AstroCalculator {
         return out
     }
 
-    fun moonPlanetAspects(
+    suspend fun moonPlanetAspects(
         date: LocalDate,
         zoneId: ZoneId,
         aspectOrbs: Map<AstroAspectType, Double>,
@@ -150,13 +151,15 @@ class AstroCalculator {
                         )
                     }
                 }
+                yield()
             }
+            yield()
         }
 
         return events.sortedBy { it.exactInstant }
     }
 
-    private fun findAspectRootsInDay(
+    private suspend fun findAspectRootsInDay(
         dayStart: Instant,
         dayEnd: Instant,
         primaryBody: String,
@@ -166,6 +169,7 @@ class AstroCalculator {
         val roots = mutableListOf<Instant>()
         var left = dayStart
         var leftValue = aspectDeltaAt(left, primaryBody, secondaryBody, targetAngle)
+        var stepCounter = 0
 
         while (left.isBefore(dayEnd)) {
             val right = minInstant(left.plus(Duration.ofMinutes(ASPECT_SCAN_STEP_MINUTES)), dayEnd)
@@ -185,11 +189,15 @@ class AstroCalculator {
             }
             left = right
             leftValue = rightValue
+            stepCounter += 1
+            if (stepCounter % 8 == 0) {
+                yield()
+            }
         }
         return roots
     }
 
-    private fun findWindowBoundary(
+    private suspend fun findWindowBoundary(
         exact: Instant,
         primaryBody: String,
         secondaryBody: String,
@@ -205,6 +213,7 @@ class AstroCalculator {
         }
         var near = exact
         var nearValue = windowDeltaAt(near, primaryBody, secondaryBody, targetAngle, orbDegrees)
+        var stepCounter = 0
         while (true) {
             val far = if (backwards) near.minus(step) else near.plus(step)
             val outOfBounds = if (backwards) far.isBefore(limit) else far.isAfter(limit)
@@ -220,10 +229,14 @@ class AstroCalculator {
             }
             near = far
             nearValue = farValue
+            stepCounter += 1
+            if (stepCounter % 8 == 0) {
+                yield()
+            }
         }
     }
 
-    private fun findRoot(
+    private suspend fun findRoot(
         left: Instant,
         right: Instant,
         function: (Instant) -> Double
@@ -236,7 +249,7 @@ class AstroCalculator {
         if (abs(fa) < 1.0e-9) return a
         if (abs(fb) < 1.0e-9) return b
 
-        repeat(80) {
+        for (iteration in 0 until 80) {
             val mid = midpoint(a, b)
             val fm = function(mid)
             if (abs(Duration.between(a, b).seconds) <= ROOT_TOLERANCE_SECONDS || abs(fm) < 1.0e-7) {
@@ -250,6 +263,9 @@ class AstroCalculator {
             } else {
                 b = mid
                 fb = fm
+            }
+            if (iteration % 8 == 7) {
+                yield()
             }
         }
 

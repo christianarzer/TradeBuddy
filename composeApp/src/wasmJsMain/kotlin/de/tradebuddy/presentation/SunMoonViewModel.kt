@@ -50,6 +50,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.yield
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.error_calc
 import trade_buddy.composeapp.generated.resources.error_astro_calendar
@@ -806,25 +807,19 @@ class SunMoonViewModel(
     ): AstroLoadResult = coroutineScope {
         val days = (-3L..3L).map { centerDate.plusDays(it) }
         val totalDays = days.size.coerceAtLeast(1)
-        var completedDays = 0
-        val progressMutex = Mutex()
-        val jobs = days.associateWith { day ->
-            async {
-                val events = astroCalendarRepository.loadDay(
-                    date = day,
-                    zoneId = zoneId,
-                    aspectOrbs = aspectOrbs,
-                    scope = scope
-                )
-                val completed = progressMutex.withLock {
-                    completedDays += 1
-                    completedDays
-                }
-                onProgress(completed, totalDays)
-                events
-            }
+        val eventsByDay = LinkedHashMap<LocalDate, List<AstroAspectEvent>>(days.size)
+        for ((index, day) in days.withIndex()) {
+            val events = astroCalendarRepository.loadDay(
+                date = day,
+                zoneId = zoneId,
+                aspectOrbs = aspectOrbs,
+                scope = scope
+            )
+            eventsByDay[day] = events
+            onProgress(index + 1, totalDays)
+            // On WASM/JS we stay on the browser thread; yield between days so UI can repaint.
+            yield()
         }
-        val eventsByDay = jobs.mapValues { (_, deferred) -> deferred.await() }
         val week = days.map { day ->
             AstroWeekDaySummary(
                 date = day,
