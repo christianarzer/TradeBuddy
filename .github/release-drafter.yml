@@ -18,23 +18,6 @@ categories:
   - title: "Documentation"
     labels: ["docs"]
 
-autolabeler:
-  - label: "feat"
-    title:
-      - "/^feat/i"
-  - label: "fix"
-    title:
-      - "/^fix/i"
-  - label: "refactor"
-    title:
-      - "/^refactor/i"
-  - label: "docs"
-    title:
-      - "/^docs/i"
-  - label: "ci"
-    title:
-      - "/^ci/i"
-
 version-resolver:
   major:
     labels: ["major"]
