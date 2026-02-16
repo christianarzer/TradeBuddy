@@ -31,7 +31,6 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
@@ -79,10 +78,8 @@ kotlin {
         val iosMain = maybeCreate("iosMain").apply {
             dependsOn(nativeMain)
         }
-        val iosX64Main by getting
         val iosArm64Main by getting
         val iosSimulatorArm64Main by getting
-        iosX64Main.dependsOn(iosMain)
         iosArm64Main.dependsOn(iosMain)
         iosSimulatorArm64Main.dependsOn(iosMain)
 
@@ -90,6 +87,12 @@ kotlin {
             dependsOn(jvmMain)
             dependencies {
                 implementation(compose.desktop.currentOs)
+            }
+        }
+
+        val desktopTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
             }
         }
 
