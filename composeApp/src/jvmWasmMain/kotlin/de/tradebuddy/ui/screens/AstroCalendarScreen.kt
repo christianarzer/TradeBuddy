@@ -68,6 +68,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -424,7 +425,21 @@ fun AstroCalendarScreen(
         }
 
         if (isAspectsTab && astroState.isLoading) {
-            LinearProgressIndicator(Modifier.fillMaxWidth())
+            val progress = astroState.loadingProgress
+            if (progress != null) {
+                val clamped = progress.coerceIn(0f, 1f)
+                LinearProgressIndicator(
+                    progress = { clamped },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "${(clamped * 100f).roundToInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
         }
 
         if (isAspectsTab) {

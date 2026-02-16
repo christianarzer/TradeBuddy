@@ -71,6 +71,7 @@ data class AstroCalendarUiState(
     val scope: AstroCalendarScope = AstroCalendarScope.AllPlanets,
     val sortMode: AstroSortMode = AstroSortMode.ExactTime,
     val aspectOrbs: Map<AstroAspectType, Double> = DEFAULT_ASTRO_ASPECT_ORBS,
+    val loadingProgress: Float? = null,
     val isLoading: Boolean = false,
     val error: StringResource? = null
 )
@@ -124,6 +125,7 @@ data class SunMoonUiState(
     val compactEvents: List<CompactEvent> = emptyList(),
     val timeOptimizer: TimeOptimizerUiState = TimeOptimizerUiState(month = YearMonth.from(selectedDate)),
     val stats: List<StatEntry> = emptyList(),
+    val loadingProgress: Float? = null,
     val isLoading: Boolean = false,
     val error: StringResource? = null,
     val showDatePicker: Boolean = false

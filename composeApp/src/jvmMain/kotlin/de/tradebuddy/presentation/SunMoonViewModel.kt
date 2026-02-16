@@ -32,6 +32,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import java.util.UUID
+import kotlin.collections.LinkedHashMap
 import kotlin.math.abs
 import kotlin.math.round
 import kotlinx.coroutines.CoroutineScope
@@ -47,6 +48,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.error_calc
 import trade_buddy.composeapp.generated.resources.error_astro_calendar
@@ -61,11 +64,16 @@ class SunMoonViewModel(
     private val settingsRepository: SettingsRepository,
     private val statisticsRepository: StatisticsRepository
 ) : AutoCloseable {
+    private companion object {
+        const val DAILY_CACHE_MAX_ENTRIES = 21
+    }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val userZone = ZoneId.systemDefault()
     private val allCities = repository.cities()
     private val initialDate = LocalDate.now(userZone)
+    private val dailyCache = LinkedHashMap<LocalDate, List<SunMoonTimes>>()
+    private val dailyCacheMutex = Mutex()
 
     private val _state = MutableStateFlow(
         SunMoonUiState(
@@ -518,19 +526,35 @@ class SunMoonViewModel(
     fun refresh() {
         scope.launch {
             val date = _state.value.selectedDate
-            _state.update { it.copy(isLoading = true, error = null) }
-            runCatching { repository.loadDaily(date) }
+            val cityCount = _state.value.allCities.size.coerceAtLeast(1)
+            val totalSteps = cityCount * 3
+            _state.update { it.copy(isLoading = true, loadingProgress = 0f, error = null) }
+            runCatching {
+                loadDailyCached(date) { completed, _ ->
+                    updateMainLoadingProgress(
+                        targetDate = date,
+                        completedSteps = completed,
+                        totalSteps = totalSteps
+                    )
+                }
+            }
                 .onSuccess { results ->
                     if (date != _state.value.selectedDate) return@launch
                     _state.update {
                         it.copy(
                             results = results,
                             compactSourceResults = results,
-                            isLoading = false
+                            isLoading = true,
+                            loadingProgress = cityCount.toFloat() / totalSteps.toFloat()
                         )
                     }
                     applyFilters()
-                    loadCompactSources(date, results)
+                    loadCompactSources(
+                        date = date,
+                        baseResults = results,
+                        cityCount = cityCount,
+                        totalSteps = totalSteps
+                    )
                 }
                 .onFailure { error ->
                     AppLog.error(
@@ -545,6 +569,7 @@ class SunMoonViewModel(
                             compactSourceResults = emptyList(),
                             compactEvents = emptyList(),
                             isLoading = false,
+                            loadingProgress = null,
                             error = Res.string.error_calc
                         )
                     }
@@ -577,14 +602,37 @@ class SunMoonViewModel(
         }
     }
 
-    private suspend fun loadCompactSources(date: LocalDate, baseResults: List<SunMoonTimes>) {
+    private suspend fun loadCompactSources(
+        date: LocalDate,
+        baseResults: List<SunMoonTimes>,
+        cityCount: Int,
+        totalSteps: Int
+    ) {
         runCatching {
-            val prev = repository.loadDaily(date.minusDays(1))
-            val next = repository.loadDaily(date.plusDays(1))
+            val prev = loadDailyCached(date.minusDays(1)) { completed, _ ->
+                updateMainLoadingProgress(
+                    targetDate = date,
+                    completedSteps = cityCount + completed,
+                    totalSteps = totalSteps
+                )
+            }
+            val next = loadDailyCached(date.plusDays(1)) { completed, _ ->
+                updateMainLoadingProgress(
+                    targetDate = date,
+                    completedSteps = (cityCount * 2) + completed,
+                    totalSteps = totalSteps
+                )
+            }
             prev + baseResults + next
         }.onSuccess { combined ->
             if (date != _state.value.selectedDate) return
-            _state.update { it.copy(compactSourceResults = combined) }
+            _state.update {
+                it.copy(
+                    compactSourceResults = combined,
+                    isLoading = false,
+                    loadingProgress = null
+                )
+            }
             applyFilters()
         }.onFailure { error ->
             AppLog.error(
@@ -592,6 +640,9 @@ class SunMoonViewModel(
                 message = "Failed to load compact source window for $date",
                 throwable = error
             )
+            if (date == _state.value.selectedDate) {
+                _state.update { it.copy(isLoading = false, loadingProgress = null) }
+            }
         }
     }
 
@@ -660,11 +711,12 @@ class SunMoonViewModel(
             val date = snapshot.selectedDate
             val zoneId = snapshot.userZone
             val aspectOrbs = snapshot.astroCalendar.aspectOrbs
-            val scope = snapshot.astroCalendar.scope
+            val astroScope = snapshot.astroCalendar.scope
             _state.update { current ->
                 current.copy(
                     astroCalendar = current.astroCalendar.copy(
                         isLoading = true,
+                        loadingProgress = 0f,
                         error = null
                     )
                 )
@@ -675,17 +727,34 @@ class SunMoonViewModel(
                     centerDate = date,
                     zoneId = zoneId,
                     aspectOrbs = aspectOrbs,
-                    scope = scope
-                )
+                    scope = astroScope
+                ) { completed, total ->
+                    val safeTotal = total.coerceAtLeast(1)
+                    val progress = completed.coerceIn(0, safeTotal).toFloat() / safeTotal.toFloat()
+                    _state.update { current ->
+                        if (date != current.selectedDate || astroScope != current.astroCalendar.scope) {
+                            current
+                        } else {
+                            current.copy(
+                                astroCalendar = current.astroCalendar.copy(
+                                    isLoading = true,
+                                    loadingProgress = progress,
+                                    error = null
+                                )
+                            )
+                        }
+                    }
+                }
             }.onSuccess { loaded ->
                 val current = _state.value
-                if (date != current.selectedDate || scope != current.astroCalendar.scope) return@launch
+                if (date != current.selectedDate || astroScope != current.astroCalendar.scope) return@launch
                 _state.update { current ->
                     current.copy(
                         astroCalendar = current.astroCalendar.copy(
                             allEvents = loaded.dayEvents,
                             week = loaded.weekSummaries,
                             isLoading = false,
+                            loadingProgress = null,
                             error = null
                         )
                     )
@@ -697,13 +766,14 @@ class SunMoonViewModel(
                     throwable = error
                 )
                 val current = _state.value
-                if (date != current.selectedDate || scope != current.astroCalendar.scope) return@launch
+                if (date != current.selectedDate || astroScope != current.astroCalendar.scope) return@launch
                 _state.update { current ->
                     current.copy(
                         astroCalendar = current.astroCalendar.copy(
                             allEvents = emptyList(),
                             week = emptyList(),
                             isLoading = false,
+                            loadingProgress = null,
                             error = Res.string.error_astro_calendar
                         )
                     )
@@ -716,17 +786,27 @@ class SunMoonViewModel(
         centerDate: LocalDate,
         zoneId: ZoneId,
         aspectOrbs: Map<AstroAspectType, Double>,
-        scope: AstroCalendarScope
+        scope: AstroCalendarScope,
+        onProgress: (completed: Int, total: Int) -> Unit
     ): AstroLoadResult = coroutineScope {
         val days = (-3L..3L).map { centerDate.plusDays(it) }
+        val totalDays = days.size.coerceAtLeast(1)
+        var completedDays = 0
+        val progressMutex = Mutex()
         val jobs = days.associateWith { day ->
             async {
-                astroCalendarRepository.loadDay(
+                val events = astroCalendarRepository.loadDay(
                     date = day,
                     zoneId = zoneId,
                     aspectOrbs = aspectOrbs,
                     scope = scope
                 )
+                val completed = progressMutex.withLock {
+                    completedDays += 1
+                    completedDays
+                }
+                onProgress(completed, totalDays)
+                events
             }
         }
         val eventsByDay = jobs.mapValues { (_, deferred) -> deferred.await() }
@@ -868,6 +948,45 @@ class SunMoonViewModel(
                     message = "Failed to persist settings",
                     throwable = error
                 )
+            }
+        }
+    }
+
+    private suspend fun loadDailyCached(
+        date: LocalDate,
+        onProgress: ((completed: Int, total: Int) -> Unit)? = null
+    ): List<SunMoonTimes> {
+        val cached = dailyCacheMutex.withLock { dailyCache[date] }
+        if (cached != null) {
+            val total = cached.size.coerceAtLeast(1)
+            onProgress?.invoke(total, total)
+            return cached
+        }
+
+        val loaded = repository.loadDaily(date, onProgress)
+        dailyCacheMutex.withLock {
+            dailyCache[date] = loaded
+            while (dailyCache.size > DAILY_CACHE_MAX_ENTRIES) {
+                val oldest = dailyCache.keys.firstOrNull() ?: break
+                dailyCache.remove(oldest)
+            }
+        }
+        return loaded
+    }
+
+    private fun updateMainLoadingProgress(
+        targetDate: LocalDate,
+        completedSteps: Int,
+        totalSteps: Int
+    ) {
+        val safeTotal = totalSteps.coerceAtLeast(1)
+        val clampedCompleted = completedSteps.coerceIn(0, safeTotal)
+        val progress = clampedCompleted.toFloat() / safeTotal.toFloat()
+        _state.update { current ->
+            if (current.selectedDate != targetDate) {
+                current
+            } else {
+                current.copy(isLoading = true, loadingProgress = progress, error = null)
             }
         }
     }

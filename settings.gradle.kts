@@ -1,5 +1,4 @@
 rootProject.name = "Trade-Buddy"
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     resolutionStrategy {

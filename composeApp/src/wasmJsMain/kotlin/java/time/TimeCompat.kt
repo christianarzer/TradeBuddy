@@ -209,7 +209,10 @@ external object JsDateCtor {
 }
 
 @JsName("Date")
-private external class JsDateFull(millis: Double) {
+private external class JsDateFull {
+    constructor()
+    constructor(millis: Double)
+    fun getTimezoneOffset(): Int
     fun getUTCFullYear(): Int
     fun getUTCMonth(): Int
     fun getUTCDate(): Int
@@ -295,7 +298,7 @@ private fun systemTimeZoneId(): String {
         return systemId
     }
 
-    return "Europe/Berlin"
+    return browserUtcOffsetZoneId() ?: "UTC"
 }
 
 private fun String.isUsableSystemZoneId(): Boolean =
@@ -333,7 +336,40 @@ private fun parseTimeZone(id: String): TimeZone =
                 throw it
             }
         }
+        .recoverCatching {
+            val browserId = runCatching {
+                JsIntl.DateTimeFormat().resolvedOptions().timeZone
+            }.getOrNull()
+            val systemId = runCatching { TimeZone.currentSystemDefault().id }.getOrNull()
+            val isCurrentSystemZone =
+                id.equals(browserId, ignoreCase = true) ||
+                    id.equals(systemId, ignoreCase = true)
+            if (isCurrentSystemZone) {
+                val offsetFallback = browserUtcOffsetZoneId()
+                if (offsetFallback != null) {
+                    TimeZone.of(offsetFallback)
+                } else {
+                    throw it
+                }
+            } else {
+                throw it
+            }
+        }
         .getOrElse { TimeZone.UTC }
+
+private fun browserUtcOffsetZoneId(): String? = runCatching {
+    val minutesEastOfUtc = -JsDateFull().getTimezoneOffset()
+    utcOffsetZoneId(minutesEastOfUtc)
+}.getOrNull()
+
+private fun utcOffsetZoneId(totalMinutes: Int): String {
+    if (totalMinutes == 0) return "UTC"
+    val sign = if (totalMinutes >= 0) "+" else "-"
+    val absMinutes = kotlin.math.abs(totalMinutes)
+    val hh = (absMinutes / 60).toString().padStart(2, '0')
+    val mm = (absMinutes % 60).toString().padStart(2, '0')
+    return "UTC$sign$hh:$mm"
+}
 
 private fun offsetId(totalSeconds: Int): String {
     if (totalSeconds == 0) return "Z"

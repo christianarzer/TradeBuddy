@@ -11,10 +11,14 @@ import java.time.YearMonth
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 
 interface SunMoonRepository {
     fun cities(): List<City>
-    suspend fun loadDaily(date: LocalDate): List<SunMoonTimes>
+    suspend fun loadDaily(
+        date: LocalDate,
+        onProgress: ((completed: Int, total: Int) -> Unit)? = null
+    ): List<SunMoonTimes>
     suspend fun loadCityDay(date: LocalDate, city: City): SunMoonTimes
     suspend fun loadMonthlyTrend(month: YearMonth, city: City): MonthTrend
 }
@@ -27,8 +31,26 @@ class DefaultSunMoonRepository(
 
     override fun cities(): List<City> = cityDataSource.cities()
 
-    override suspend fun loadDaily(date: LocalDate): List<SunMoonTimes> = withContext(dispatcher) {
-        cities().map { calculator.calculate(date, it) }
+    override suspend fun loadDaily(
+        date: LocalDate,
+        onProgress: ((completed: Int, total: Int) -> Unit)?
+    ): List<SunMoonTimes> = withContext(dispatcher) {
+        val cityList = cities()
+        val total = cityList.size.coerceAtLeast(1)
+        if (cityList.isEmpty()) {
+            onProgress?.invoke(1, 1)
+            return@withContext emptyList()
+        }
+
+        val out = ArrayList<SunMoonTimes>(cityList.size)
+        cityList.forEachIndexed { index, city ->
+            out += calculator.calculate(date, city)
+            onProgress?.invoke(index + 1, total)
+            if ((index + 1) % 2 == 0) {
+                yield()
+            }
+        }
+        out
     }
 
     override suspend fun loadCityDay(date: LocalDate, city: City): SunMoonTimes = withContext(dispatcher) {

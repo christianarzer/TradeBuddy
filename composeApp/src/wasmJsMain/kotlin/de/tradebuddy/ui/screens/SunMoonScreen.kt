@@ -47,6 +47,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.action_next_day
@@ -92,7 +93,21 @@ fun SunMoonScreen(
         )
 
         if (state.isLoading) {
-            LinearProgressIndicator(Modifier.fillMaxWidth())
+            val progress = state.loadingProgress
+            if (progress != null) {
+                val clamped = progress.coerceIn(0f, 1f)
+                LinearProgressIndicator(
+                    progress = { clamped },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "${(clamped * 100f).roundToInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
         }
 
         state.error?.let {

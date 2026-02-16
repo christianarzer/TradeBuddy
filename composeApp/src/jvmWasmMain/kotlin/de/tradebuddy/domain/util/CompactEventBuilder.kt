@@ -31,12 +31,12 @@ fun buildCompactEvents(
             CompactEventType.Moonrise,
             CompactEventType.Moonset -> moonTimeOffsetMinutes.toLong()
         }
-        val adjustedCityTime = cityTime
+        val adjustedInstant = cityTime
             ?.toInstant()
             ?.plus(Duration.ofMinutes(offsetMinutes))
-            ?.atZone(cityZone)
-        val userTime = adjustedCityTime?.withZoneSameInstant(userZone)
-        val utcTime = adjustedCityTime?.withZoneSameInstant(ZoneOffset.UTC)
+        val adjustedCityTime = adjustedInstant?.atZone(cityZone)
+        val userTime = adjustedInstant?.atZone(userZone)
+        val utcTime = adjustedInstant?.atZone(ZoneOffset.UTC)
         val cityDayOffset = adjustedCityTime?.let {
             ChronoUnit.DAYS.between(targetDate, it.toLocalDate()).toInt()
         } ?: 0
