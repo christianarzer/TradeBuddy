@@ -13,7 +13,6 @@ on:
 permissions:
   contents: read
   actions: read
-  security-events: write
   packages: read
 
 concurrency:
@@ -42,6 +41,11 @@ jobs:
     name: CodeQL (${{ matrix.language }})
     if: github.event_name != 'branch_protection_rule'
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+      packages: read
     strategy:
       fail-fast: false
       matrix:
@@ -170,7 +174,6 @@ jobs:
     if: github.event.repository.private == false && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
-      security-events: write
       id-token: write
       contents: read
       actions: read
@@ -183,6 +186,13 @@ jobs:
       - name: Run analysis
         uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
         with:
-          results_file: results.sarif
-          results_format: sarif
+          results_file: results.json
+          results_format: json
           publish_results: false
+
+      - name: Upload Scorecard report artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: scorecard-report
+          path: results.json
+          if-no-files-found: error
