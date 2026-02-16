@@ -1,0 +1,190 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  branch_protection_rule:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          warn-only: false
+
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    if: github.event_name != 'branch_protection_rule'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: java-kotlin
+            build-mode: autobuild
+          - language: javascript-typescript
+            build-mode: none
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect sources for matrix language
+        id: detect
+        shell: bash
+        run: |
+          case "${{ matrix.language }}" in
+            actions)
+              if find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) | grep -q .; then
+                echo "has_sources=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "has_sources=false" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            java-kotlin)
+              if git ls-files '*.java' '*.kt' '*.kts' | grep -q .; then
+                echo "has_sources=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "has_sources=false" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            javascript-typescript)
+              if git ls-files '*.js' '*.jsx' '*.mjs' '*.cjs' '*.ts' '*.tsx' | grep -q .; then
+                echo "has_sources=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "has_sources=false" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            *)
+              echo "has_sources=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: Set up JDK 21 for Java/Kotlin analysis
+        if: steps.detect.outputs.has_sources == 'true' && matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Initialize CodeQL
+        if: steps.detect.outputs.has_sources == 'true'
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          dependency-caching: true
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        if: steps.detect.outputs.has_sources == 'true' && matrix.build-mode == 'autobuild'
+        uses: github/codeql-action/autobuild@v4
+
+      - name: Analyze
+        if: steps.detect.outputs.has_sources == 'true'
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  trufflehog:
+    name: TruffleHog Secrets Scan
+    if: github.event_name != 'branch_protection_rule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine scan range
+        id: range
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+          fi
+
+          if [ -z "$BASE" ] || [ "$BASE" = "$HEAD" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "use_diff=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "use_diff=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+
+      - name: Run TruffleHog (diff scan)
+        if: steps.range.outputs.use_diff == 'true'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ steps.range.outputs.base }}
+          head: ${{ steps.range.outputs.head }}
+          extra_args: --results=verified,unknown --fail
+
+      - name: Run TruffleHog (full scan fallback)
+        if: steps.range.outputs.use_diff != 'true'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --results=verified,unknown --fail
+
+  scorecards:
+    name: OpenSSF Scorecard
+    if: github.event.repository.private == false && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@v2.4.3
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: false
+
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif

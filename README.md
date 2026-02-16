@@ -1,10 +1,9 @@
 # TradeBuddy
 
 [![CI](https://github.com/christianarzer/TradeBuddy/actions/workflows/ci.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/christianarzer/TradeBuddy/actions/workflows/codeql.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/codeql.yml)
+[![Security](https://github.com/christianarzer/TradeBuddy/actions/workflows/security.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/security.yml)
+[![Automation](https://github.com/christianarzer/TradeBuddy/actions/workflows/automation.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/automation.yml)
 [![Deploy Pages](https://github.com/christianarzer/TradeBuddy/actions/workflows/deploy-web-pages.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/deploy-web-pages.yml)
-[![OpenSSF Scorecard](https://github.com/christianarzer/TradeBuddy/actions/workflows/scorecards.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/scorecards.yml)
-[![TruffleHog](https://github.com/christianarzer/TradeBuddy/actions/workflows/trufflehog.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/trufflehog.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender auf Kotlin Multiplatform.
@@ -78,7 +77,8 @@ xcodebuild -scheme iosApp -configuration Debug -destination 'generic/platform=iO
 ## CI and Release
 
 - CI (Android/Desktop/iOS/Web + Lint/Tests): `.github/workflows/ci.yml`
-- Security Scans: `.github/workflows/codeql.yml`, `.github/workflows/scorecards.yml`, `.github/workflows/trufflehog.yml`
+- Security Scans (Dependency Review, CodeQL, TruffleHog, Scorecards): `.github/workflows/security.yml`
+- Repo Automation (PR Title, Labeler, Dependabot Auto-Merge, Release Drafter, Stale): `.github/workflows/automation.yml`
 - Web Deploy: `.github/workflows/deploy-web-pages.yml`
 - Tag Release (`v*`): `.github/workflows/release-tag.yml`
 
@@ -87,9 +87,8 @@ xcodebuild -scheme iosApp -configuration Debug -destination 'generic/platform=iO
 | Pipeline | Zweck | Workflow |
 | --- | --- | --- |
 | CI | Android/Desktop/iOS/Web + Lint/Checks | `ci.yml` |
-| CodeQL | Code Scanning (Actions/Java-Kotlin/JS-TS) | `codeql.yml` |
-| Secrets | Secret Scanning | `trufflehog.yml` |
-| Scorecard | OpenSSF Security Posture | `scorecards.yml` |
+| Security | Dependency Review, CodeQL, Secret Scan, Scorecards | `security.yml` |
+| Automation | PR/Repo Automationen (Labeling, Drafting, Stale, Dependabot) | `automation.yml` |
 | Deploy | GitHub Pages Deployment | `deploy-web-pages.yml` |
 | Release | Tag-basierter Artefakt-Release | `release-tag.yml` |
 
