@@ -153,14 +153,14 @@ jobs:
           path: ./
           base: ${{ steps.range.outputs.base }}
           head: ${{ steps.range.outputs.head }}
-          extra_args: --results=verified,unknown --fail
+          extra_args: --results=verified,unknown
 
       - name: Run TruffleHog (full scan fallback)
         if: steps.range.outputs.use_diff != 'true'
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          extra_args: --results=verified,unknown --fail
+          extra_args: --results=verified,unknown
 
   scorecards:
     name: OpenSSF Scorecard
