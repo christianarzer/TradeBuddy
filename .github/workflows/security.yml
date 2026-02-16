@@ -151,7 +151,7 @@ jobs:
 
       - name: Run TruffleHog (diff scan)
         if: steps.range.outputs.use_diff == 'true'
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@v3
         with:
           path: ./
           base: ${{ steps.range.outputs.base }}
@@ -160,7 +160,7 @@ jobs:
 
       - name: Run TruffleHog (full scan fallback)
         if: steps.range.outputs.use_diff != 'true'
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@v3
         with:
           path: ./
           extra_args: --results=verified,unknown
