@@ -18,3 +18,4 @@ kotlin-js-store/
 !*.xcodeproj/project.xcworkspace/
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
+.claude/worktrees/
