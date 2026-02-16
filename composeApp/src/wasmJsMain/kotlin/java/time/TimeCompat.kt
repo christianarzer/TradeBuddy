@@ -29,14 +29,15 @@ class Duration private constructor(
 }
 
 open class ZoneId internal constructor(
-    val id: String
+    val id: String,
+    internal val isSystemDefaultZone: Boolean = false
 ) {
     internal val timeZone: TimeZone = parseTimeZone(id)
     val rules: ZoneRules = ZoneRules(this)
 
     companion object {
         fun of(id: String): ZoneId = ZoneId(id)
-        fun systemDefault(): ZoneId = ZoneId(systemTimeZoneId())
+        fun systemDefault(): ZoneId = ZoneId(systemTimeZoneId(), isSystemDefaultZone = true)
     }
 }
 
@@ -55,6 +56,10 @@ class ZoneRules internal constructor(
     private val zoneId: ZoneId
 ) {
     fun getOffset(instant: Instant): ZoneOffset {
+        if (zoneId.isSystemDefaultZone) {
+            val offsetMinutes = -JsDateFull(instant.toEpochMilli().toDouble()).getTimezoneOffset()
+            return ZoneOffset.ofTotalSeconds(offsetMinutes * 60)
+        }
         val local = instantToLocalDateTime(instant.toEpochMilli(), zoneId.timeZone)
         val shifted = local.toInstant(TimeZone.UTC)
         val seconds = ((shifted.toEpochMilliseconds() - instant.toEpochMilli()) / 1_000L).toInt()
@@ -315,7 +320,7 @@ private fun normalizedTimeZoneId(candidate: String?): String? {
     if (ZeroZuluRegex.matches(value)) return "UTC"
     UtcOffsetZoneRegex.matchEntire(value)?.groupValues?.getOrNull(1)?.let { return "UTC$it" }
     if (OffsetZoneRegex.matches(value)) return "UTC$value"
-    return runCatching { TimeZone.of(value).id }.getOrNull()
+    return value
 }
 
 private fun parseTimeZone(id: String): TimeZone =
@@ -345,12 +350,7 @@ private fun parseTimeZone(id: String): TimeZone =
                 id.equals(browserId, ignoreCase = true) ||
                     id.equals(systemId, ignoreCase = true)
             if (isCurrentSystemZone) {
-                val offsetFallback = browserUtcOffsetZoneId()
-                if (offsetFallback != null) {
-                    TimeZone.of(offsetFallback)
-                } else {
-                    throw it
-                }
+                TimeZone.currentSystemDefault()
             } else {
                 throw it
             }

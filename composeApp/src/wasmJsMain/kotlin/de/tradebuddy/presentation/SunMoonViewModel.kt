@@ -98,6 +98,17 @@ class SunMoonViewModel(
 
     fun setScreen(screen: AppScreen) {
         _state.update { it.copy(screen = screen) }
+        when (screen) {
+            AppScreen.AstroCalendar -> {
+                refreshAstro()
+                if (_state.value.selectedAstroTab == AstroCalendarTab.MoonPhases) {
+                    loadMoonPhases(YearMonth.from(_state.value.selectedDate))
+                }
+            }
+
+            AppScreen.TimeOptimizer -> refreshTimeOptimizerMonth()
+            else -> Unit
+        }
     }
 
     fun openLogsConsole() {
@@ -510,12 +521,16 @@ class SunMoonViewModel(
             )
         }
         refresh()
-        refreshAstro()
+        if (_state.value.screen == AppScreen.AstroCalendar) {
+            refreshAstro()
+        }
         when (_state.value.selectedTab) {
             SunMoonTab.Trend -> loadTrend(YearMonth.from(date))
             else -> Unit
         }
-        if (_state.value.selectedAstroTab == AstroCalendarTab.MoonPhases) {
+        if (_state.value.screen == AppScreen.AstroCalendar &&
+            _state.value.selectedAstroTab == AstroCalendarTab.MoonPhases
+        ) {
             loadMoonPhases(YearMonth.from(date))
         }
         if (_state.value.screen == AppScreen.TimeOptimizer) {
