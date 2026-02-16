@@ -1,10 +1,10 @@
 # TradeBuddy
 
-[![Quality Checks](https://github.com/christianarzer/TradeBuddy/actions/workflows/quality-checks.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/quality-checks.yml)
-[![Build Android](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-android.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-android.yml)
-[![Build Desktop](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-desktop.yml)
-[![Build Web](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-web.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/build-web.yml)
+[![CI](https://github.com/christianarzer/TradeBuddy/actions/workflows/ci.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/christianarzer/TradeBuddy/actions/workflows/codeql.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/codeql.yml)
 [![Deploy Pages](https://github.com/christianarzer/TradeBuddy/actions/workflows/deploy-web-pages.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/deploy-web-pages.yml)
+[![OpenSSF Scorecard](https://github.com/christianarzer/TradeBuddy/actions/workflows/scorecards.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/scorecards.yml)
+[![TruffleHog](https://github.com/christianarzer/TradeBuddy/actions/workflows/trufflehog.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/trufflehog.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender auf Kotlin Multiplatform.
@@ -77,8 +77,8 @@ xcodebuild -scheme iosApp -configuration Debug -destination 'generic/platform=iO
 
 ## CI and Release
 
-- Quality Checks: `.github/workflows/quality-checks.yml`
-- Platform Builds: Android/Desktop/iOS/Web in separaten Workflows
+- CI (Android/Desktop/iOS/Web + Lint/Tests): `.github/workflows/ci.yml`
+- Security Scans: `.github/workflows/codeql.yml`, `.github/workflows/scorecards.yml`, `.github/workflows/trufflehog.yml`
 - Web Deploy: `.github/workflows/deploy-web-pages.yml`
 - Tag Release (`v*`): `.github/workflows/release-tag.yml`
 
@@ -86,11 +86,10 @@ xcodebuild -scheme iosApp -configuration Debug -destination 'generic/platform=iO
 
 | Pipeline | Zweck | Workflow |
 | --- | --- | --- |
-| Android | APK Build + Checks | `build-android.yml` |
-| Desktop | JVM Desktop Build | `build-desktop.yml` |
-| Web | Wasm Build | `build-web.yml` |
-| iOS | iOS Host Build | `build-ios.yml` |
-| Quality | Lint/Test/Checks | `quality-checks.yml` |
+| CI | Android/Desktop/iOS/Web + Lint/Checks | `ci.yml` |
+| CodeQL | Code Scanning (Actions/Java-Kotlin/JS-TS) | `codeql.yml` |
+| Secrets | Secret Scanning | `trufflehog.yml` |
+| Scorecard | OpenSSF Security Posture | `scorecards.yml` |
 | Deploy | GitHub Pages Deployment | `deploy-web-pages.yml` |
 | Release | Tag-basierter Artefakt-Release | `release-tag.yml` |
 
