@@ -5,8 +5,6 @@ on:
     types: [opened, edited, synchronize, reopened]
   pull_request_target:
     types: [opened, synchronize, reopened]
-  push:
-    branches: [main]
   schedule:
     - cron: "30 2 * * 1"
   workflow_dispatch:
@@ -84,19 +82,6 @@ jobs:
               { pullRequestId: pr.node_id }
             );
             core.info(`Enabled auto-merge for Dependabot PR #${pr.number}`);
-
-  release-drafter:
-    name: Release Drafter
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: read
-    steps:
-      - name: Draft release notes
-        uses: release-drafter/release-drafter@6db134d15f3909ccc9eefd369f02bd1e9cffdf97 # v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   stale:
     name: Mark Stale Issues and PRs

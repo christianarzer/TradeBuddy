@@ -3,6 +3,7 @@
 [![CI](https://github.com/christianarzer/TradeBuddy/actions/workflows/ci.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/ci.yml)
 [![Security](https://github.com/christianarzer/TradeBuddy/actions/workflows/security.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/security.yml)
 [![Automation](https://github.com/christianarzer/TradeBuddy/actions/workflows/automation.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/automation.yml)
+[![Release Drafter](https://github.com/christianarzer/TradeBuddy/actions/workflows/release-drafter.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/release-drafter.yml)
 [![Deploy Pages](https://github.com/christianarzer/TradeBuddy/actions/workflows/deploy-web-pages.yml/badge.svg)](https://github.com/christianarzer/TradeBuddy/actions/workflows/deploy-web-pages.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
@@ -78,7 +79,8 @@ xcodebuild -scheme iosApp -configuration Debug -destination 'generic/platform=iO
 
 - CI (Android/Desktop/iOS/Web + Lint/Tests): `.github/workflows/ci.yml`
 - Security Scans (Dependency Review, CodeQL, TruffleHog, Scorecards): `.github/workflows/security.yml`
-- Repo Automation (PR Title, Labeler, Dependabot Auto-Merge, Release Drafter, Stale): `.github/workflows/automation.yml`
+- Repo Automation (PR Title, Labeler, Dependabot Auto-Merge, Stale): `.github/workflows/automation.yml`
+- Release Draft Notes: `.github/workflows/release-drafter.yml`
 - Web Deploy: `.github/workflows/deploy-web-pages.yml`
 - Tag Release (`v*`): `.github/workflows/release-tag.yml`
 
@@ -88,7 +90,8 @@ xcodebuild -scheme iosApp -configuration Debug -destination 'generic/platform=iO
 | --- | --- | --- |
 | CI | Android/Desktop/iOS/Web + Lint/Checks | `ci.yml` |
 | Security | Dependency Review, CodeQL, Secret Scan, Scorecards | `security.yml` |
-| Automation | PR/Repo Automationen (Labeling, Drafting, Stale, Dependabot) | `automation.yml` |
+| Automation | PR/Repo Automationen (Labeling, Stale, Dependabot) | `automation.yml` |
+| Release Draft | Automatische Draft Release Notes | `release-drafter.yml` |
 | Deploy | GitHub Pages Deployment | `deploy-web-pages.yml` |
 | Release | Tag-basierter Artefakt-Release | `release-tag.yml` |
 
