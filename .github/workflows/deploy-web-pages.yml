@@ -84,6 +84,8 @@ jobs:
   deploy:
     name: Deploy
     if: github.event.repository.private == false
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -93,3 +95,29 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  smoke:
+    name: Pages Smoke Test
+    needs: deploy
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check deployed page
+        run: |
+          set -e
+          url="${{ needs.deploy.outputs.page_url }}"
+          if [ -z "$url" ]; then
+            echo "No page URL available from deploy job."
+            exit 1
+          fi
+          echo "Checking $url"
+          for i in 1 2 3 4 5; do
+            if curl -fsSL "$url" | grep -Eiq "<(html|script|body)"; then
+              echo "Smoke test passed."
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
+          echo "Smoke test failed after retries."
+          exit 1

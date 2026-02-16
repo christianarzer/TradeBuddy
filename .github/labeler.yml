@@ -1,0 +1,45 @@
+android:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "androidApp/**"
+
+ios:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "iosApp/**"
+          - "composeApp/src/ios*/**"
+          - "composeApp/src/nativeMain/**"
+
+web:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "composeApp/src/wasmJsMain/**"
+          - "composeApp/webpack.config.d/**"
+
+desktop:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "composeApp/src/desktopMain/**"
+          - "composeApp/src/jvmMain/**"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/*.yml"
+
+deps:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "gradle/**"
+          - "gradle.properties"
+          - "build.gradle.kts"
+          - "settings.gradle.kts"
+          - "composeApp/build.gradle.kts"
+          - "androidApp/build.gradle.kts"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "images/**"

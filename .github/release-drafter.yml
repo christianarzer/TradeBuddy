@@ -1,0 +1,45 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+template: |
+  ## Changes
+
+  $CHANGES
+
+categories:
+  - title: "Features"
+    labels: ["feat"]
+  - title: "Fixes"
+    labels: ["fix"]
+  - title: "Refactoring"
+    labels: ["refactor"]
+  - title: "CI / Build"
+    labels: ["ci", "deps"]
+  - title: "Documentation"
+    labels: ["docs"]
+
+autolabeler:
+  - label: "feat"
+    title:
+      - "/^feat/i"
+  - label: "fix"
+    title:
+      - "/^fix/i"
+  - label: "refactor"
+    title:
+      - "/^refactor/i"
+  - label: "docs"
+    title:
+      - "/^docs/i"
+  - label: "ci"
+    title:
+      - "/^ci/i"
+
+version-resolver:
+  major:
+    labels: ["major"]
+  minor:
+    labels: ["feat"]
+  patch:
+    labels: ["fix", "refactor", "docs", "ci", "deps"]
+  default: patch
