@@ -6,10 +6,10 @@ import kotlinx.datetime.LocalDate as KLocalDate
 import kotlinx.datetime.LocalDateTime as KLocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant as KInstant
 
 class Duration private constructor(
@@ -55,7 +55,7 @@ class ZoneRules internal constructor(
     private val zoneId: ZoneId
 ) {
     fun getOffset(instant: Instant): ZoneOffset {
-        val local = instant.raw.toLocalDateTime(zoneId.timeZone)
+        val local = instantToLocalDateTime(instant.toEpochMilli(), zoneId.timeZone)
         val shifted = local.toInstant(TimeZone.UTC)
         val seconds = ((shifted.toEpochMilliseconds() - instant.toEpochMilli()) / 1_000L).toInt()
         return ZoneOffset.ofTotalSeconds(seconds)
@@ -178,16 +178,17 @@ class ZonedDateTime internal constructor(
     fun plusMinutes(minutes: Long): ZonedDateTime =
         ZonedDateTime(instant.plus(Duration.ofMinutes(minutes)), zone)
 
-    fun toLocalDate(): LocalDate = instant.raw.toLocalDateTime(zone.timeZone).date.toCompat()
+    fun toLocalDate(): LocalDate = localDateTime().date.toCompat()
 
     fun toLocalTime(): LocalTime {
-        val local = instant.raw.toLocalDateTime(zone.timeZone).time
+        val local = localDateTime().time
         return LocalTime(local.hour, local.minute, local.second)
     }
 
     fun format(formatter: DateTimeFormatter): String = formatter.format(this)
 
-    internal fun localDateTime(): KLocalDateTime = instant.raw.toLocalDateTime(zone.timeZone)
+    internal fun localDateTime(): KLocalDateTime =
+        instantToLocalDateTime(instant.toEpochMilli(), zone.timeZone)
 
     override fun compareTo(other: ZonedDateTime): Int = instant.compareTo(other.instant)
     override fun equals(other: Any?): Boolean =
@@ -200,11 +201,21 @@ class ZonedDateTime internal constructor(
 private fun KInstant.toCompat(): Instant = Instant(this)
 private fun KLocalDate.toCompat(): LocalDate = LocalDate(this)
 private fun KInstant.toLocalDate(zoneId: ZoneId): LocalDate =
-    toLocalDateTime(zoneId.timeZone).date.toCompat()
+    instantToLocalDateTime(toEpochMilliseconds(), zoneId.timeZone).date.toCompat()
 
 @JsName("Date")
 external object JsDateCtor {
     fun now(): Double
+}
+
+@JsName("Date")
+private external class JsDateFull(millis: Double) {
+    fun getUTCFullYear(): Int
+    fun getUTCMonth(): Int
+    fun getUTCDate(): Int
+    fun getUTCHours(): Int
+    fun getUTCMinutes(): Int
+    fun getUTCSeconds(): Int
 }
 
 @JsName("Intl")
@@ -217,6 +228,57 @@ external object JsIntl {
 external interface JsResolvedOptions {
     val timeZone: String?
 }
+
+/**
+ * Converts epoch millis to a [KLocalDateTime] at the given [TimeZone].
+ *
+ * For UTC (and fixed-offset) zones we compute the date-time components
+ * from the epoch millis directly via JS `Date.getUTC*()`, bypassing
+ * kotlinx-datetime's `toLocalDateTime` which can mishandle UTC on WASM-JS.
+ *
+ * For named zones we delegate to kotlinx-datetime which correctly uses the
+ * browser's local-time facilities.
+ */
+private fun instantToLocalDateTime(epochMillis: Long, zone: TimeZone): KLocalDateTime {
+    val offsetSeconds = fixedOffsetSeconds(zone)
+    if (offsetSeconds != null) {
+        val adjusted = epochMillis + offsetSeconds * 1_000L
+        val d = JsDateFull(adjusted.toDouble())
+        return KLocalDateTime(
+            d.getUTCFullYear(),
+            d.getUTCMonth() + 1,
+            d.getUTCDate(),
+            d.getUTCHours(),
+            d.getUTCMinutes(),
+            d.getUTCSeconds()
+        )
+    }
+    // Named zone — kotlinx-datetime handles these correctly on WASM-JS
+    return KInstant.fromEpochMilliseconds(epochMillis)
+        .toLocalDateTime(zone)
+}
+
+/**
+ * If [zone] is a fixed-offset zone (UTC, Z, GMT, ±HH:MM, UTC±HH:MM)
+ * returns the offset in seconds; otherwise returns `null`.
+ */
+private fun fixedOffsetSeconds(zone: TimeZone): Long? {
+    val id = zone.id
+    if (id == "UTC" || id == "Z" || id == "GMT") return 0L
+    UtcOffsetZoneRegex.matchEntire(id)?.groupValues?.getOrNull(1)?.let { return parseOffsetSeconds(it) }
+    OffsetZoneRegex.matchEntire(id)?.let { return parseOffsetSeconds(id) }
+    return null
+}
+
+private fun parseOffsetSeconds(offset: String): Long {
+    val sign = if (offset.startsWith('-')) -1L else 1L
+    val abs = offset.removePrefix("+").removePrefix("-")
+    val parts = abs.split(":")
+    val hours = parts.getOrNull(0)?.toLongOrNull() ?: 0L
+    val minutes = parts.getOrNull(1)?.toLongOrNull() ?: 0L
+    return sign * (hours * 3600L + minutes * 60L)
+}
+
 
 private fun systemTimeZoneId(): String {
     val browserId = runCatching {
