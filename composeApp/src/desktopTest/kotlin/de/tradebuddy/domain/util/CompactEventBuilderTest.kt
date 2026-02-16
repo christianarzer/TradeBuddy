@@ -71,6 +71,37 @@ class CompactEventBuilderTest {
         assertEquals(1, events.first().cityDayOffset)
     }
 
+    @Test
+    fun cityDayOffset_isPlusOne_forSingaporeMoonrise_case() {
+        val userZone = ZoneId.of("Europe/Berlin")
+        val city = city("Singapur", "SG", "Asia/Singapore")
+        // 00:30 next day in Singapore, still previous day in Berlin.
+        val instant = Instant.parse("2026-01-15T16:30:00Z")
+
+        val events = buildCompactEvents(
+            results = listOf(
+                SunMoonTimes(
+                    date = LocalDate.of(2026, 1, 15),
+                    city = city,
+                    sunrise = null,
+                    sunset = null,
+                    moonrise = instant.atZone(ZoneId.of(city.zoneId)),
+                    moonset = null,
+                    sunriseAzimuthDeg = null,
+                    sunsetAzimuthDeg = null,
+                    moonriseAzimuthDeg = null,
+                    moonsetAzimuthDeg = null
+                )
+            ),
+            userZone = userZone,
+            targetDate = LocalDate.of(2026, 1, 15)
+        )
+
+        assertEquals(1, events.size)
+        assertEquals(CompactEventType.Moonrise, events.first().eventType)
+        assertEquals(1, events.first().cityDayOffset)
+    }
+
     private fun city(label: String, countryCode: String, zoneId: String): City =
         City(
             label = label,
