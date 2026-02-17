@@ -14,9 +14,7 @@ Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender auf Kotlin Mu
 - Live Web: https://christianarzer.github.io/TradeBuddy/
 - Stack: Kotlin Multiplatform, Compose Multiplatform, Material 3, Coroutines/StateFlow
 
-| Desktop (real app) | Mobile (real app) |
-| --- | --- |
-| ![TradeBuddy Desktop Screenshot](images/screenshot-web-desktop.png) | ![TradeBuddy Mobile Screenshot](images/screenshot-web-mobile.png) |
+![TradeBuddy Showcase](images/tradebuddy-showcase-slate.png)
 
 ## Highlights
 
