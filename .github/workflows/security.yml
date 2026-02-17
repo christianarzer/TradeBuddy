@@ -100,8 +100,30 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - name: Detect CodeQL Kotlin compatibility
+        id: kotlin_compat
+        if: steps.detect.outputs.has_sources == 'true' && matrix.language == 'java-kotlin'
+        shell: bash
+        run: |
+          kotlin_version=$(sed -nE 's/^[[:space:]]*kotlin[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' gradle/libs.versions.toml | head -n1)
+          if [ -z "$kotlin_version" ]; then
+            echo "supported=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          base_version="${kotlin_version%%-*}"
+          min_unsupported="2.3.10"
+          highest=$(printf '%s\n%s\n' "$base_version" "$min_unsupported" | sort -V | tail -n1)
+          if [ "$highest" = "$base_version" ]; then
+            echo "supported=false" >> "$GITHUB_OUTPUT"
+            echo "version=$kotlin_version" >> "$GITHUB_OUTPUT"
+          else
+            echo "supported=true" >> "$GITHUB_OUTPUT"
+            echo "version=$kotlin_version" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Initialize CodeQL
-        if: steps.detect.outputs.has_sources == 'true'
+        if: steps.detect.outputs.has_sources == 'true' && (matrix.language != 'java-kotlin' || steps.kotlin_compat.outputs.supported == 'true')
         uses: github/codeql-action/init@9e907b5e64f6b83e7804b09294d44122997950d6 # v4
         with:
           languages: ${{ matrix.language }}
@@ -110,17 +132,21 @@ jobs:
           queries: security-extended,security-and-quality
 
       - name: Manual build for Java/Kotlin
-        if: steps.detect.outputs.has_sources == 'true' && matrix.language == 'java-kotlin' && matrix.build-mode == 'manual'
+        if: steps.detect.outputs.has_sources == 'true' && matrix.language == 'java-kotlin' && matrix.build-mode == 'manual' && steps.kotlin_compat.outputs.supported == 'true'
         shell: bash
         run: |
           chmod +x gradlew
           ./gradlew :composeApp:compileKotlinDesktop --stacktrace --build-cache -x test
 
       - name: Analyze
-        if: steps.detect.outputs.has_sources == 'true'
+        if: steps.detect.outputs.has_sources == 'true' && (matrix.language != 'java-kotlin' || steps.kotlin_compat.outputs.supported == 'true')
         uses: github/codeql-action/analyze@9e907b5e64f6b83e7804b09294d44122997950d6 # v4
         with:
           category: "/language:${{ matrix.language }}"
+
+      - name: Skip notice for unsupported Kotlin version
+        if: steps.detect.outputs.has_sources == 'true' && matrix.language == 'java-kotlin' && steps.kotlin_compat.outputs.supported != 'true'
+        run: echo "Skipping java-kotlin CodeQL because Kotlin ${{ steps.kotlin_compat.outputs.version }} is newer than current CodeQL support (< 2.3.10)."
 
   trufflehog:
     name: TruffleHog Secrets Scan
