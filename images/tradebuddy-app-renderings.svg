@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 840" role="img" aria-labelledby="title desc">
+  <title id="title">TradeBuddy App Renderings</title>
+  <desc id="desc">Stylized desktop and mobile mockups showing sun moon timeline and astro calendar screens.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#071321"/>
+      <stop offset="100%" stop-color="#0e2a42"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10253b"/>
+      <stop offset="100%" stop-color="#0b1b2f"/>
+    </linearGradient>
+    <linearGradient id="lineA" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="lineB" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fb7185"/>
+    </linearGradient>
+    <filter id="drop" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#02060b" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="1400" height="840" fill="url(#bg)"/>
+
+  <g transform="translate(72 72)" filter="url(#drop)">
+    <rect width="860" height="560" rx="28" fill="#0a1625" stroke="#314b63" stroke-width="2"/>
+    <rect x="24" y="24" width="812" height="58" rx="14" fill="#132b43"/>
+    <circle cx="52" cy="53" r="7" fill="#ef4444"/>
+    <circle cx="74" cy="53" r="7" fill="#f59e0b"/>
+    <circle cx="96" cy="53" r="7" fill="#22c55e"/>
+    <text x="130" y="61" fill="#c6dced" font-size="24" font-family="Segoe UI, Inter, Arial, sans-serif" font-weight="600">TradeBuddy • Sun / Moon Overview</text>
+
+    <rect x="24" y="102" width="250" height="430" rx="16" fill="url(#panel)"/>
+    <rect x="294" y="102" width="542" height="206" rx="16" fill="url(#panel)"/>
+    <rect x="294" y="326" width="542" height="206" rx="16" fill="url(#panel)"/>
+
+    <text x="44" y="140" fill="#8fb7d7" font-size="18" font-family="Segoe UI, Inter, Arial, sans-serif">Cities</text>
+    <rect x="44" y="160" width="210" height="64" rx="12" fill="#17324e"/>
+    <text x="58" y="197" fill="#d6e7f5" font-size="22" font-family="Segoe UI, Inter, Arial, sans-serif">Berlin</text>
+    <rect x="44" y="236" width="210" height="64" rx="12" fill="#142a40"/>
+    <text x="58" y="273" fill="#bfd7ea" font-size="22" font-family="Segoe UI, Inter, Arial, sans-serif">Singapore</text>
+    <rect x="44" y="312" width="210" height="64" rx="12" fill="#142a40"/>
+    <text x="58" y="349" fill="#bfd7ea" font-size="22" font-family="Segoe UI, Inter, Arial, sans-serif">New York</text>
+
+    <text x="314" y="140" fill="#8fb7d7" font-size="18" font-family="Segoe UI, Inter, Arial, sans-serif">Compact Timeline</text>
+    <path d="M324 260 L818 260" stroke="#2e4c67" stroke-width="2"/>
+    <path d="M324 236 C430 150, 630 300, 818 188" stroke="url(#lineA)" stroke-width="4" fill="none"/>
+    <path d="M324 210 C490 298, 600 142, 818 250" stroke="url(#lineB)" stroke-width="4" fill="none"/>
+    <circle cx="418" cy="214" r="9" fill="#f59e0b"/>
+    <circle cx="516" cy="228" r="9" fill="#22d3ee"/>
+    <circle cx="680" cy="202" r="9" fill="#60a5fa"/>
+    <rect x="334" y="168" width="70" height="30" rx="8" fill="#1f3f5d"/>
+    <text x="346" y="189" fill="#d8e8f3" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">+1 day</text>
+
+    <text x="314" y="364" fill="#8fb7d7" font-size="18" font-family="Segoe UI, Inter, Arial, sans-serif">Astro Calendar</text>
+    <rect x="324" y="388" width="494" height="124" rx="12" fill="#12263b"/>
+    <rect x="344" y="408" width="110" height="32" rx="8" fill="#1f3f5d"/>
+    <text x="366" y="430" fill="#d8e8f3" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">Conj.</text>
+    <rect x="464" y="408" width="110" height="32" rx="8" fill="#2d425e"/>
+    <text x="493" y="430" fill="#d8e8f3" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">Trine</text>
+    <rect x="584" y="408" width="110" height="32" rx="8" fill="#2d425e"/>
+    <text x="609" y="430" fill="#d8e8f3" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">Square</text>
+    <path d="M344 470 L796 470" stroke="#3b5871" stroke-width="2"/>
+    <circle cx="410" cy="470" r="6" fill="#f59e0b"/>
+    <circle cx="510" cy="470" r="6" fill="#22d3ee"/>
+    <circle cx="626" cy="470" r="6" fill="#f43f5e"/>
+    <circle cx="742" cy="470" r="6" fill="#60a5fa"/>
+  </g>
+
+  <g transform="translate(980 148)" filter="url(#drop)">
+    <rect width="320" height="620" rx="44" fill="#0a1625" stroke="#324e68" stroke-width="2"/>
+    <rect x="24" y="24" width="272" height="570" rx="28" fill="url(#panel)"/>
+    <rect x="110" y="10" width="98" height="8" rx="4" fill="#395977"/>
+    <text x="46" y="72" fill="#dbeaf5" font-size="25" font-family="Segoe UI, Inter, Arial, sans-serif" font-weight="600">TradeBuddy</text>
+    <text x="46" y="102" fill="#95bbd8" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">Moonrise • Singapore</text>
+    <rect x="46" y="124" width="228" height="46" rx="12" fill="#17324e"/>
+    <text x="60" y="154" fill="#dbeaf5" font-size="20" font-family="Segoe UI, Inter, Arial, sans-serif">00:30   +1 day</text>
+
+    <text x="46" y="214" fill="#95bbd8" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">Sunrise / Sunset</text>
+    <path d="M52 248 C102 194, 160 194, 224 248" stroke="url(#lineA)" stroke-width="4" fill="none"/>
+    <circle cx="116" cy="228" r="7" fill="#22d3ee"/>
+    <circle cx="186" cy="228" r="7" fill="#60a5fa"/>
+
+    <text x="46" y="322" fill="#95bbd8" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">Daily Signals</text>
+    <rect x="46" y="342" width="228" height="56" rx="12" fill="#102a40"/>
+    <rect x="58" y="356" width="82" height="28" rx="8" fill="#1f3f5d"/>
+    <text x="82" y="376" fill="#dbeaf5" font-size="15" font-family="Segoe UI, Inter, Arial, sans-serif">LONG</text>
+    <text x="160" y="376" fill="#8bd5b0" font-size="15" font-family="Segoe UI, Inter, Arial, sans-serif">+12m</text>
+
+    <rect x="46" y="424" width="228" height="130" rx="12" fill="#102a40"/>
+    <text x="60" y="454" fill="#c6dced" font-size="15" font-family="Segoe UI, Inter, Arial, sans-serif">Timezone: Europe/Berlin</text>
+    <text x="60" y="484" fill="#9ec0d9" font-size="14" font-family="Segoe UI, Inter, Arial, sans-serif">UTC+01 / UTC+02 DST aware</text>
+    <text x="60" y="514" fill="#9ec0d9" font-size="14" font-family="Segoe UI, Inter, Arial, sans-serif">Cross-city day offsets</text>
+  </g>
+</svg>
