@@ -1,0 +1,119 @@
+name: Refresh README Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - composeApp/**
+      - images/mockup-template.html
+      - .github/workflows/refresh-readme-images.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh-images:
+    name: Refresh README screenshots and showcase
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@fbcece063590cf3e99cc8f93ed063231c98bf95b # v5
+
+      - name: Build web distribution
+        run: |
+          chmod +x gradlew
+          ./gradlew :composeApp:wasmJsBrowserDistribution --stacktrace --build-cache
+
+      - name: Ensure web index.html exists
+        run: |
+          DIST_DIR="composeApp/build/dist/wasmJs/productionExecutable"
+          if [ ! -f "$DIST_DIR/index.html" ]; then
+            cat > "$DIST_DIR/index.html" <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>TradeBuddy</title>
+            <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0f1117;}</style>
+          </head>
+          <body>
+            <script src="./composeApp.js"></script>
+          </body>
+          </html>
+          HTML
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Start local web server
+        run: |
+          cd composeApp/build/dist/wasmJs/productionExecutable
+          python3 -m http.server 4173 &
+          echo $! > "$GITHUB_WORKSPACE/.server_pid"
+          sleep 5
+
+      - name: Install Playwright browser
+        run: npx -y playwright@1.56.1 install --with-deps chromium
+
+      - name: Capture desktop screenshot
+        run: |
+          npx -y playwright@1.56.1 screenshot \
+            --wait-for-timeout 12000 \
+            --viewport-size=1720,980 \
+            http://127.0.0.1:4173/ \
+            images/screenshot-web-desktop.png
+
+      - name: Capture mobile screenshot
+        run: |
+          npx -y playwright@1.56.1 screenshot \
+            --wait-for-timeout 12000 \
+            --viewport-size=390,844 \
+            http://127.0.0.1:4173/ \
+            images/screenshot-web-mobile.png
+
+      - name: Render showcase mockup
+        run: |
+          npx -y playwright@1.56.1 screenshot \
+            --wait-for-timeout 800 \
+            --viewport-size=1800,1000 \
+            file://$GITHUB_WORKSPACE/images/mockup-template.html \
+            images/tradebuddy-showcase-slate.png
+
+      - name: Stop local web server
+        if: always()
+        run: |
+          if [ -f "$GITHUB_WORKSPACE/.server_pid" ]; then
+            kill "$(cat "$GITHUB_WORKSPACE/.server_pid")" || true
+          fi
+
+      - name: Commit updated images
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add images/screenshot-web-desktop.png images/screenshot-web-mobile.png images/tradebuddy-showcase-slate.png
+          if git diff --cached --quiet; then
+            echo "No image changes."
+            exit 0
+          fi
+          git commit -m "chore(images): refresh README screenshots and showcase"
+          git push
