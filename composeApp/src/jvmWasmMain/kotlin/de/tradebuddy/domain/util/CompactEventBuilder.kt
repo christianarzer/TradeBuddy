@@ -36,15 +36,11 @@ fun buildCompactEvents(
         val adjustedCityTime = adjustedInstant?.atZone(cityZone)
         val userTime = adjustedInstant?.atZone(userZone)
         val utcTime = adjustedInstant?.atZone(ZoneOffset.UTC)
-        val cityDayOffset = if (adjustedInstant != null) {
-            val epochSecond = adjustedInstant.epochSecond
-            val cityOffsetSeconds = cityZone.rules.getOffset(adjustedInstant).totalSeconds.toLong()
-            val userOffsetSeconds = userZone.rules.getOffset(adjustedInstant).totalSeconds.toLong()
-            val cityEpochDay = floorDiv(epochSecond + cityOffsetSeconds, 86_400L)
-            val userEpochDay = floorDiv(epochSecond + userOffsetSeconds, 86_400L)
-            (cityEpochDay - userEpochDay).toInt().coerceIn(-1, 1)
-        } else {
-            0
+        val cityDayOffset = when {
+            adjustedCityTime == null || userTime == null -> 0
+            adjustedCityTime.toLocalDate() > userTime.toLocalDate() -> 1
+            adjustedCityTime.toLocalDate() < userTime.toLocalDate() -> -1
+            else -> 0
         }
         return CompactEvent(
             cityLabel = r.city.label,
@@ -67,14 +63,5 @@ fun buildCompactEvents(
         out += mk(r, CompactEventType.Moonset, r.moonset, r.moonsetAzimuthDeg)
     }
     return out.filter { it.userTime?.toLocalDate() == targetDate }
-}
-
-private fun floorDiv(value: Long, divisor: Long): Long {
-    var q = value / divisor
-    val r = value % divisor
-    if (r != 0L && ((value xor divisor) < 0L)) {
-        q -= 1
-    }
-    return q
 }
 
