@@ -121,7 +121,9 @@ jobs:
       - name: Generate checksums
         run: |
           cd release-assets
-          find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          tmp_file="$(mktemp)"
+          find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > "$tmp_file"
+          mv "$tmp_file" SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Publish release for tag
