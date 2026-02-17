@@ -17,13 +17,18 @@ jobs:
     name: Update Release Draft
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       pull-requests: read
     steps:
       - name: Draft release notes
+        if: secrets.RELEASE_DRAFTER_TOKEN != ''
         uses: release-drafter/release-drafter@6db134d15f3909ccc9eefd369f02bd1e9cffdf97 # v6
         with:
           disable-autolabeler: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_DRAFTER_TOKEN }}
+
+      - name: Skip notice (missing RELEASE_DRAFTER_TOKEN)
+        if: secrets.RELEASE_DRAFTER_TOKEN == ''
+        run: echo "Skipping release draft update because RELEASE_DRAFTER_TOKEN is not configured."
 
