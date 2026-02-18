@@ -25,9 +25,7 @@ async function captureDesktop(browser, mode, outputPath) {
   );
   const page = await context.newPage();
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
-  await page.getByText("Tagesübersicht Sonne/Mond").first().waitFor({ timeout: 90000 });
-  await page.getByText("Zeitstrahl").first().waitFor({ timeout: 90000 });
-  await page.waitForTimeout(1500);
+  await waitForAppStable(page);
   await page.screenshot({ path: outputPath });
   await context.close();
 }
@@ -44,11 +42,36 @@ async function captureMobile(browser, mode, outputPath) {
   );
   const page = await context.newPage();
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
-  await page.getByText("Tagesübersicht Sonne/Mond").first().waitFor({ timeout: 90000 });
-  await page.getByText("Zeitstrahl").first().waitFor({ timeout: 90000 });
-  await page.waitForTimeout(1200);
+  await waitForAppStable(page);
   await page.screenshot({ path: outputPath });
   await context.close();
+}
+
+async function waitForAppStable(page) {
+  // Best effort only: CI/web renderer differences can make text locators unreliable.
+  await page.waitForLoadState("load", { timeout: 120000 }).catch(() => {});
+  await page.waitForLoadState("networkidle", { timeout: 120000 }).catch(() => {});
+
+  const candidates = [
+    /Tagesübersicht Sonne\/Mond/i,
+    /Zeitstrahl/i,
+    /Sun\/Moon/i,
+    /Astro/i,
+    /TradeBuddy/i,
+  ];
+
+  for (const pattern of candidates) {
+    const found = await page
+      .getByText(pattern)
+      .first()
+      .waitFor({ timeout: 15000 })
+      .then(() => true)
+      .catch(() => false);
+    if (found) break;
+  }
+
+  // Final settle time so first-frame/black-frame captures are less likely.
+  await page.waitForTimeout(12000);
 }
 
 async function main() {
