@@ -87,9 +87,14 @@ jobs:
         run: |
           npx playwright screenshot \
             --wait-for-timeout 800 \
-            --viewport-size=2200,1400 \
-            file://$GITHUB_WORKSPACE/images/mockup-template.html \
-            images/tradebuddy-showcase-slate.png
+            --viewport-size=2400,1450 \
+            "file://$GITHUB_WORKSPACE/images/mockup-template.html?mode=dark" \
+            images/tradebuddy-showcase-slate-dark.png
+          npx playwright screenshot \
+            --wait-for-timeout 800 \
+            --viewport-size=2400,1450 \
+            "file://$GITHUB_WORKSPACE/images/mockup-template.html?mode=light" \
+            images/tradebuddy-showcase-slate-light.png
 
       - name: Stop local web server
         if: always()
@@ -102,7 +107,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add images/screenshot-web-desktop-dark.png images/screenshot-web-mobile-dark.png images/screenshot-web-desktop-light.png images/screenshot-web-mobile-light.png images/tradebuddy-showcase-slate.png
+          git add images/screenshot-web-desktop-dark.png images/screenshot-web-mobile-dark.png images/screenshot-web-desktop-light.png images/screenshot-web-mobile-light.png images/tradebuddy-showcase-slate-dark.png images/tradebuddy-showcase-slate-light.png
           if git diff --cached --quiet; then
             echo "No image changes."
             exit 0
