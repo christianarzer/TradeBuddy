@@ -87,7 +87,7 @@ jobs:
         run: |
           npx playwright screenshot \
             --wait-for-timeout 800 \
-            --viewport-size=1800,1200 \
+            --viewport-size=2200,1400 \
             file://$GITHUB_WORKSPACE/images/mockup-template.html \
             images/tradebuddy-showcase-slate.png
 

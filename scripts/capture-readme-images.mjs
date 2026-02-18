@@ -14,8 +14,8 @@ function settingsPayload(mode) {
 
 async function captureDesktop(browser, mode, outputPath) {
   const context = await browser.newContext({
-    viewport: { width: 1720, height: 980 },
-    deviceScaleFactor: 1,
+    viewport: { width: 2048, height: 1220 },
+    deviceScaleFactor: 2,
   });
   await context.addInitScript(
     ({ key, value }) => {
@@ -25,14 +25,16 @@ async function captureDesktop(browser, mode, outputPath) {
   );
   const page = await context.newPage();
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(12000);
+  await page.getByText("Tagesübersicht Sonne/Mond").first().waitFor({ timeout: 90000 });
+  await page.getByText("Zeitstrahl").first().waitFor({ timeout: 90000 });
+  await page.waitForTimeout(1500);
   await page.screenshot({ path: outputPath });
   await context.close();
 }
 
 async function captureMobile(browser, mode, outputPath) {
   const context = await browser.newContext({
-    ...devices["iPhone 13"],
+    ...devices["iPhone 15 Pro"],
   });
   await context.addInitScript(
     ({ key, value }) => {
@@ -42,7 +44,9 @@ async function captureMobile(browser, mode, outputPath) {
   );
   const page = await context.newPage();
   await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(12000);
+  await page.getByText("Tagesübersicht Sonne/Mond").first().waitFor({ timeout: 90000 });
+  await page.getByText("Zeitstrahl").first().waitFor({ timeout: 90000 });
+  await page.waitForTimeout(1200);
   await page.screenshot({ path: outputPath });
   await context.close();
 }
