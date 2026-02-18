@@ -45,6 +45,12 @@ jobs:
         run: |
           DIST_DIR="composeApp/build/dist/wasmJs/productionExecutable"
           if [ ! -f "$DIST_DIR/index.html" ]; then
+            JS_FILE="$(find "$DIST_DIR" -maxdepth 1 -name '*.js' | head -n1)"
+            if [ -z "$JS_FILE" ]; then
+              echo "No JS bundle found in $DIST_DIR"
+              exit 1
+            fi
+            JS_BASENAME="$(basename "$JS_FILE")"
             cat > "$DIST_DIR/index.html" <<'HTML'
           <!doctype html>
           <html lang="en">
@@ -55,11 +61,18 @@ jobs:
             <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0f1117;}</style>
           </head>
           <body>
-            <script src="./composeApp.js"></script>
+            <script src="./__APP_JS__"></script>
           </body>
           </html>
           HTML
+            sed -i "s#__APP_JS__#$JS_BASENAME#g" "$DIST_DIR/index.html"
           fi
+
+      - name: Prepare preview root (GitHub Pages path compatible)
+        run: |
+          rm -rf preview
+          mkdir -p preview/TradeBuddy
+          cp -R composeApp/build/dist/wasmJs/productionExecutable/. preview/TradeBuddy/
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -68,7 +81,7 @@ jobs:
 
       - name: Start local web server
         run: |
-          cd composeApp/build/dist/wasmJs/productionExecutable
+          cd preview
           python3 -m http.server 4173 &
           echo $! > "$GITHUB_WORKSPACE/.server_pid"
           sleep 5
@@ -81,7 +94,7 @@ jobs:
 
       - name: Capture slate dark/light screenshots
         run: |
-          SCREENSHOT_BASE_URL="http://127.0.0.1:4173/" node scripts/capture-readme-images.mjs
+          SCREENSHOT_BASE_URL="http://127.0.0.1:4173/TradeBuddy/" node scripts/capture-readme-images.mjs
 
       - name: Render showcase mockup
         run: |
