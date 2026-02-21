@@ -107,8 +107,8 @@ private fun AppScaffold(
             Brush.verticalGradient(
                 colors = listOf(
                     MaterialTheme.colorScheme.background,
-                    MaterialTheme.colorScheme.surface,
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f),
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
                     MaterialTheme.colorScheme.background
                 )
             )
@@ -202,7 +202,7 @@ private fun AppTopBar(
     }
     val themeToggleTint = MaterialTheme.colorScheme.onSurface
     val topBarContainer = if (state.themeMode == AppThemeMode.Light) {
-        MaterialTheme.colorScheme.surface
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
     } else {
         MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
     }
@@ -256,7 +256,7 @@ private fun AppNavigationRail(
     val themeToggleTint = MaterialTheme.colorScheme.onSurface
     NavigationRail(
         containerColor = MaterialTheme.colorScheme.surface.copy(
-            alpha = if (themeMode == AppThemeMode.Light) 1f else 0.88f
+            alpha = if (themeMode == AppThemeMode.Light) 0.95f else 0.88f
         )
     ) {
         NavigationRailItem(
@@ -315,7 +315,7 @@ private fun AppBottomBar(
 ) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface.copy(
-            alpha = if (themeMode == AppThemeMode.Light) 1f else 0.88f
+            alpha = if (themeMode == AppThemeMode.Light) 0.95f else 0.88f
         )
     ) {
         NavigationBarItem(
