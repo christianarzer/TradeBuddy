@@ -45,6 +45,7 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
+import de.tradebuddy.ui.theme.appElevatedCardColors
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.action_next_month
@@ -69,7 +70,7 @@ fun MonthlyTrendCard(
     val sunColor = MaterialTheme.colorScheme.primary
     val moonColor = MaterialTheme.colorScheme.secondary
 
-    ElevatedCard(Modifier.fillMaxSize()) {
+    ElevatedCard(Modifier.fillMaxSize(), colors = appElevatedCardColors()) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -405,4 +406,5 @@ private fun buildSmoothPath(points: List<Offset>, tension: Float = 1f): Path {
 
     return path
 }
+
 

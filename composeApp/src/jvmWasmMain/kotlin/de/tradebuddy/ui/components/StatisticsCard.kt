@@ -59,6 +59,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import de.tradebuddy.ui.theme.appElevatedCardColors
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
@@ -172,7 +173,7 @@ fun StatisticsCard(
     val upPct = if (total == 0) 0 else (upCount.toDouble() / total * 100).roundToInt()
     val avgOffset = if (total == 0) 0 else visibleStats.map { it.offsetMinutes }.average().roundToInt()
 
-    ElevatedCard(Modifier.fillMaxSize()) {
+    ElevatedCard(Modifier.fillMaxSize(), colors = appElevatedCardColors()) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -664,3 +665,4 @@ private enum class StatsSort(val label: StringResource) {
     Oldest(Res.string.stats_sort_oldest),
     Offset(Res.string.stats_sort_offset);
 }
+

@@ -54,6 +54,7 @@ import de.tradebuddy.domain.model.CompactEventType
 import de.tradebuddy.domain.model.MoveDirection
 import de.tradebuddy.domain.model.StatEntry
 import de.tradebuddy.domain.util.azimuthToCardinalIndex
+import de.tradebuddy.ui.theme.appElevatedCardColors
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -107,7 +108,7 @@ fun CompactTimelineCard(
     isToday: Boolean,
     nowInstant: Instant
 ) {
-    ElevatedCard(Modifier.fillMaxSize()) {
+    ElevatedCard(Modifier.fillMaxSize(), colors = appElevatedCardColors()) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -680,3 +681,4 @@ private fun eventLabel(type: CompactEventType): String = when (type) {
     CompactEventType.Moonrise -> stringResource(Res.string.event_moonrise)
     CompactEventType.Moonset -> stringResource(Res.string.event_moonset)
 }
+

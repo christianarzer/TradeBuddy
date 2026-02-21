@@ -1,4 +1,4 @@
-ï»¿package de.tradebuddy.ui.screens
+package de.tradebuddy.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -69,6 +69,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import de.tradebuddy.ui.theme.appElevatedCardColors
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -156,7 +157,7 @@ fun AstroCalendarScreen(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ElevatedCard(Modifier.fillMaxWidth()) {
+        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -286,7 +287,7 @@ fun AstroCalendarScreen(
                                     selected = selected,
                                     onClick = { viewModel.setAstroAspectEnabled(aspect, !selected) },
                                     label = {
-                                        Text("${aspect.label} (${formatDegrees(orb)}Â°)")
+                                        Text("${aspect.label} (${formatDegrees(orb)}°)")
                                     },
                                     leadingIcon = {
                                         AstroGlyphBadge(
@@ -335,7 +336,7 @@ fun AstroCalendarScreen(
                                             selected = true
                                         )
                                         Text(
-                                            "${aspect.label}: ${formatDegrees(orb)}Â°",
+                                            "${aspect.label}: ${formatDegrees(orb)}°",
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                     }
@@ -399,7 +400,7 @@ fun AstroCalendarScreen(
                 onNextMonth = { viewModel.shiftMonth(1) }
             )
         } else if (astroState.week.isNotEmpty()) {
-            ElevatedCard(Modifier.fillMaxWidth()) {
+            ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -629,7 +630,7 @@ private fun AstroEventRow(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "${event.aspectType.angleDegrees.toInt()}Â° Â· ${stringResource(Res.string.astro_label_orb)} Â±${formatDegrees(orbDegrees)}Â°",
+                        "${event.aspectType.angleDegrees.toInt()}° · ${stringResource(Res.string.astro_label_orb)} ±${formatDegrees(orbDegrees)}°",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -818,3 +819,4 @@ private fun planetColor(planet: AstroPlanet): Color = when (planet) {
     AstroPlanet.Neptune -> Color(0xFF4F46E5)
     AstroPlanet.Pluto -> Color(0xFF64748B)
 }
+

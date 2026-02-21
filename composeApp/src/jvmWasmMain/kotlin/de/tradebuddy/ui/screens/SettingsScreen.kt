@@ -52,6 +52,7 @@ import de.tradebuddy.domain.util.key
 import de.tradebuddy.presentation.SunMoonUiState
 import de.tradebuddy.presentation.SunMoonViewModel
 import de.tradebuddy.ui.theme.previewColorsFor
+import de.tradebuddy.ui.theme.appElevatedCardColors
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.nav_settings
@@ -139,7 +140,7 @@ fun SettingsScreen(
             )
         }
 
-        ElevatedCard(Modifier.fillMaxWidth()) {
+        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -173,7 +174,7 @@ fun SettingsScreen(
             }
         }
 
-        ElevatedCard(Modifier.fillMaxWidth()) {
+        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -224,7 +225,7 @@ fun SettingsScreen(
             }
         }
 
-        ElevatedCard(Modifier.fillMaxWidth()) {
+        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -323,7 +324,7 @@ fun SettingsScreen(
             }
         }
 
-        ElevatedCard(Modifier.fillMaxWidth()) {
+        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -352,7 +353,7 @@ fun SettingsScreen(
         }
 
         if (storageUi.visible) {
-            ElevatedCard(Modifier.fillMaxWidth()) {
+            ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -735,3 +736,4 @@ private fun StorageRow(
         }
     }
 }
+

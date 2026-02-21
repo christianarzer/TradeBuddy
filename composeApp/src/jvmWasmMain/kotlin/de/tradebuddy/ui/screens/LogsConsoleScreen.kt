@@ -39,6 +39,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import de.tradebuddy.ui.theme.appElevatedCardColors
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.settings_logs_back
@@ -103,7 +104,7 @@ fun LogsConsoleScreen(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ElevatedCard(Modifier.fillMaxWidth()) {
+        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -244,4 +245,5 @@ private fun formatLogEntry(entry: AppLogEntry): String {
 
 private val LogTimeFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT)
+
 

@@ -42,6 +42,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import de.tradebuddy.ui.theme.appElevatedCardColors
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.action_next_month
@@ -82,7 +83,7 @@ fun MoonPhaseCard(
     val currentMonth = remember(nowInstant, userZone) { YearMonth.from(nowInstant.atZone(userZone)) }
     val markPassed = currentMonth == state.month
 
-    ElevatedCard(Modifier.fillMaxSize()) {
+    ElevatedCard(Modifier.fillMaxSize(), colors = appElevatedCardColors()) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -318,4 +319,5 @@ private fun phaseLabel(type: MoonPhaseType): String = when (type) {
     MoonPhaseType.FullMoon -> stringResource(Res.string.moon_phase_full)
     MoonPhaseType.LastQuarter -> stringResource(Res.string.moon_phase_last)
 }
+
 

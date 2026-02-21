@@ -33,6 +33,7 @@ import java.time.ZoneId
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import de.tradebuddy.ui.theme.appElevatedCardColors
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.format_time_short
@@ -88,7 +89,7 @@ fun TimeOptimizerScreen(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ElevatedCard(Modifier.fillMaxWidth()) {
+        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -295,3 +296,4 @@ private fun buildMonthlyExportText(
         }
     }.trim()
 }
+
