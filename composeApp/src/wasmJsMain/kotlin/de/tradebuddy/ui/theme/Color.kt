@@ -6,13 +6,13 @@ import androidx.compose.ui.graphics.Color
 import de.tradebuddy.domain.model.AppThemeMode
 import de.tradebuddy.domain.model.AppThemeStyle
 
-private val LightBaseBackground = Color(0xFFF6FAFF)
+private val LightBaseBackground = Color(0xFFF7F9FC)
 private val LightBaseSurface = Color(0xFFFFFFFF)
-private val LightBaseSurfaceVariant = Color(0xFFEAF1F8)
+private val LightBaseSurfaceVariant = Color(0xFFEEF2F7)
 private val LightBaseOn = Color(0xFF142033)
-private val LightBaseOnVariant = Color(0xFF415169)
-private val LightBaseOutline = Color(0xFFC6D4E3)
-private val LightBaseOutlineVariant = Color(0xFFDDE6EF)
+private val LightBaseOnVariant = Color(0xFF4A5668)
+private val LightBaseOutline = Color(0xFFC8D1DE)
+private val LightBaseOutlineVariant = Color(0xFFDDE4EE)
 
 private val DarkBaseBackground = Color(0xFF0E1116)
 private val DarkBaseSurface = Color(0xFF151A21)
@@ -49,6 +49,7 @@ private fun lightScheme(
     onBackground = LightBaseOn,
     surface = surface,
     onSurface = LightBaseOn,
+    surfaceTint = Color.Transparent,
     surfaceVariant = surfaceVariant,
     onSurfaceVariant = LightBaseOnVariant,
     outline = LightBaseOutline,
