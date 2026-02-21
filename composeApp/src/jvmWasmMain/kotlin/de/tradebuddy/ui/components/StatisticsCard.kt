@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.tradebuddy.domain.model.CompactEventType
 import de.tradebuddy.domain.model.MoveDirection
+import de.tradebuddy.ui.theme.LocalExtendedColors
 import de.tradebuddy.domain.model.StatEntry
 import java.time.Duration
 import java.time.Instant
@@ -341,8 +342,9 @@ private fun TrendSection(
 ) {
     val total = upCount + downCount
     val upRatio = if (total == 0) 0f else upCount.toFloat() / total
-    val upColor = MaterialTheme.colorScheme.primary
-    val downColor = MaterialTheme.colorScheme.tertiary
+    val ext = LocalExtendedColors.current
+    val upColor = ext.positive
+    val downColor = ext.negative
 
     OutlinedCard {
         Column(
@@ -549,15 +551,16 @@ private fun StatEntryRow(
 
 @Composable
 private fun DirectionBadge(direction: MoveDirection) {
+    val ext = LocalExtendedColors.current
     val (label, color, icon) = when (direction) {
         MoveDirection.Up -> Triple(
             stringResource(Res.string.stats_direction_up),
-            MaterialTheme.colorScheme.primary,
+            ext.positive,
             Icons.Outlined.ArrowUpward
         )
         MoveDirection.Down -> Triple(
             stringResource(Res.string.stats_direction_down),
-            MaterialTheme.colorScheme.tertiary,
+            ext.negative,
             Icons.Outlined.ArrowDownward
         )
     }

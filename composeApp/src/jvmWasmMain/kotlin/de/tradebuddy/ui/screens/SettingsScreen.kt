@@ -51,6 +51,7 @@ import de.tradebuddy.domain.model.City
 import de.tradebuddy.domain.util.key
 import de.tradebuddy.presentation.SunMoonUiState
 import de.tradebuddy.presentation.SunMoonViewModel
+import de.tradebuddy.ui.theme.AppSpacing
 import de.tradebuddy.ui.theme.previewColorsFor
 import de.tradebuddy.ui.theme.appElevatedCardColors
 import org.jetbrains.compose.resources.stringResource
@@ -144,8 +145,8 @@ fun SettingsScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .padding(AppSpacing.cardPadding),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.itemGap)
             ) {
                 SectionHeader(
                     icon = Icons.Outlined.DarkMode,
@@ -178,8 +179,8 @@ fun SettingsScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .padding(AppSpacing.cardPadding),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.itemGap)
             ) {
                 SectionHeader(
                     icon = Icons.Outlined.Tune,
@@ -229,7 +230,7 @@ fun SettingsScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(18.dp),
+                    .padding(AppSpacing.cardPadding),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 SectionHeader(
@@ -328,7 +329,7 @@ fun SettingsScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .padding(18.dp),
+                    .padding(AppSpacing.cardPadding),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 SectionHeader(
@@ -357,7 +358,7 @@ fun SettingsScreen(
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .padding(18.dp),
+                        .padding(AppSpacing.cardPadding),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     SectionHeader(

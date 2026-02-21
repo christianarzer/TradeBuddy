@@ -69,7 +69,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import de.tradebuddy.ui.theme.LocalExtendedColors
 import de.tradebuddy.ui.theme.appElevatedCardColors
+import de.tradebuddy.ui.theme.colorFor
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -126,6 +128,7 @@ fun AstroCalendarScreen(
     state: SunMoonUiState,
     viewModel: SunMoonViewModel
 ) {
+    val ext = LocalExtendedColors.current
     val astroState = state.astroCalendar
     val datePattern = stringResource(Res.string.format_date_short)
     val preciseTimePattern = stringResource(Res.string.format_time_precise)
@@ -287,12 +290,12 @@ fun AstroCalendarScreen(
                                     selected = selected,
                                     onClick = { viewModel.setAstroAspectEnabled(aspect, !selected) },
                                     label = {
-                                        Text("${aspect.label} (${formatDegrees(orb)}°)")
+                                        Text("${aspect.label} (${formatDegrees(orb)}ï¿½)")
                                     },
                                     leadingIcon = {
                                         AstroGlyphBadge(
                                             glyph = aspect.glyph,
-                                            tint = aspectColor(aspect),
+                                            tint = ext.colorFor(aspect),
                                             selected = selected
                                         )
                                     }
@@ -332,11 +335,11 @@ fun AstroCalendarScreen(
                                     ) {
                                         AstroGlyphBadge(
                                             glyph = aspect.glyph,
-                                            tint = aspectColor(aspect),
+                                            tint = ext.colorFor(aspect),
                                             selected = true
                                         )
                                         Text(
-                                            "${aspect.label}: ${formatDegrees(orb)}°",
+                                            "${aspect.label}: ${formatDegrees(orb)}ï¿½",
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                     }
@@ -377,7 +380,7 @@ fun AstroCalendarScreen(
                                     leadingIcon = {
                                         AstroGlyphBadge(
                                             glyph = planet.glyph,
-                                            tint = planetColor(planet),
+                                            tint = ext.colorFor(planet),
                                             selected = selected
                                         )
                                     }
@@ -562,6 +565,7 @@ private fun AstroEventRow(
     timeFmt: DateTimeFormatter,
     orbDegrees: Double
 ) {
+    val ext = LocalExtendedColors.current
     val adjustedExactInstant = event.exactInstant.plus(Duration.ofMinutes(astroTimeOffsetMinutes.toLong()))
     val status = eventStatus(nowInstant = nowInstant, exactInstant = adjustedExactInstant)
     val statusLabel = when (status) {
@@ -609,17 +613,17 @@ private fun AstroEventRow(
             ) {
                 AstroGlyphBadge(
                     glyph = event.primaryPlanet.glyph,
-                    tint = planetColor(event.primaryPlanet),
+                    tint = ext.colorFor(event.primaryPlanet),
                     selected = true
                 )
                 AstroGlyphBadge(
                     glyph = event.aspectType.glyph,
-                    tint = aspectColor(event.aspectType),
+                    tint = ext.colorFor(event.aspectType),
                     selected = true
                 )
                 AstroGlyphBadge(
                     glyph = event.secondaryPlanet.glyph,
-                    tint = planetColor(event.secondaryPlanet),
+                    tint = ext.colorFor(event.secondaryPlanet),
                     selected = true
                 )
 
@@ -630,7 +634,7 @@ private fun AstroEventRow(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "${event.aspectType.angleDegrees.toInt()}° · ${stringResource(Res.string.astro_label_orb)} ±${formatDegrees(orbDegrees)}°",
+                        "${event.aspectType.angleDegrees.toInt()}ï¿½ ï¿½ ${stringResource(Res.string.astro_label_orb)} ï¿½${formatDegrees(orbDegrees)}ï¿½",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -799,24 +803,4 @@ private fun glyphGlyphKey(glyph: String): String = glyph
 
 private fun formatDegrees(value: Double): String = (kotlin.math.round(value * 10.0) / 10.0).toString()
 
-private fun aspectColor(type: AstroAspectType): Color = when (type) {
-    AstroAspectType.Conjunction -> Color(0xFFCA8A04)
-    AstroAspectType.Sextile -> Color(0xFF0D9488)
-    AstroAspectType.Square -> Color(0xFFEA580C)
-    AstroAspectType.Trine -> Color(0xFF16A34A)
-    AstroAspectType.Opposition -> Color(0xFFDC2626)
-}
-
-private fun planetColor(planet: AstroPlanet): Color = when (planet) {
-    AstroPlanet.Moon -> Color(0xFF3B82F6)
-    AstroPlanet.Sun -> Color(0xFFF59E0B)
-    AstroPlanet.Mercury -> Color(0xFF0EA5E9)
-    AstroPlanet.Venus -> Color(0xFFDB2777)
-    AstroPlanet.Mars -> Color(0xFFEF4444)
-    AstroPlanet.Jupiter -> Color(0xFF14B8A6)
-    AstroPlanet.Saturn -> Color(0xFF65A30D)
-    AstroPlanet.Uranus -> Color(0xFF06B6D4)
-    AstroPlanet.Neptune -> Color(0xFF4F46E5)
-    AstroPlanet.Pluto -> Color(0xFF64748B)
-}
 

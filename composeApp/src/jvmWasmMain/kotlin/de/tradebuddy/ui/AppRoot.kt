@@ -57,6 +57,7 @@ import de.tradebuddy.ui.screens.LogsConsoleScreen
 import de.tradebuddy.ui.screens.SettingsScreen
 import de.tradebuddy.ui.screens.SunMoonScreen
 import de.tradebuddy.ui.screens.TimeOptimizerScreen
+import de.tradebuddy.ui.theme.AppSpacing
 import de.tradebuddy.ui.theme.AppTheme
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
@@ -158,7 +159,7 @@ private fun AppScaffold(
                             onToggleTheme = viewModel::toggleTheme,
                             themeMode = state.themeMode
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(AppSpacing.s))
                     }
 
                     var visible by remember(state.screen) { mutableStateOf(false) }
@@ -171,7 +172,7 @@ private fun AppScaffold(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = if (isWide) 18.dp else 12.dp, vertical = 14.dp)
+                                .padding(horizontal = if (isWide) AppSpacing.screenHPaddingWide else AppSpacing.screenHPadding, vertical = AppSpacing.m)
                         ) {
                             when (state.screen) {
                                 AppScreen.SunMoon -> SunMoonScreen(state = state, viewModel = viewModel)
