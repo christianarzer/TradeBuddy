@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
@@ -19,6 +20,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -115,6 +118,27 @@ fun TimeOptimizerScreen(
             val city = state.allCities.firstOrNull { it.key() == key } ?: return@mapNotNull null
             val rows = rowsByCity[key] ?: return@mapNotNull null
             city to rows
+        }
+    }
+    val previewListState = rememberLazyListState()
+    val listProgress by remember(selectedRows, previewListState) {
+        derivedStateOf {
+            val total = selectedRows.size.coerceAtLeast(1)
+            val visibleCount = previewListState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+            val endIndex = (previewListState.firstVisibleItemIndex + visibleCount).coerceAtMost(total)
+            endIndex.toFloat() / total.toFloat()
+        }
+    }
+    val listPositionLabel by remember(selectedRows, previewListState) {
+        derivedStateOf {
+            val total = selectedRows.size
+            if (total == 0) {
+                "0/0"
+            } else {
+                val visibleCount = previewListState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+                val endIndex = (previewListState.firstVisibleItemIndex + visibleCount).coerceAtMost(total)
+                "$endIndex/$total"
+            }
         }
     }
     val exportText = remember(
@@ -310,6 +334,17 @@ fun TimeOptimizerScreen(
             ,
             color = MaterialTheme.colorScheme.onSurface
         )
+        if (selectedRows.isNotEmpty()) {
+            LinearProgressIndicator(
+                progress = { listProgress.coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = listPositionLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
         if (selectedRows.isEmpty()) {
             Text(
@@ -319,6 +354,7 @@ fun TimeOptimizerScreen(
             )
         } else {
             LazyColumn(
+                state = previewListState,
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
