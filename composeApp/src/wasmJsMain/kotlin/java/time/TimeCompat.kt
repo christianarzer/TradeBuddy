@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
+
 package java.time
 
 import java.time.format.DateTimeFormatter
@@ -339,8 +341,8 @@ private fun localDateTimeToInstantIntl(local: KLocalDateTime, zoneId: String): K
     var guessEpochMillis = runCatching {
         utcEpochMillis(
             local.year,
-            local.monthNumber,
-            local.dayOfMonth,
+            local.month.ordinal + 1,
+            local.day,
             local.hour,
             local.minute,
             local.second
