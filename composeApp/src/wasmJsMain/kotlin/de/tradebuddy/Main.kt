@@ -2,6 +2,7 @@ package de.tradebuddy
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
+import de.tradebuddy.time.ensureTimeZoneDatabaseLoaded
 import de.tradebuddy.ui.AppRoot
 import kotlinx.browser.document
 import org.w3c.dom.HTMLElement
@@ -9,6 +10,7 @@ import org.w3c.dom.HTMLLinkElement
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
+    ensureTimeZoneDatabaseLoaded()
     configureWebTabBranding()
     ComposeViewport(document.body!!) {
         AppRoot()

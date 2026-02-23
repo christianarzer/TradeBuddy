@@ -108,6 +108,7 @@ kotlin {
             kotlin.srcDir("src/jvmWasmMain/kotlin")
             dependencies {
                 implementation(npm("astronomy-engine", "2.1.19"))
+                implementation(npm("@js-joda/timezone", "2.22.0"))
             }
         }
     }
