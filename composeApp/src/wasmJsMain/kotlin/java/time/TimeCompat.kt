@@ -456,7 +456,13 @@ private data class ParsedTimeZone(
 )
 
 private fun parseTimeZone(id: String): ParsedTimeZone =
-    runCatching { ParsedTimeZone(TimeZone.of(id), useIntlNamedZone = false) }
+    runCatching {
+        val tz = TimeZone.of(id)
+        ParsedTimeZone(
+            timeZone = tz,
+            useIntlNamedZone = shouldUseIntlNamedZone(id, tz)
+        )
+    }
         .recoverCatching {
             val normalizedOffsetId = when {
                 ZeroZuluRegex.matches(id) -> "UTC"
@@ -493,6 +499,24 @@ private fun parseTimeZone(id: String): ParsedTimeZone =
                 !id.equals("GMT", ignoreCase = true)
             ParsedTimeZone(TimeZone.UTC, useIntlNamedZone = useIntlNamedZone)
         }
+
+private fun shouldUseIntlNamedZone(id: String, zone: TimeZone): Boolean {
+    if (!NamedZoneRegex.matches(id)) return false
+    if (id.equals("UTC", ignoreCase = true) || id.equals("GMT", ignoreCase = true)) return false
+
+    val sampleEpochMillis = 1_735_689_600_000L // 2025-01-01T00:00:00Z
+    val intlLocal = instantToLocalDateTimeIntl(sampleEpochMillis, id) ?: return false
+    val intlOffsetSeconds =
+        ((intlLocal.toInstant(TimeZone.UTC).toEpochMilliseconds() - sampleEpochMillis) / 1_000L).toInt()
+
+    val kxLocal = runCatching {
+        KInstant.fromEpochMilliseconds(sampleEpochMillis).toLocalDateTime(zone)
+    }.getOrNull() ?: return true
+    val kxOffsetSeconds =
+        ((kxLocal.toInstant(TimeZone.UTC).toEpochMilliseconds() - sampleEpochMillis) / 1_000L).toInt()
+
+    return kxOffsetSeconds != intlOffsetSeconds
+}
 
 private fun browserUtcOffsetZoneId(): String? = runCatching {
     val minutesEastOfUtc = -JsDateFull().getTimezoneOffset()
