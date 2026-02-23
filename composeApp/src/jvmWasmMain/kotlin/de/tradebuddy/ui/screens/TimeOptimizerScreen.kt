@@ -22,7 +22,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -39,6 +42,8 @@ import java.util.Locale
 import de.tradebuddy.ui.theme.appElevatedCardColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.format_time_short
@@ -166,6 +171,7 @@ fun TimeOptimizerScreen(
         optimizerState.month.atDay(1).format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.GERMANY))
     }
     val allActiveSelected = exportCityKeys.isNotEmpty() && exportCityKeys.size == activeCityKeys.size
+    var exportSettingsExpanded by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -258,49 +264,67 @@ fun TimeOptimizerScreen(
                     }
                 }
 
-                Text(
-                    stringResource(Res.string.time_optimizer_export_settings_title),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    FilterChip(
-                        selected = optimizerState.includeSun,
-                        onClick = { viewModel.setTimeOptimizerIncludeSun(!optimizerState.includeSun) },
-                        label = { Text(stringResource(Res.string.time_optimizer_export_include_sun)) }
+                    Text(
+                        stringResource(Res.string.time_optimizer_export_settings_title),
+                        style = MaterialTheme.typography.titleSmall
                     )
-                    FilterChip(
-                        selected = optimizerState.includeMoon,
-                        onClick = { viewModel.setTimeOptimizerIncludeMoon(!optimizerState.includeMoon) },
-                        label = { Text(stringResource(Res.string.time_optimizer_export_include_moon)) }
-                    )
-                    FilterChip(
-                        selected = optimizerState.includeAstro,
-                        onClick = { viewModel.setTimeOptimizerIncludeAstro(!optimizerState.includeAstro) },
-                        label = { Text(stringResource(Res.string.time_optimizer_export_include_astro)) }
+                    AssistChip(
+                        onClick = { exportSettingsExpanded = !exportSettingsExpanded },
+                        label = { Text(if (exportSettingsExpanded) "Einklappen" else "Ausklappen") },
+                        leadingIcon = {
+                            Icon(
+                                if (exportSettingsExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                                contentDescription = null
+                            )
+                        }
                     )
                 }
+                if (exportSettingsExpanded) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = optimizerState.includeSun,
+                            onClick = { viewModel.setTimeOptimizerIncludeSun(!optimizerState.includeSun) },
+                            label = { Text(stringResource(Res.string.time_optimizer_export_include_sun)) }
+                        )
+                        FilterChip(
+                            selected = optimizerState.includeMoon,
+                            onClick = { viewModel.setTimeOptimizerIncludeMoon(!optimizerState.includeMoon) },
+                            label = { Text(stringResource(Res.string.time_optimizer_export_include_moon)) }
+                        )
+                        FilterChip(
+                            selected = optimizerState.includeAstro,
+                            onClick = { viewModel.setTimeOptimizerIncludeAstro(!optimizerState.includeAstro) },
+                            label = { Text(stringResource(Res.string.time_optimizer_export_include_astro)) }
+                        )
+                    }
 
-                Text(
-                    stringResource(Res.string.time_optimizer_export_zone_mode_title),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = !optimizerState.exportUseCityTimeZones,
-                        onClick = { viewModel.setTimeOptimizerExportZoneMode(false) },
-                        label = { Text(stringResource(Res.string.time_optimizer_export_zone_user)) }
+                    Text(
+                        stringResource(Res.string.time_optimizer_export_zone_mode_title),
+                        style = MaterialTheme.typography.titleSmall
                     )
-                    FilterChip(
-                        selected = optimizerState.exportUseCityTimeZones,
-                        onClick = { viewModel.setTimeOptimizerExportZoneMode(true) },
-                        label = { Text(stringResource(Res.string.time_optimizer_export_zone_city)) }
-                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = !optimizerState.exportUseCityTimeZones,
+                            onClick = { viewModel.setTimeOptimizerExportZoneMode(false) },
+                            label = { Text(stringResource(Res.string.time_optimizer_export_zone_user)) }
+                        )
+                        FilterChip(
+                            selected = optimizerState.exportUseCityTimeZones,
+                            onClick = { viewModel.setTimeOptimizerExportZoneMode(true) },
+                            label = { Text(stringResource(Res.string.time_optimizer_export_zone_city)) }
+                        )
+                    }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
