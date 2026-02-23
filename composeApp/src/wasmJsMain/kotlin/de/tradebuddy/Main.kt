@@ -4,13 +4,34 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import de.tradebuddy.ui.AppRoot
 import kotlinx.browser.document
+import kotlinx.browser.window
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLLinkElement
+import org.w3c.dom.events.Event
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     configureWebTabBranding()
-    ComposeViewport(document.body!!) {
+    startComposeWhenDomReady()
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun startComposeWhenDomReady() {
+    document.body?.let { body ->
+        mountCompose(body)
+        return
+    }
+    val listener: (Event) -> Unit = {
+        document.body?.let { body ->
+            mountCompose(body)
+        }
+    }
+    window.addEventListener("DOMContentLoaded", listener)
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun mountCompose(body: HTMLElement) {
+    ComposeViewport(body) {
         AppRoot()
     }
 }
