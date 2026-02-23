@@ -455,67 +455,45 @@ private data class ParsedTimeZone(
     val useIntlNamedZone: Boolean
 )
 
-private fun parseTimeZone(id: String): ParsedTimeZone =
-    runCatching {
-        val tz = TimeZone.of(id)
-        ParsedTimeZone(
-            timeZone = tz,
-            useIntlNamedZone = shouldUseIntlNamedZone(id, tz)
-        )
+private fun parseTimeZone(id: String): ParsedTimeZone {
+    val normalizedOffsetId = when {
+        ZeroZuluRegex.matches(id) -> "UTC"
+        UtcOffsetZoneRegex.matches(id) -> {
+            val offset = UtcOffsetZoneRegex.matchEntire(id)!!.groupValues[1]
+            "UTC$offset"
+        }
+        OffsetZoneRegex.matches(id) -> "UTC$id"
+        else -> null
     }
-        .recoverCatching {
-            val normalizedOffsetId = when {
-                ZeroZuluRegex.matches(id) -> "UTC"
-                UtcOffsetZoneRegex.matches(id) -> {
-                    val offset = UtcOffsetZoneRegex.matchEntire(id)!!.groupValues[1]
-                    "UTC$offset"
-                }
-                OffsetZoneRegex.matches(id) -> "UTC$id"
-                else -> null
-            }
-            if (normalizedOffsetId != null) {
-                ParsedTimeZone(TimeZone.of(normalizedOffsetId), useIntlNamedZone = false)
-            } else {
-                throw it
-            }
-        }
-        .recoverCatching {
-            val browserId = runCatching {
-                JsIntl.DateTimeFormat().resolvedOptions().timeZone
-            }.getOrNull()
-            val systemId = runCatching { TimeZone.currentSystemDefault().id }.getOrNull()
-            val isCurrentSystemZone =
-                id.equals(browserId, ignoreCase = true) ||
-                    id.equals(systemId, ignoreCase = true)
-            if (isCurrentSystemZone) {
-                ParsedTimeZone(TimeZone.currentSystemDefault(), useIntlNamedZone = false)
-            } else {
-                throw it
-            }
-        }
-        .getOrElse {
-            val useIntlNamedZone = NamedZoneRegex.matches(id) &&
-                !id.equals("UTC", ignoreCase = true) &&
-                !id.equals("GMT", ignoreCase = true)
-            ParsedTimeZone(TimeZone.UTC, useIntlNamedZone = useIntlNamedZone)
-        }
 
-private fun shouldUseIntlNamedZone(id: String, zone: TimeZone): Boolean {
-    if (!NamedZoneRegex.matches(id)) return false
-    if (id.equals("UTC", ignoreCase = true) || id.equals("GMT", ignoreCase = true)) return false
+    runCatching { TimeZone.of(id) }
+        .getOrNull()
+        ?.let { return ParsedTimeZone(it, useIntlNamedZone = false) }
 
-    val sampleEpochMillis = 1_735_689_600_000L // 2025-01-01T00:00:00Z
-    val intlLocal = instantToLocalDateTimeIntl(sampleEpochMillis, id) ?: return false
-    val intlOffsetSeconds =
-        ((intlLocal.toInstant(TimeZone.UTC).toEpochMilliseconds() - sampleEpochMillis) / 1_000L).toInt()
+    if (normalizedOffsetId != null) {
+        runCatching { TimeZone.of(normalizedOffsetId) }
+            .getOrNull()
+            ?.let { return ParsedTimeZone(it, useIntlNamedZone = false) }
+    }
 
-    val kxLocal = runCatching {
-        KInstant.fromEpochMilliseconds(sampleEpochMillis).toLocalDateTime(zone)
-    }.getOrNull() ?: return true
-    val kxOffsetSeconds =
-        ((kxLocal.toInstant(TimeZone.UTC).toEpochMilliseconds() - sampleEpochMillis) / 1_000L).toInt()
+    val browserId = runCatching {
+        JsIntl.DateTimeFormat().resolvedOptions().timeZone
+    }.getOrNull()
+    val systemId = runCatching { TimeZone.currentSystemDefault().id }.getOrNull()
+    val isCurrentSystemZone =
+        id.equals(browserId, ignoreCase = true) ||
+            id.equals(systemId, ignoreCase = true)
+    if (isCurrentSystemZone) {
+        return ParsedTimeZone(TimeZone.currentSystemDefault(), useIntlNamedZone = false)
+    }
 
-    return kxOffsetSeconds != intlOffsetSeconds
+    val useIntlNamedZone = NamedZoneRegex.matches(id) &&
+        !id.equals("UTC", ignoreCase = true) &&
+        !id.equals("GMT", ignoreCase = true)
+    return ParsedTimeZone(
+        timeZone = TimeZone.UTC,
+        useIntlNamedZone = useIntlNamedZone
+    )
 }
 
 private fun browserUtcOffsetZoneId(): String? = runCatching {
