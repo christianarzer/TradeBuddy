@@ -246,7 +246,7 @@
     <string name="time_optimizer_export_settings_title">Export-Einstellungen</string>
     <string name="time_optimizer_export_zone_mode_title">Zeitzone im Export</string>
     <string name="time_optimizer_export_zone_user">User-Zeitzone</string>
-    <string name="time_optimizer_export_zone_city">Stadt-Zeitzone je Block</string>
+    <string name="time_optimizer_export_zone_city">UTC</string>
     <string name="time_optimizer_export_include_sun">Sonne exportieren</string>
     <string name="time_optimizer_export_include_moon">Mond exportieren</string>
     <string name="time_optimizer_export_include_astro">Astro exportieren</string>

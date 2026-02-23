@@ -52,7 +52,6 @@ import trade_buddy.composeapp.generated.resources.time_optimizer_export_settings
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_city
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_mode_title
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_user
-import trade_buddy.composeapp.generated.resources.time_optimizer_city_title
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_astro
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_date
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_moon
@@ -80,38 +79,37 @@ fun TimeOptimizerScreen(
         val selected = state.allCities.filter { it.key() in state.selectedCityKeys }
         if (selected.isEmpty()) state.allCities else selected
     }
-    val selectedCity = cityCandidates.firstOrNull { it.key() == optimizerState.selectedCityKey }
-        ?: cityCandidates.firstOrNull()
-    val displayZone = remember(selectedCity?.zoneId, state.userZone) {
-        selectedCity?.zoneId?.let { ZoneId.of(it) } ?: state.userZone
-    }
     val timePattern = stringResource(Res.string.format_time_short)
     val timeFmt = remember(timePattern) { DateTimeFormatter.ofPattern(timePattern, Locale.GERMANY) }
     val dash = stringResource(Res.string.value_dash)
-    val selectedCityKey = selectedCity?.key()
-    val selectedRows = remember(optimizerState.rowsByCity, optimizerState.rows, selectedCityKey) {
-        if (selectedCityKey != null && optimizerState.rowsByCity[selectedCityKey] != null) {
-            optimizerState.rowsByCity[selectedCityKey].orEmpty()
+    val activeCityKeys = remember(cityCandidates) { cityCandidates.map { it.key() }.toSet() }
+    val exportCityKeys = remember(optimizerState.exportCityKeys, activeCityKeys) {
+        val normalized = optimizerState.exportCityKeys.filter { it in activeCityKeys }.toSet()
+        if (normalized.isNotEmpty()) normalized else cityCandidates.firstOrNull()?.key()?.let(::setOf).orEmpty()
+    }
+    val previewCity = remember(cityCandidates, exportCityKeys) {
+        cityCandidates.firstOrNull { it.key() in exportCityKeys } ?: cityCandidates.firstOrNull()
+    }
+    val previewCityKey = previewCity?.key()
+    val displayZone = state.userZone
+    val selectedRows = remember(optimizerState.rowsByCity, optimizerState.rows, previewCityKey) {
+        if (previewCityKey != null && optimizerState.rowsByCity[previewCityKey] != null) {
+            optimizerState.rowsByCity[previewCityKey].orEmpty()
         } else {
             optimizerState.rows
         }
     }
-    val activeCityKeys = remember(cityCandidates) { cityCandidates.map { it.key() }.toSet() }
-    val exportCityKeys = remember(optimizerState.exportCityKeys, activeCityKeys, selectedCityKey) {
-        val normalized = optimizerState.exportCityKeys.filter { it in activeCityKeys }.toSet()
-        if (normalized.isNotEmpty()) normalized else selectedCityKey?.let(::setOf).orEmpty()
-    }
     val exportCityRows = remember(
         state.allCities,
         optimizerState.rowsByCity,
-        selectedCity,
+        previewCity,
         selectedRows,
         exportCityKeys
     ) {
         val rowsByCity = if (optimizerState.rowsByCity.isNotEmpty()) {
             optimizerState.rowsByCity
         } else {
-            selectedCity?.let { mapOf(it.key() to selectedRows) }.orEmpty()
+            previewCity?.let { mapOf(it.key() to selectedRows) }.orEmpty()
         }
         exportCityKeys.mapNotNull { key ->
             val city = state.allCities.firstOrNull { it.key() == key } ?: return@mapNotNull null
@@ -133,7 +131,7 @@ fun TimeOptimizerScreen(
             month = optimizerState.month,
             userZone = state.userZone,
             cityRows = exportCityRows,
-            useCityTimeZones = optimizerState.exportUseCityTimeZones,
+            useUtcTimes = optimizerState.exportUseCityTimeZones,
             includeSun = optimizerState.includeSun,
             includeMoon = optimizerState.includeMoon,
             includeAstro = optimizerState.includeAstro,
@@ -193,23 +191,6 @@ fun TimeOptimizerScreen(
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.align(Alignment.CenterVertically)
                     )
-                }
-
-                Text(
-                    stringResource(Res.string.time_optimizer_city_title),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    cityCandidates.forEach { city ->
-                        FilterChip(
-                            selected = city.key() == optimizerState.selectedCityKey,
-                            onClick = { viewModel.setTimeOptimizerCity(city.key()) },
-                            label = { Text(city.label) }
-                        )
-                    }
                 }
 
                 Text(
@@ -326,6 +307,8 @@ fun TimeOptimizerScreen(
         Text(
             stringResource(Res.string.time_optimizer_table_title),
             style = MaterialTheme.typography.titleSmall
+            ,
+            color = MaterialTheme.colorScheme.onSurface
         )
 
         if (selectedRows.isEmpty()) {
@@ -413,7 +396,7 @@ private fun buildMonthlyExportText(
     month: YearMonth,
     userZone: ZoneId,
     cityRows: List<Pair<de.tradebuddy.domain.model.City, List<de.tradebuddy.presentation.TimeOptimizerDayRow>>>,
-    useCityTimeZones: Boolean,
+    useUtcTimes: Boolean,
     includeSun: Boolean,
     includeMoon: Boolean,
     includeAstro: Boolean,
@@ -436,10 +419,10 @@ private fun buildMonthlyExportText(
     return buildString {
         appendLine("# TradeBuddy Monthly Export")
         appendLine("month,$month")
-        appendLine("export_zone_mode,${if (useCityTimeZones) "city" else "user"}")
+        appendLine("export_zone_mode,${if (useUtcTimes) "utc" else "user"}")
         appendLine("user_zone,${userZone.id}")
         cityRows.forEach { (city, rows) ->
-            val zone = if (useCityTimeZones) ZoneId.of(city.zoneId) else userZone
+            val zone = if (useUtcTimes) ZoneId.of("UTC") else userZone
             appendLine()
             appendLine("city,${city.label},zone,${zone.id}")
             val columns = mutableListOf("date")
