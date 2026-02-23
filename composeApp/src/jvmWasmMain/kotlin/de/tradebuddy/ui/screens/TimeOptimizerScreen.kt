@@ -10,13 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -25,21 +25,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.tradebuddy.domain.util.key
 import de.tradebuddy.presentation.AppScreen
-import de.tradebuddy.presentation.TimeOptimizerDayRow
 import de.tradebuddy.presentation.SunMoonUiState
 import de.tradebuddy.presentation.SunMoonViewModel
 import de.tradebuddy.ui.components.rememberCopyTextToClipboard
+import de.tradebuddy.ui.theme.LocalExtendedColors
 import java.time.ZoneId
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import de.tradebuddy.ui.theme.appElevatedCardColors
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.format_time_short
 import trade_buddy.composeapp.generated.resources.time_optimizer_astro_none
 import trade_buddy.composeapp.generated.resources.time_optimizer_astro_summary
 import trade_buddy.composeapp.generated.resources.time_optimizer_back
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_all_active
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_cities_title
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_clear
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_include_astro
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_include_moon
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_include_sun
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_settings_title
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_city
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_mode_title
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_user
 import trade_buddy.composeapp.generated.resources.time_optimizer_city_title
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_astro
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_date
@@ -62,6 +74,7 @@ fun TimeOptimizerScreen(
     viewModel: SunMoonViewModel
 ) {
     val optimizerState = state.timeOptimizer
+    val ext = LocalExtendedColors.current
     val copyToClipboard = rememberCopyTextToClipboard()
     val cityCandidates = remember(state.allCities, state.selectedCityKeys) {
         val selected = state.allCities.filter { it.key() in state.selectedCityKeys }
@@ -75,15 +88,62 @@ fun TimeOptimizerScreen(
     val timePattern = stringResource(Res.string.format_time_short)
     val timeFmt = remember(timePattern) { DateTimeFormatter.ofPattern(timePattern, Locale.GERMANY) }
     val dash = stringResource(Res.string.value_dash)
-    val exportText = remember(optimizerState.month, selectedCity?.label, displayZone.id, optimizerState.rows, timeFmt) {
+    val selectedCityKey = selectedCity?.key()
+    val selectedRows = remember(optimizerState.rowsByCity, optimizerState.rows, selectedCityKey) {
+        if (selectedCityKey != null && optimizerState.rowsByCity[selectedCityKey] != null) {
+            optimizerState.rowsByCity[selectedCityKey].orEmpty()
+        } else {
+            optimizerState.rows
+        }
+    }
+    val activeCityKeys = remember(cityCandidates) { cityCandidates.map { it.key() }.toSet() }
+    val exportCityKeys = remember(optimizerState.exportCityKeys, activeCityKeys, selectedCityKey) {
+        val normalized = optimizerState.exportCityKeys.filter { it in activeCityKeys }.toSet()
+        if (normalized.isNotEmpty()) normalized else selectedCityKey?.let(::setOf).orEmpty()
+    }
+    val exportCityRows = remember(
+        state.allCities,
+        optimizerState.rowsByCity,
+        selectedCity,
+        selectedRows,
+        exportCityKeys
+    ) {
+        val rowsByCity = if (optimizerState.rowsByCity.isNotEmpty()) {
+            optimizerState.rowsByCity
+        } else {
+            selectedCity?.let { mapOf(it.key() to selectedRows) }.orEmpty()
+        }
+        exportCityKeys.mapNotNull { key ->
+            val city = state.allCities.firstOrNull { it.key() == key } ?: return@mapNotNull null
+            val rows = rowsByCity[key] ?: return@mapNotNull null
+            city to rows
+        }
+    }
+    val exportText = remember(
+        optimizerState.month,
+        state.userZone.id,
+        optimizerState.exportUseCityTimeZones,
+        optimizerState.includeSun,
+        optimizerState.includeMoon,
+        optimizerState.includeAstro,
+        exportCityRows,
+        timeFmt
+    ) {
         buildMonthlyExportText(
             month = optimizerState.month,
-            cityLabel = selectedCity?.label,
-            zone = displayZone,
-            rows = optimizerState.rows,
+            userZone = state.userZone,
+            cityRows = exportCityRows,
+            useCityTimeZones = optimizerState.exportUseCityTimeZones,
+            includeSun = optimizerState.includeSun,
+            includeMoon = optimizerState.includeMoon,
+            includeAstro = optimizerState.includeAstro,
             timeFmt = timeFmt
         )
     }
+    val monthLabel = remember(optimizerState.month) {
+        optimizerState.month.atDay(1).format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.GERMANY))
+    }
+    val allActiveSelected = exportCityKeys.isNotEmpty() && exportCityKeys.size == activeCityKeys.size
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -117,7 +177,11 @@ fun TimeOptimizerScreen(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     OutlinedButton(onClick = { viewModel.shiftTimeOptimizerMonth(-1) }) {
                         Text(stringResource(Res.string.time_optimizer_month_prev))
                     }
@@ -125,7 +189,7 @@ fun TimeOptimizerScreen(
                         Text(stringResource(Res.string.time_optimizer_month_next))
                     }
                     Text(
-                        text = optimizerState.month.toString(),
+                        text = monthLabel,
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier.align(Alignment.CenterVertically)
                     )
@@ -147,13 +211,100 @@ fun TimeOptimizerScreen(
                         )
                     }
                 }
+
+                Text(
+                    stringResource(Res.string.time_optimizer_export_cities_title),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AssistChip(
+                        onClick = { viewModel.setTimeOptimizerExportAllActive(true) },
+                        label = { Text(stringResource(Res.string.time_optimizer_export_all_active)) },
+                        leadingIcon = {
+                            if (allActiveSelected) {
+                                Icon(Icons.Outlined.Check, contentDescription = null)
+                            }
+                        }
+                    )
+                    AssistChip(
+                        onClick = { viewModel.setTimeOptimizerExportAllActive(false) },
+                        label = { Text(stringResource(Res.string.time_optimizer_export_clear)) }
+                    )
+                }
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    cityCandidates.forEach { city ->
+                        val key = city.key()
+                        val selected = key in exportCityKeys
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                val updated = exportCityKeys.toMutableSet()
+                                if (selected) updated.remove(key) else updated.add(key)
+                                viewModel.setTimeOptimizerExportCities(updated)
+                            },
+                            label = { Text(city.label) }
+                        )
+                    }
+                }
+
+                Text(
+                    stringResource(Res.string.time_optimizer_export_settings_title),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = optimizerState.includeSun,
+                        onClick = { viewModel.setTimeOptimizerIncludeSun(!optimizerState.includeSun) },
+                        label = { Text(stringResource(Res.string.time_optimizer_export_include_sun)) }
+                    )
+                    FilterChip(
+                        selected = optimizerState.includeMoon,
+                        onClick = { viewModel.setTimeOptimizerIncludeMoon(!optimizerState.includeMoon) },
+                        label = { Text(stringResource(Res.string.time_optimizer_export_include_moon)) }
+                    )
+                    FilterChip(
+                        selected = optimizerState.includeAstro,
+                        onClick = { viewModel.setTimeOptimizerIncludeAstro(!optimizerState.includeAstro) },
+                        label = { Text(stringResource(Res.string.time_optimizer_export_include_astro)) }
+                    )
+                }
+
+                Text(
+                    stringResource(Res.string.time_optimizer_export_zone_mode_title),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = !optimizerState.exportUseCityTimeZones,
+                        onClick = { viewModel.setTimeOptimizerExportZoneMode(false) },
+                        label = { Text(stringResource(Res.string.time_optimizer_export_zone_user)) }
+                    )
+                    FilterChip(
+                        selected = optimizerState.exportUseCityTimeZones,
+                        onClick = { viewModel.setTimeOptimizerExportZoneMode(true) },
+                        label = { Text(stringResource(Res.string.time_optimizer_export_zone_city)) }
+                    )
+                }
+
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(onClick = viewModel::refreshTimeOptimizerMonth) {
                         Text(stringResource(Res.string.time_optimizer_recalculate))
                     }
                     OutlinedButton(
                         onClick = { copyToClipboard(exportText) },
-                        enabled = optimizerState.rows.isNotEmpty()
+                        enabled = exportText.isNotBlank()
                     ) {
                         Text(stringResource(Res.string.time_optimizer_copy_month))
                     }
@@ -177,7 +328,7 @@ fun TimeOptimizerScreen(
             style = MaterialTheme.typography.titleSmall
         )
 
-        if (optimizerState.rows.isEmpty()) {
+        if (selectedRows.isEmpty()) {
             Text(
                 stringResource(Res.string.time_optimizer_empty),
                 style = MaterialTheme.typography.bodySmall,
@@ -188,7 +339,7 @@ fun TimeOptimizerScreen(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(optimizerState.rows, key = { it.date.toString() }) { row ->
+                items(selectedRows, key = { it.date.toString() }) { row ->
                     val sunrise = row.sunrise
                         ?.toInstant()
                         ?.atZone(displayZone)
@@ -223,11 +374,9 @@ fun TimeOptimizerScreen(
                         stringResource(Res.string.time_optimizer_astro_summary, row.astroEventCount, astroFirst, astroLast)
                     }
 
-                    OutlinedCard(
+                    ElevatedCard(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.outlinedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                        )
+                        colors = appElevatedCardColors()
                     ) {
                         Column(
                             modifier = Modifier
@@ -249,7 +398,8 @@ fun TimeOptimizerScreen(
                             )
                             Text(
                                 "${stringResource(Res.string.time_optimizer_col_astro)}: $astroSummary",
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ext.positive
                             )
                         }
                     }
@@ -261,15 +411,18 @@ fun TimeOptimizerScreen(
 
 private fun buildMonthlyExportText(
     month: YearMonth,
-    cityLabel: String?,
-    zone: ZoneId,
-    rows: List<TimeOptimizerDayRow>,
+    userZone: ZoneId,
+    cityRows: List<Pair<de.tradebuddy.domain.model.City, List<de.tradebuddy.presentation.TimeOptimizerDayRow>>>,
+    useCityTimeZones: Boolean,
+    includeSun: Boolean,
+    includeMoon: Boolean,
+    includeAstro: Boolean,
     timeFmt: DateTimeFormatter
 ): String {
     fun formatZoned(value: java.time.ZonedDateTime?): String =
-        value?.toInstant()?.atZone(zone)?.format(timeFmt) ?: "-"
+        value?.format(timeFmt) ?: "-"
 
-    fun formatAstro(instants: List<java.time.Instant>): String =
+    fun formatAstro(instants: List<java.time.Instant>, zone: ZoneId): String =
         if (instants.isEmpty()) {
             "-"
         } else {
@@ -278,21 +431,45 @@ private fun buildMonthlyExportText(
             }
         }
 
+    if (cityRows.isEmpty() || (!includeSun && !includeMoon && !includeAstro)) return ""
+
     return buildString {
         appendLine("# TradeBuddy Monthly Export")
         appendLine("month,$month")
-        appendLine("city,${cityLabel ?: "-"}")
-        appendLine("zone,${zone.id}")
-        appendLine("date,sunrise,sunset,moonrise,moonset,astro_times")
-        rows.forEach { row ->
-            appendLine(
-                "${row.date}," +
-                    "${formatZoned(row.sunrise)}," +
-                    "${formatZoned(row.sunset)}," +
-                    "${formatZoned(row.moonrise)}," +
-                    "${formatZoned(row.moonset)}," +
-                    formatAstro(row.astroInstants)
-            )
+        appendLine("export_zone_mode,${if (useCityTimeZones) "city" else "user"}")
+        appendLine("user_zone,${userZone.id}")
+        cityRows.forEach { (city, rows) ->
+            val zone = if (useCityTimeZones) ZoneId.of(city.zoneId) else userZone
+            appendLine()
+            appendLine("city,${city.label},zone,${zone.id}")
+            val columns = mutableListOf("date")
+            if (includeSun) {
+                columns += "sunrise"
+                columns += "sunset"
+            }
+            if (includeMoon) {
+                columns += "moonrise"
+                columns += "moonset"
+            }
+            if (includeAstro) {
+                columns += "astro_times"
+            }
+            appendLine(columns.joinToString(","))
+            rows.forEach { row ->
+                val values = mutableListOf(row.date.toString())
+                if (includeSun) {
+                    values += formatZoned(row.sunrise?.toInstant()?.atZone(zone))
+                    values += formatZoned(row.sunset?.toInstant()?.atZone(zone))
+                }
+                if (includeMoon) {
+                    values += formatZoned(row.moonrise?.toInstant()?.atZone(zone))
+                    values += formatZoned(row.moonset?.toInstant()?.atZone(zone))
+                }
+                if (includeAstro) {
+                    values += formatAstro(row.astroInstants, zone)
+                }
+                appendLine(values.joinToString(","))
+            }
         }
     }.trim()
 }

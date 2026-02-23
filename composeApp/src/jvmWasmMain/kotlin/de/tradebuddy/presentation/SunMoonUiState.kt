@@ -91,7 +91,13 @@ data class TimeOptimizerDayRow(
 data class TimeOptimizerUiState(
     val month: YearMonth,
     val selectedCityKey: String? = null,
+    val exportCityKeys: Set<String> = emptySet(),
+    val exportUseCityTimeZones: Boolean = false,
+    val includeSun: Boolean = true,
+    val includeMoon: Boolean = true,
+    val includeAstro: Boolean = true,
     val rows: List<TimeOptimizerDayRow> = emptyList(),
+    val rowsByCity: Map<String, List<TimeOptimizerDayRow>> = emptyMap(),
     val isLoading: Boolean = false,
     val error: StringResource? = null
 )

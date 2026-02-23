@@ -240,6 +240,17 @@
     <string name="time_optimizer_month_prev">Vorheriger Monat</string>
     <string name="time_optimizer_month_next">Naechster Monat</string>
     <string name="time_optimizer_city_title">Auswertungsstadt</string>
+    <string name="time_optimizer_export_cities_title">Export-Staedte</string>
+    <string name="time_optimizer_export_all_active">Alle aktiven</string>
+    <string name="time_optimizer_export_clear">Auswahl leeren</string>
+    <string name="time_optimizer_export_settings_title">Export-Einstellungen</string>
+    <string name="time_optimizer_export_zone_mode_title">Zeitzone im Export</string>
+    <string name="time_optimizer_export_zone_user">User-Zeitzone</string>
+    <string name="time_optimizer_export_zone_city">Stadt-Zeitzone je Block</string>
+    <string name="time_optimizer_export_include_sun">Sonne exportieren</string>
+    <string name="time_optimizer_export_include_moon">Mond exportieren</string>
+    <string name="time_optimizer_export_include_astro">Astro exportieren</string>
+    <string name="time_optimizer_export_city_block">Stadt: %1$s (%2$s)</string>
     <string name="time_optimizer_offsets_title">Zeit-Offsets</string>
     <string name="time_optimizer_offset_sun">Sonne (Auf/Untergang)</string>
     <string name="time_optimizer_offset_moon">Mond (Auf/Untergang)</string>
@@ -255,4 +266,5 @@
     <string name="time_optimizer_astro_none">Keine Events</string>
     <string name="time_optimizer_astro_summary">%1$d Events, %2$s bis %3$s</string>
     <string name="time_optimizer_empty">Noch keine Monatsdaten geladen.</string>
+    <string name="time_optimizer_export_empty">Keine Daten fuer die aktuelle Export-Auswahl.</string>
 </resources>
