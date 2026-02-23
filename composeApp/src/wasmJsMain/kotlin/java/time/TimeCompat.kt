@@ -32,7 +32,9 @@ open class ZoneId internal constructor(
     val id: String,
     internal val isSystemDefaultZone: Boolean = false
 ) {
-    internal val timeZone: TimeZone = parseTimeZone(id)
+    private val parsedTimeZone: ParsedTimeZone = parseTimeZone(id)
+    internal val timeZone: TimeZone = parsedTimeZone.timeZone
+    internal val useIntlNamedZone: Boolean = parsedTimeZone.useIntlNamedZone
     val rules: ZoneRules = ZoneRules(this)
 
     companion object {
@@ -113,7 +115,11 @@ class LocalDate internal constructor(
     fun minusDays(days: Long): LocalDate = raw.minus(DatePeriod(days = days.toInt())).toCompat()
 
     fun atStartOfDay(zone: ZoneId): ZonedDateTime {
-        val instant = raw.atStartOfDayIn(zone.timeZone).toCompat()
+        val localStart = KLocalDateTime(raw.year, raw.month.ordinal + 1, raw.day, 0, 0, 0)
+        val instant = when {
+            zone.useIntlNamedZone -> localDateTimeToInstant(localStart, zone).toCompat()
+            else -> raw.atStartOfDayIn(zone.timeZone).toCompat()
+        }
         return ZonedDateTime(instant, zone)
     }
 
@@ -134,7 +140,11 @@ class LocalDateTime internal constructor(
     internal val raw: KLocalDateTime
 ) {
     fun atZone(zone: ZoneId): ZonedDateTime =
-        ZonedDateTime(raw.toInstant(zone.timeZone).toCompat(), zone)
+        ZonedDateTime(
+            if (zone.useIntlNamedZone) localDateTimeToInstant(raw, zone).toCompat()
+            else raw.toInstant(zone.timeZone).toCompat(),
+            zone
+        )
 }
 
 class LocalTime internal constructor(
@@ -284,6 +294,9 @@ private fun instantToLocalDateTime(epochMillis: Long, zoneId: ZoneId): KLocalDat
             d.getSeconds()
         )
     }
+    if (zoneId.useIntlNamedZone) {
+        instantToLocalDateTimeIntl(epochMillis, zoneId.id)?.let { return it }
+    }
     return instantToLocalDateTime(epochMillis, zoneId.timeZone)
 }
 
@@ -307,6 +320,98 @@ private fun parseOffsetSeconds(offset: String): Long {
     val minutes = parts.getOrNull(1)?.toLongOrNull() ?: 0L
     return sign * (hours * 3600L + minutes * 60L)
 }
+
+private fun localDateTimeToInstant(local: KLocalDateTime, zoneId: ZoneId): KInstant {
+    if (zoneId.useIntlNamedZone) {
+        localDateTimeToInstantIntl(local, zoneId.id)?.let { return it }
+    }
+    return local.toInstant(zoneId.timeZone)
+}
+
+private fun instantToLocalDateTimeIntl(epochMillis: Long, zoneId: String): KLocalDateTime? {
+    val isoLocal = runCatching {
+        formatEpochMillisInTimeZone(epochMillis.toDouble(), zoneId)
+    }.getOrNull() ?: return null
+    return parseIsoLocalDateTime(isoLocal)
+}
+
+private fun localDateTimeToInstantIntl(local: KLocalDateTime, zoneId: String): KInstant? {
+    var guessEpochMillis = runCatching {
+        utcEpochMillis(
+            local.year,
+            local.monthNumber,
+            local.dayOfMonth,
+            local.hour,
+            local.minute,
+            local.second
+        )
+    }.getOrNull() ?: return null
+
+    repeat(4) {
+        val zonedLocal = instantToLocalDateTimeIntl(guessEpochMillis.toLong(), zoneId) ?: return@repeat
+        if (zonedLocal == local) return KInstant.fromEpochMilliseconds(guessEpochMillis.toLong())
+
+        val targetAsUtc = local.toInstant(TimeZone.UTC).toEpochMilliseconds()
+        val zonedAsUtc = zonedLocal.toInstant(TimeZone.UTC).toEpochMilliseconds()
+        val deltaMillis = targetAsUtc - zonedAsUtc
+        if (deltaMillis == 0L) return KInstant.fromEpochMilliseconds(guessEpochMillis.toLong())
+        guessEpochMillis += deltaMillis.toDouble()
+    }
+
+    return KInstant.fromEpochMilliseconds(guessEpochMillis.toLong())
+}
+
+private fun parseIsoLocalDateTime(value: String): KLocalDateTime? {
+    val match = IsoLocalDateTimeRegex.matchEntire(value) ?: return null
+    return runCatching {
+        KLocalDateTime(
+            match.groupValues[1].toInt(),
+            match.groupValues[2].toInt(),
+            match.groupValues[3].toInt(),
+            match.groupValues[4].toInt(),
+            match.groupValues[5].toInt(),
+            match.groupValues[6].toInt()
+        )
+    }.getOrNull()
+}
+
+private val IsoLocalDateTimeRegex = Regex(
+    "^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})$"
+)
+
+@JsFun(
+    """
+    (epochMillis, timeZone) => {
+      const dtf = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      const parts = dtf.formatToParts(new Date(epochMillis));
+      const map = {};
+      for (const p of parts) map[p.type] = p.value;
+      return map.year + '-' + map.month + '-' + map.day + 'T' + map.hour + ':' + map.minute + ':' + map.second;
+    }
+    """
+)
+private external fun formatEpochMillisInTimeZone(epochMillis: Double, timeZone: String): String
+
+@JsFun(
+    "(year, month, day, hour, minute, second) => Date.UTC(year, month - 1, day, hour, minute, second)"
+)
+private external fun utcEpochMillis(
+    year: Int,
+    month: Int,
+    day: Int,
+    hour: Int,
+    minute: Int,
+    second: Int
+): Double
 
 
 private fun systemTimeZoneId(): String {
@@ -335,6 +440,7 @@ private fun String.isUsableSystemZoneId(): Boolean =
 private val OffsetZoneRegex = Regex("^[+-][0-9]{2}:[0-9]{2}$")
 private val UtcOffsetZoneRegex = Regex("^(?:UTC|GMT)([+-][0-9]{2}:[0-9]{2})$", RegexOption.IGNORE_CASE)
 private val ZeroZuluRegex = Regex("^Z$", RegexOption.IGNORE_CASE)
+private val NamedZoneRegex = Regex("^[A-Za-z][A-Za-z0-9_+\\-]*(?:/[A-Za-z0-9_+\\-]+)+$")
 
 private fun normalizedTimeZoneId(candidate: String?): String? {
     val value = candidate?.takeIf { it.isUsableSystemZoneId() } ?: return null
@@ -344,8 +450,13 @@ private fun normalizedTimeZoneId(candidate: String?): String? {
     return value
 }
 
-private fun parseTimeZone(id: String): TimeZone =
-    runCatching { TimeZone.of(id) }
+private data class ParsedTimeZone(
+    val timeZone: TimeZone,
+    val useIntlNamedZone: Boolean
+)
+
+private fun parseTimeZone(id: String): ParsedTimeZone =
+    runCatching { ParsedTimeZone(TimeZone.of(id), useIntlNamedZone = false) }
         .recoverCatching {
             val normalizedOffsetId = when {
                 ZeroZuluRegex.matches(id) -> "UTC"
@@ -357,7 +468,7 @@ private fun parseTimeZone(id: String): TimeZone =
                 else -> null
             }
             if (normalizedOffsetId != null) {
-                TimeZone.of(normalizedOffsetId)
+                ParsedTimeZone(TimeZone.of(normalizedOffsetId), useIntlNamedZone = false)
             } else {
                 throw it
             }
@@ -371,12 +482,17 @@ private fun parseTimeZone(id: String): TimeZone =
                 id.equals(browserId, ignoreCase = true) ||
                     id.equals(systemId, ignoreCase = true)
             if (isCurrentSystemZone) {
-                TimeZone.currentSystemDefault()
+                ParsedTimeZone(TimeZone.currentSystemDefault(), useIntlNamedZone = false)
             } else {
                 throw it
             }
         }
-        .getOrElse { TimeZone.UTC }
+        .getOrElse {
+            val useIntlNamedZone = NamedZoneRegex.matches(id) &&
+                !id.equals("UTC", ignoreCase = true) &&
+                !id.equals("GMT", ignoreCase = true)
+            ParsedTimeZone(TimeZone.UTC, useIntlNamedZone = useIntlNamedZone)
+        }
 
 private fun browserUtcOffsetZoneId(): String? = runCatching {
     val minutesEastOfUtc = -JsDateFull().getTimezoneOffset()
