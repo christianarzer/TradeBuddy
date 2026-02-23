@@ -157,6 +157,43 @@ class CompactEventTimeRulesTest {
         assertTrue(ny.first().timezoneChipLabel?.contains("morgen") == true)
     }
 
+    @Test
+    fun calculateOffsetMinutes_isPlusSeven_forBerlinVsSingaporeAtMidnightCase() {
+        val instant = Instant.parse("2026-02-23T23:15:00Z")
+        val cityTime = instant.atZone(ZoneId.of("Asia/Singapore"))
+        val userTime = instant.atZone(ZoneId.of("Europe/Berlin"))
+
+        val offset = calculateOffsetMinutes(cityTime, userTime)
+        assertEquals(420, offset)
+    }
+
+    @Test
+    fun buildCompactEvents_singaporeSunriseAt0015Berlin_hasNoDayShiftChip() {
+        val city = city("Singapur", "SG", "Asia/Singapore")
+        val instant = Instant.parse("2026-02-23T23:15:00Z") // 00:15 Berlin, 07:15 Singapore (same date)
+        val events = buildCompactEvents(
+            results = listOf(
+                SunMoonTimes(
+                    date = LocalDate.of(2026, 2, 24),
+                    city = city,
+                    sunrise = instant.atZone(ZoneId.of(city.zoneId)),
+                    sunset = null,
+                    moonrise = null,
+                    moonset = null,
+                    sunriseAzimuthDeg = null,
+                    sunsetAzimuthDeg = null,
+                    moonriseAzimuthDeg = null,
+                    moonsetAzimuthDeg = null
+                )
+            ),
+            userZone = ZoneId.of("Europe/Berlin"),
+            targetDate = LocalDate.of(2026, 2, 24)
+        )
+
+        assertEquals(1, events.size)
+        assertNull(events.first().timezoneChipLabel)
+    }
+
     private fun city(label: String, countryCode: String, zoneId: String): City =
         City(
             label = label,

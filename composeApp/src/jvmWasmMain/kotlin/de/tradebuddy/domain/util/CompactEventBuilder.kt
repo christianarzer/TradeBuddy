@@ -36,13 +36,7 @@ fun buildCompactEvents(
         val adjustedCityTime = adjustedInstant?.atZone(cityZone)
         val userTime = toUserZonedDateTime(adjustedCityTime, cityZone, userZone)
         val utcTime = adjustedInstant?.atZone(ZoneOffset.UTC)
-        val offsetDeltaMinutes = adjustedInstant
-            ?.let { instant ->
-                val cityOffset = cityZone.rules.getOffset(instant).totalSeconds / 60
-                val userOffset = userZone.rules.getOffset(instant).totalSeconds / 60
-                cityOffset - userOffset
-            }
-            ?: 0
+        val offsetDeltaMinutes = calculateOffsetMinutes(adjustedCityTime, userTime) ?: 0
         val cityDayOffset = when {
             adjustedCityTime == null || userTime == null -> 0
             adjustedCityTime.toLocalDate() > userTime.toLocalDate() -> 1

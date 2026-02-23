@@ -49,6 +49,25 @@ fun buildChipLabel(
     return "${formatOffsetHours(offsetMinutes)} · $dayLabel"
 }
 
+internal fun calculateOffsetMinutes(
+    eventZoneDateTime: ZonedDateTime?,
+    userZoneDateTime: ZonedDateTime?
+): Int? {
+    val eventTime = eventZoneDateTime ?: return null
+    val userTime = userZoneDateTime ?: return null
+
+    val dayDelta = ChronoUnit.DAYS.between(userTime.toLocalDate(), eventTime.toLocalDate()).toInt()
+    val eventClockMinutes = eventTime.toLocalTime().hour * 60 + eventTime.toLocalTime().minute
+    val userClockMinutes = userTime.toLocalTime().hour * 60 + userTime.toLocalTime().minute
+    var offsetMinutes = (dayDelta * 1_440) + (eventClockMinutes - userClockMinutes)
+
+    // Normalize overflow introduced by day wrapping while keeping realistic timezone deltas.
+    while (offsetMinutes > 1_080) offsetMinutes -= 1_440
+    while (offsetMinutes < -1_080) offsetMinutes += 1_440
+
+    return offsetMinutes
+}
+
 internal fun isInUserDateRange(
     userZonedDateTime: ZonedDateTime?,
     userZone: ZoneId,
