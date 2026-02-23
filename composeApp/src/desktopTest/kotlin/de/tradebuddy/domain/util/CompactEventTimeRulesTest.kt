@@ -194,6 +194,35 @@ class CompactEventTimeRulesTest {
         assertNull(events.first().timezoneChipLabel)
     }
 
+    @Test
+    fun buildCompactEvents_hongKong0648_nextDay_vsGermany2348_showsTomorrowChip() {
+        val city = city("Hongkong", "HK", "Asia/Hong_Kong")
+        val instant = Instant.parse("2026-02-23T22:48:00Z") // 23:48 Berlin, 06:48 Hong Kong (+1 day there)
+        val events = buildCompactEvents(
+            results = listOf(
+                SunMoonTimes(
+                    date = LocalDate.of(2026, 2, 24),
+                    city = city,
+                    sunrise = instant.atZone(ZoneId.of(city.zoneId)),
+                    sunset = null,
+                    moonrise = null,
+                    moonset = null,
+                    sunriseAzimuthDeg = null,
+                    sunsetAzimuthDeg = null,
+                    moonriseAzimuthDeg = null,
+                    moonsetAzimuthDeg = null
+                )
+            ),
+            userZone = ZoneId.of("Europe/Berlin"),
+            targetDate = LocalDate.of(2026, 2, 23)
+        )
+
+        assertEquals(1, events.size)
+        val chip = events.first().timezoneChipLabel
+        assertEquals(true, chip?.startsWith("+7h"))
+        assertEquals(true, chip?.contains("in anderer Zeitzone schon morgen"))
+    }
+
     private fun city(label: String, countryCode: String, zoneId: String): City =
         City(
             label = label,

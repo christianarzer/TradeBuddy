@@ -40,11 +40,15 @@ class FileSettingsRepository(
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : SettingsRepository {
 
-    private val storageKey = "${appName}.settings.v1"
+    private val storageKeyV2 = "${appName}.settings.v2"
+    private val storageKeyV1 = "${appName}.settings.v1"
 
     override suspend fun loadSettings(): SettingsSnapshot? = withContext(dispatcher) {
         runCatching {
-            val raw = window.localStorage.getItem(storageKey) ?: return@withContext null
+            val rawV2 = window.localStorage.getItem(storageKeyV2)
+            val rawV1 = window.localStorage.getItem(storageKeyV1)
+            val isLegacyPayload = rawV2 == null && rawV1 != null
+            val raw = rawV2 ?: rawV1 ?: return@withContext null
             val props = decodeMap(raw)
 
             val themeStyle = props["themeStyle"]?.let { AppThemeStyle.fromKey(it) }
@@ -55,9 +59,18 @@ class FileSettingsRepository(
             val showMoon = props["showMoon"]?.toBooleanStrictOrNull()
             val showRise = props["showRise"]?.toBooleanStrictOrNull()
             val showSet = props["showSet"]?.toBooleanStrictOrNull()
-            val sunTimeOffsetMinutes = props["sunTimeOffsetMinutes"]?.toIntOrNull()
-            val moonTimeOffsetMinutes = props["moonTimeOffsetMinutes"]?.toIntOrNull()
-            val astroTimeOffsetMinutes = props["astroTimeOffsetMinutes"]?.toIntOrNull()
+            val sunTimeOffsetMinutes = when {
+                isLegacyPayload -> 0
+                else -> props["sunTimeOffsetMinutes"]?.toIntOrNull()?.coerceIn(-720, 720)
+            }
+            val moonTimeOffsetMinutes = when {
+                isLegacyPayload -> 0
+                else -> props["moonTimeOffsetMinutes"]?.toIntOrNull()?.coerceIn(-720, 720)
+            }
+            val astroTimeOffsetMinutes = when {
+                isLegacyPayload -> 0
+                else -> props["astroTimeOffsetMinutes"]?.toIntOrNull()?.coerceIn(-720, 720)
+            }
             val selectedCityKeys = props["selectedCities"]
                 ?.split(';')
                 ?.map { it.trim() }
@@ -109,7 +122,9 @@ class FileSettingsRepository(
                     "${aspect.name}=${orb.asOneDecimal()}"
                 }
             )
-            window.localStorage.setItem(storageKey, encodeMap(map))
+            window.localStorage.setItem(storageKeyV2, encodeMap(map))
+            // Cleanup old key after successful v2 write.
+            window.localStorage.removeItem(storageKeyV1)
         }.onFailure { error ->
             AppLog.error(
                 tag = "SettingsRepository",

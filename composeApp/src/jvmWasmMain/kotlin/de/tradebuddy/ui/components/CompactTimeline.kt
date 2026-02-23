@@ -54,6 +54,8 @@ import de.tradebuddy.domain.model.CompactEventType
 import de.tradebuddy.domain.model.MoveDirection
 import de.tradebuddy.domain.model.StatEntry
 import de.tradebuddy.domain.util.azimuthToCardinalIndex
+import de.tradebuddy.domain.util.buildChipLabel
+import de.tradebuddy.domain.util.calculateOffsetMinutes
 import de.tradebuddy.ui.theme.appElevatedCardColors
 import java.time.Instant
 import java.time.LocalDate
@@ -328,7 +330,11 @@ private fun CompactEventRow(
         val dir = cardinalLabel(azimuthToCardinalIndex(deg))
         stringResource(Res.string.azimuth_value, deg.roundToInt(), dir)
     } ?: dash
-    val shiftLabel = e.timezoneChipLabel
+    val shiftLabel = e.timezoneChipLabel ?: buildChipLabel(
+        eventZoneDate = e.cityTime?.toLocalDate(),
+        userZoneDate = e.userTime?.toLocalDate(),
+        offsetMinutes = calculateOffsetMinutes(e.cityTime, e.userTime) ?: 0
+    )
     val eventLabel = eventLabel(e.eventType)
     val selection = draft.selection
     val offsetText = draft.offsetText
