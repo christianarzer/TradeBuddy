@@ -43,7 +43,8 @@ data class CompactEvent(
     val userTime: ZonedDateTime?,
     val utcTime: ZonedDateTime?,
     val userInstant: Instant?,
-    val cityDayOffset: Int
+    val cityDayOffset: Int,
+    val timezoneChipLabel: String?
 )
 
 enum class MoonPhaseType {

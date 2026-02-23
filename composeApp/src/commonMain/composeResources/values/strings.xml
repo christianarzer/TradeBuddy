@@ -42,9 +42,7 @@
     <string name="compact_col_trend">Trend</string>
     <string name="compact_col_offset">Offset</string>
     <string name="compact_empty">Keine Ereignisse. Auswahl prüfen.</string>
-    <string name="compact_hint">✓ markiert vergangene Zeiten am heutigen Tag. Hinweis zeigt Stadtzeit ±1 Tag.</string>
-    <string name="compact_shift_plus">Stadt +1 Tag</string>
-    <string name="compact_shift_minus">Stadt -1 Tag</string>
+    <string name="compact_hint">✓ markiert vergangene Zeiten am heutigen Tag. Zeitzonen-Hinweis zeigt Offset und dortiges Tagesdatum.</string>
     <string name="compact_trend_none">Kein Trend</string>
     <string name="content_done">Vergangen</string>
     <string name="settings_title">Einstellungen</string>

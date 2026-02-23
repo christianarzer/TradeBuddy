@@ -34,8 +34,15 @@ fun buildCompactEvents(
             ?.toInstant()
             ?.plus(Duration.ofMinutes(offsetMinutes))
         val adjustedCityTime = adjustedInstant?.atZone(cityZone)
-        val userTime = adjustedInstant?.atZone(userZone)
+        val userTime = toUserZonedDateTime(adjustedCityTime, cityZone, userZone)
         val utcTime = adjustedInstant?.atZone(ZoneOffset.UTC)
+        val offsetDeltaMinutes = adjustedInstant
+            ?.let { instant ->
+                val cityOffset = cityZone.rules.getOffset(instant).totalSeconds / 60
+                val userOffset = userZone.rules.getOffset(instant).totalSeconds / 60
+                cityOffset - userOffset
+            }
+            ?: 0
         val cityDayOffset = when {
             adjustedCityTime == null || userTime == null -> 0
             adjustedCityTime.toLocalDate() > userTime.toLocalDate() -> 1
@@ -51,7 +58,12 @@ fun buildCompactEvents(
             userTime = userTime,
             utcTime = utcTime,
             userInstant = userTime?.toInstant(),
-            cityDayOffset = cityDayOffset
+            cityDayOffset = cityDayOffset,
+            timezoneChipLabel = buildChipLabel(
+                eventZoneDate = adjustedCityTime?.toLocalDate(),
+                userZoneDate = userTime?.toLocalDate(),
+                offsetMinutes = offsetDeltaMinutes
+            )
         )
     }
 
@@ -62,6 +74,12 @@ fun buildCompactEvents(
         out += mk(r, CompactEventType.Moonrise, r.moonrise, r.moonriseAzimuthDeg)
         out += mk(r, CompactEventType.Moonset, r.moonset, r.moonsetAzimuthDeg)
     }
-    return out.filter { it.userTime?.toLocalDate() == targetDate }
+    return out.filter { event ->
+        isInUserDateRange(
+            userZonedDateTime = event.userTime,
+            userZone = userZone,
+            targetDate = targetDate
+        )
+    }
 }
 

@@ -8,6 +8,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class CompactEventBuilderTest {
 
@@ -39,6 +40,7 @@ class CompactEventBuilderTest {
         assertEquals(1, events.size)
         assertEquals(CompactEventType.Sunrise, events.first().eventType)
         assertEquals(-1, events.first().cityDayOffset)
+        assertTrue(events.first().timezoneChipLabel?.contains("gestern") == true)
     }
 
     @Test
@@ -69,6 +71,7 @@ class CompactEventBuilderTest {
         assertEquals(1, events.size)
         assertEquals(CompactEventType.Sunrise, events.first().eventType)
         assertEquals(1, events.first().cityDayOffset)
+        assertTrue(events.first().timezoneChipLabel?.contains("morgen") == true)
     }
 
     @Test
@@ -100,6 +103,7 @@ class CompactEventBuilderTest {
         assertEquals(1, events.size)
         assertEquals(CompactEventType.Moonrise, events.first().eventType)
         assertEquals(1, events.first().cityDayOffset)
+        assertTrue(events.first().timezoneChipLabel?.contains("+7h") == true)
     }
 
     private fun city(label: String, countryCode: String, zoneId: String): City =

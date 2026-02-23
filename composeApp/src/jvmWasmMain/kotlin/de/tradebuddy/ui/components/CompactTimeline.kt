@@ -76,8 +76,6 @@ import trade_buddy.composeapp.generated.resources.compact_col_utc
 import trade_buddy.composeapp.generated.resources.compact_date
 import trade_buddy.composeapp.generated.resources.compact_empty
 import trade_buddy.composeapp.generated.resources.compact_hint
-import trade_buddy.composeapp.generated.resources.compact_shift_minus
-import trade_buddy.composeapp.generated.resources.compact_shift_plus
 import trade_buddy.composeapp.generated.resources.compact_sorted_by
 import trade_buddy.composeapp.generated.resources.compact_title
 import trade_buddy.composeapp.generated.resources.compact_trend_none
@@ -330,11 +328,7 @@ private fun CompactEventRow(
         val dir = cardinalLabel(azimuthToCardinalIndex(deg))
         stringResource(Res.string.azimuth_value, deg.roundToInt(), dir)
     } ?: dash
-    val shiftLabel = when (e.cityDayOffset) {
-        1 -> stringResource(Res.string.compact_shift_plus)
-        -1 -> stringResource(Res.string.compact_shift_minus)
-        else -> null
-    }
+    val shiftLabel = e.timezoneChipLabel
     val eventLabel = eventLabel(e.eventType)
     val selection = draft.selection
     val offsetText = draft.offsetText
