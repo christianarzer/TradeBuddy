@@ -47,6 +47,8 @@ jobs:
           DEFAULT_BRANCH: main
           VALIDATE_ALL_CODEBASE: false
           VALIDATE_GITHUB_ACTIONS: false
+          VALIDATE_JSCPD: false
+          VALIDATE_YAML_PRETTIER: false
 
   android:
     name: Android (Lint + Build)

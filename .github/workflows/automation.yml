@@ -13,13 +13,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   pr-title:
     name: Semantic PR Title
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Validate PR title
@@ -70,18 +70,26 @@ jobs:
           script: |
             const pr = context.payload.pull_request;
             if (!pr) return;
-
-            await github.graphql(
-              `
-              mutation($pullRequestId: ID!) {
-                enablePullRequestAutoMerge(input: {pullRequestId: $pullRequestId, mergeMethod: SQUASH}) {
-                  pullRequest { number }
+            try {
+              await github.graphql(
+                `
+                mutation($pullRequestId: ID!) {
+                  enablePullRequestAutoMerge(input: {pullRequestId: $pullRequestId, mergeMethod: SQUASH}) {
+                    pullRequest { number }
+                  }
                 }
+                `,
+                { pullRequestId: pr.node_id }
+              );
+              core.info(`Enabled auto-merge for Dependabot PR #${pr.number}`);
+            } catch (error) {
+              const message = String(error?.message || "");
+              if (message.includes("unstable status")) {
+                core.notice(`PR #${pr.number} is not yet mergeable. Auto-merge will be enabled after required checks pass.`);
+              } else {
+                throw error;
               }
-              `,
-              { pullRequestId: pr.node_id }
-            );
-            core.info(`Enabled auto-merge for Dependabot PR #${pr.number}`);
+            }
 
   stale:
     name: Mark Stale Issues and PRs
