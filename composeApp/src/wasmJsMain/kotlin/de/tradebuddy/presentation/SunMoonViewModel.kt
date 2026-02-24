@@ -82,6 +82,7 @@ class SunMoonViewModel(
     private val dailyCache = LinkedHashMap<LocalDate, List<SunMoonTimes>>()
     private val dailyCacheMutex = Mutex()
     private var astroRefreshJob: Job? = null
+    private var timeOptimizerRefreshJob: Job? = null
 
     private val _state = MutableStateFlow(
         SunMoonUiState(
@@ -517,7 +518,8 @@ class SunMoonViewModel(
     }
 
     fun refreshTimeOptimizerMonth() {
-        scope.launch {
+        timeOptimizerRefreshJob?.cancel()
+        timeOptimizerRefreshJob = scope.launch {
             val snapshot = _state.value
             val month = snapshot.timeOptimizer.month
             val city = resolveTimeOptimizerCity(snapshot, snapshot.timeOptimizer.selectedCityKey)
@@ -591,6 +593,7 @@ class SunMoonViewModel(
                     )
                 }
             }.onFailure { error ->
+                if (error is CancellationException) return@launch
                 AppLog.error(
                     tag = "SunMoonViewModel",
                     message = "Failed to load time optimizer for $month (${city.label})",
