@@ -258,6 +258,7 @@
     <string name="time_optimizer_offsets_reset">Offsets zuruecksetzen</string>
     <string name="time_optimizer_recalculate">Monat neu berechnen</string>
     <string name="time_optimizer_copy_month">Monat kopieren</string>
+    <string name="time_optimizer_copy_tradingview">TradingView Input kopieren</string>
     <string name="time_optimizer_table_title">Monatsvorschau</string>
     <string name="time_optimizer_col_date">Datum</string>
     <string name="time_optimizer_col_sun">Sonne</string>

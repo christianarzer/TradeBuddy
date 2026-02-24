@@ -47,10 +47,12 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
+import trade_buddy.composeapp.generated.resources.format_datetime_copy
 import trade_buddy.composeapp.generated.resources.format_time_short
 import trade_buddy.composeapp.generated.resources.time_optimizer_astro_none
 import trade_buddy.composeapp.generated.resources.time_optimizer_astro_summary
 import trade_buddy.composeapp.generated.resources.time_optimizer_back
+import trade_buddy.composeapp.generated.resources.time_optimizer_copy_tradingview
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_all_active
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_cities_title
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_clear
@@ -86,6 +88,8 @@ fun TimeOptimizerScreen(
     }
     val timePattern = stringResource(Res.string.format_time_short)
     val timeFmt = remember(timePattern) { DateTimeFormatter.ofPattern(timePattern, Locale.GERMANY) }
+    val dateTimeCopyPattern = stringResource(Res.string.format_datetime_copy)
+    val dateTimeCopyFmt = remember(dateTimeCopyPattern) { DateTimeFormatter.ofPattern(dateTimeCopyPattern, Locale.GERMANY) }
     val dash = stringResource(Res.string.value_dash)
     val activeCityKeys = remember(cityCandidates) { cityCandidates.map { it.key() }.toSet() }
     val exportCityKeys = remember(optimizerState.exportCityKeys, activeCityKeys) {
@@ -171,6 +175,27 @@ fun TimeOptimizerScreen(
             includeMoon = optimizerState.includeMoon,
             includeAstro = optimizerState.includeAstro,
             timeFmt = timeFmt
+        )
+    }
+    val tradingViewInputText = remember(
+        optimizerState.month,
+        state.userZone.id,
+        optimizerState.exportUseCityTimeZones,
+        optimizerState.includeSun,
+        optimizerState.includeMoon,
+        optimizerState.includeAstro,
+        exportCityRows,
+        dateTimeCopyFmt
+    ) {
+        buildTradingViewInputText(
+            month = optimizerState.month,
+            userZone = state.userZone,
+            cityRows = exportCityRows,
+            useUtcTimes = optimizerState.exportUseCityTimeZones,
+            includeSun = optimizerState.includeSun,
+            includeMoon = optimizerState.includeMoon,
+            includeAstro = optimizerState.includeAstro,
+            dateTimeFmt = dateTimeCopyFmt
         )
     }
     val monthLabel = remember(optimizerState.month) {
@@ -339,6 +364,12 @@ fun TimeOptimizerScreen(
                         enabled = exportText.isNotBlank()
                     ) {
                         Text(stringResource(Res.string.time_optimizer_copy_month))
+                    }
+                    OutlinedButton(
+                        onClick = { copyToClipboard(tradingViewInputText) },
+                        enabled = tradingViewInputText.isNotBlank()
+                    ) {
+                        Text(stringResource(Res.string.time_optimizer_copy_tradingview))
                     }
                 }
             }
@@ -549,6 +580,60 @@ private fun buildMonthlyExportText(
                 }
                 appendLine(values.joinToString(","))
             }
+        }
+    }.trim()
+}
+
+private fun buildTradingViewInputText(
+    month: YearMonth,
+    userZone: ZoneId,
+    cityRows: List<Pair<de.tradebuddy.domain.model.City, List<de.tradebuddy.presentation.TimeOptimizerDayRow>>>,
+    useUtcTimes: Boolean,
+    includeSun: Boolean,
+    includeMoon: Boolean,
+    includeAstro: Boolean,
+    dateTimeFmt: DateTimeFormatter
+): String {
+    if (cityRows.isEmpty() || (!includeSun && !includeMoon && !includeAstro)) return ""
+
+    data class TradingViewEvent(
+        val instant: java.time.Instant,
+        val icon: String,
+        val cityLabel: String
+    )
+
+    val exportZone = if (useUtcTimes) ZoneId.of("UTC") else userZone
+    val events = mutableListOf<TradingViewEvent>()
+
+    cityRows.forEach { (city, rows) ->
+        rows.forEach { row ->
+            if (includeSun) {
+                row.sunrise?.toInstant()?.let { events += TradingViewEvent(it, "☀️↑", city.label) }
+                row.sunset?.toInstant()?.let { events += TradingViewEvent(it, "☀️↓", city.label) }
+            }
+            if (includeMoon) {
+                row.moonrise?.toInstant()?.let { events += TradingViewEvent(it, "🌙↑", city.label) }
+                row.moonset?.toInstant()?.let { events += TradingViewEvent(it, "🌙↓", city.label) }
+            }
+            if (includeAstro) {
+                row.astroInstants.forEach { instant ->
+                    events += TradingViewEvent(instant, "✨", city.label)
+                }
+            }
+        }
+    }
+
+    if (events.isEmpty()) return ""
+
+    val sorted = events.sortedWith(compareBy<TradingViewEvent> { it.instant }.thenBy { it.cityLabel })
+    return buildString {
+        appendLine("# TradeBuddy TradingView Input")
+        appendLine("# month=$month")
+        appendLine("# timezone=${exportZone.id}")
+        appendLine("# format=yyyy-MM-dd HH:mm|icon|city")
+        sorted.forEach { event ->
+            val dateTime = event.instant.atZone(exportZone).format(dateTimeFmt)
+            appendLine("$dateTime|${event.icon}|${event.cityLabel}")
         }
     }.trim()
 }

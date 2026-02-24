@@ -26,6 +26,7 @@ Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender auf Kotlin Mu
 - Statistik mit Up/Down-Bewertung, Offset in Minuten, Filtern und Kennzahlen
 - Settings mit moderner Theme-Auswahl, City-Filter, Log-Konsole und Monats-Export
 - Monats-Export zum direkten Kopieren von Sun/Moon/Astro Zeiten
+- TradingView-Paste Export mit Event-Icons (`yyyy-MM-dd HH:mm|icon|city`)
 
 ## Platform Status
 
@@ -39,6 +40,7 @@ Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender auf Kotlin Mu
 - `composeApp/`: gemeinsame Domain-, Data- und UI-Logik (Desktop/Android/iOS/Web Targets)
 - `androidApp/`: Android App Modul
 - `iosApp/`: iOS Host Projekt
+- `docs/tradingview/TradeBuddyTimes.pine`: fertiges Pine-Script fuer direkten Import in TradingView
 - `.github/workflows/`: Build-, Quality-, Deploy- und Release-Pipelines
 
 ## Requirements

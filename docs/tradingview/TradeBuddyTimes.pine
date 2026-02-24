@@ -1,0 +1,117 @@
+﻿// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © arzerchriskry
+
+//@version=6
+indicator("TradeBuddy Times + Events", overlay=true, max_lines_count=500, max_labels_count=500)
+
+// Paste format (from TradeBuddy "TradingView Input kopieren"):
+// yyyy-MM-dd HH:mm|icon|city
+// Example:
+// 2026-02-09 00:16|☀️↑|Berlin
+
+entriesInput = input.text_area(
+     defval =
+         "2026-02-09 00:16|☀️↑|Berlin\n" +
+         "2026-02-09 01:41|🌙↑|Berlin\n" +
+         "2026-02-09 02:04|✨|Berlin\n",
+     title = "TradeBuddy Events (eine pro Zeile oder mit Komma getrennt)"
+)
+
+tzChoice = input.string(
+     defval = "Exchange",
+     title  = "Zeitzone",
+     options = [
+         "Exchange",
+         "Europe/Berlin",
+         "Europe/London",
+         "America/New_York",
+         "Etc/UTC",
+         "Asia/Tokyo",
+         "Asia/Singapore",
+         "Asia/Hong_Kong",
+         "Asia/Shanghai",
+         "Australia/Sydney",
+         "Custom…"
+     ]
+)
+
+tzCustom = input.string("Europe/Berlin", "Custom TZ (IANA)", tooltip="Wird nur genutzt wenn Zeitzone = Custom…")
+string tz = tzChoice == "Exchange" ? syminfo.timezone : tzChoice == "Custom…" ? tzCustom : tzChoice
+
+showLines = input.bool(true, "Vertikale Linien")
+showIcons = input.bool(true, "Event-Icons")
+
+f_ts(dateTimeRaw) =>
+    s = str.trim(dateTimeRaw)
+    parts = str.split(s, " ")
+    if array.size(parts) != 2
+        na
+    else
+        d = array.get(parts, 0)
+        t = array.get(parts, 1)
+        dparts = str.split(d, "-")
+        tparts = str.split(t, ":")
+        if array.size(dparts) != 3 or array.size(tparts) < 2
+            na
+        else
+            y   = int(str.tonumber(array.get(dparts, 0)))
+            m   = int(str.tonumber(array.get(dparts, 1)))
+            day = int(str.tonumber(array.get(dparts, 2)))
+            hh  = int(str.tonumber(array.get(tparts, 0)))
+            mm  = int(str.tonumber(array.get(tparts, 1)))
+            timestamp(tz, y, m, day, hh, mm)
+
+var tsArr = array.new_int()
+var iconArr = array.new_string()
+var cityArr = array.new_string()
+var shownArr = array.new_bool()
+
+if barstate.isfirst
+    clean = entriesInput
+    clean := str.replace_all(clean, ";", ",")
+    clean := str.replace_all(clean, "\n", ",")
+    clean := str.replace_all(clean, "\r", ",")
+
+    parts = str.split(clean, ",")
+    for i = 0 to array.size(parts) - 1
+        raw = str.trim(array.get(parts, i))
+        if str.length(raw) > 0 and not str.startswith(raw, "#")
+            fields = str.split(raw, "|")
+            dt = array.size(fields) >= 1 ? str.trim(array.get(fields, 0)) : ""
+            icon = array.size(fields) >= 2 ? str.trim(array.get(fields, 1)) : "•"
+            city = array.size(fields) >= 3 ? str.trim(array.get(fields, 2)) : ""
+
+            ts = f_ts(dt)
+            if not na(ts)
+                array.push(tsArr, ts)
+                array.push(iconArr, str.length(icon) > 0 ? icon : "•")
+                array.push(cityArr, city)
+                array.push(shownArr, false)
+
+                lineColor = str.contains(icon, "☀") ? color.new(color.orange, 0) :
+                    str.contains(icon, "🌙") ? color.new(color.aqua, 0) :
+                    color.new(color.teal, 0)
+
+                if showLines
+                    line.new(ts, 0, ts, 1,
+                        xloc=xloc.bar_time,
+                        extend=extend.both,
+                        color=lineColor,
+                        style=line.style_dotted,
+                        width=1)
+
+for i = 0 to array.size(tsArr) - 1
+    wasShown = array.get(shownArr, i)
+    if not wasShown
+        ts = array.get(tsArr, i)
+        inBar = time <= ts and ts < time_close
+        if inBar and showIcons
+            icon = array.get(iconArr, i)
+            city = array.get(cityArr, i)
+            text = str.length(city) > 0 ? icon + " " + city : icon
+            label.new(bar_index, high, text,
+                style=label.style_label_down,
+                textcolor=color.white,
+                color=color.new(color.black, 70),
+                size=size.tiny)
+            array.set(shownArr, i, true)
