@@ -47,8 +47,6 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
-import trade_buddy.composeapp.generated.resources.format_datetime_copy
-import trade_buddy.composeapp.generated.resources.format_time_short
 import trade_buddy.composeapp.generated.resources.time_optimizer_astro_none
 import trade_buddy.composeapp.generated.resources.time_optimizer_astro_summary
 import trade_buddy.composeapp.generated.resources.time_optimizer_back
@@ -87,10 +85,8 @@ fun TimeOptimizerScreen(
         val selected = state.allCities.filter { it.key() in state.selectedCityKeys }
         if (selected.isEmpty()) state.allCities else selected
     }
-    val timePattern = stringResource(Res.string.format_time_short)
-    val timeFmt = remember(timePattern) { DateTimeFormatter.ofPattern(timePattern, Locale.GERMANY) }
-    val dateTimeCopyPattern = stringResource(Res.string.format_datetime_copy)
-    val dateTimeCopyFmt = remember(dateTimeCopyPattern) { DateTimeFormatter.ofPattern(dateTimeCopyPattern, Locale.GERMANY) }
+    val timeFmt = remember { DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY) }
+    val dateTimeCopyFmt = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", Locale.GERMANY) }
     val dash = stringResource(Res.string.value_dash)
     val activeCityKeys = remember(cityCandidates) { cityCandidates.map { it.key() }.toSet() }
     val exportCityKeys = remember(optimizerState.exportCityKeys, activeCityKeys) {
@@ -613,17 +609,17 @@ private fun buildTradingViewInputText(
     cityRows.forEach { (city, rows) ->
         rows.forEach { row ->
             if (includeSun) {
-                row.sunrise?.toInstant()?.let { events += TradingViewEvent(it, "☀️↑", city.label) }
-                row.sunset?.toInstant()?.let { events += TradingViewEvent(it, "☀️↓", city.label) }
+                row.sunrise?.toInstant()?.let { events += TradingViewEvent(it, "SUN_UP", city.label) }
+                row.sunset?.toInstant()?.let { events += TradingViewEvent(it, "SUN_DOWN", city.label) }
             }
             if (includeMoon) {
-                row.moonrise?.toInstant()?.let { events += TradingViewEvent(it, "🌙↑", city.label) }
-                row.moonset?.toInstant()?.let { events += TradingViewEvent(it, "🌙↓", city.label) }
+                row.moonrise?.toInstant()?.let { events += TradingViewEvent(it, "MOON_UP", city.label) }
+                row.moonset?.toInstant()?.let { events += TradingViewEvent(it, "MOON_DOWN", city.label) }
             }
             if (includeAstro) {
                 row.astroInstants.forEach { instant ->
                     if (astroInstants.add(instant)) {
-                        events += TradingViewEvent(instant, "✨", "Astro")
+                        events += TradingViewEvent(instant, "ASTRO", "Astro")
                     }
                 }
             }

@@ -69,8 +69,6 @@ import trade_buddy.composeapp.generated.resources.event_moonrise
 import trade_buddy.composeapp.generated.resources.event_moonset
 import trade_buddy.composeapp.generated.resources.event_sunrise
 import trade_buddy.composeapp.generated.resources.event_sunset
-import trade_buddy.composeapp.generated.resources.format_date_short
-import trade_buddy.composeapp.generated.resources.format_time_short
 import trade_buddy.composeapp.generated.resources.stats_delete_entry
 import trade_buddy.composeapp.generated.resources.stats_direction_down
 import trade_buddy.composeapp.generated.resources.stats_direction_up
@@ -111,10 +109,8 @@ fun StatisticsCard(
     onReset: () -> Unit,
     onDeleteEntry: (String) -> Unit
 ) {
-    val datePattern = stringResource(Res.string.format_date_short)
-    val timePattern = stringResource(Res.string.format_time_short)
-    val dateFmt = remember(datePattern) { DateTimeFormatter.ofPattern(datePattern, Locale.GERMANY) }
-    val timeFmt = remember(timePattern) { DateTimeFormatter.ofPattern(timePattern, Locale.GERMANY) }
+    val dateFmt = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.GERMANY) }
+    val timeFmt = remember { DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY) }
 
     var query by rememberSaveable { mutableStateOf("") }
     var directionFilter by rememberSaveable { mutableStateOf<MoveDirection?>(null) }

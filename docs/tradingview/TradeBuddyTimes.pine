@@ -83,9 +83,9 @@ if barstate.isfirst
                 array.push(shownArr, false)
 
                 lineColor = color.new(color.teal, 0)
-                if str.contains(icon, "☀")
+                if str.contains(icon, "☀") or str.contains(str.upper(icon), "SUN")
                     lineColor := color.new(color.orange, 0)
-                else if str.contains(icon, "🌙")
+                else if str.contains(icon, "🌙") or str.contains(str.upper(icon), "MOON")
                     lineColor := color.new(color.aqua, 0)
 
                 if showLines
@@ -114,10 +114,14 @@ for i = 0 to array.size(tsArr) - 1
             array.set(shownArr, i, true)
 
 if showIcons and barEventCount > 0
-    plotshape(true,
-        style=shape.labelup,
-        location=location.bottom,
+    label.new(
+        x=bar_index,
+        y=low,
+        xloc=xloc.bar_index,
+        yloc=yloc.belowbar,
+        text=barLabelText,
+        style=label.style_label_up,
         textcolor=color.white,
         color=color.new(color.black, 70),
-        text=barLabelText,
-        size=size.small)
+        size=size.small
+    )

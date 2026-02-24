@@ -93,12 +93,21 @@ class FileStatisticsRepository(
     private fun readEntries(): List<StatEntry> {
         val raw = window.localStorage.getItem(storageKey) ?: return emptyList()
         if (raw.isBlank()) return emptyList()
-        return raw
-            .lineSequence()
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .mapNotNull(::parseLine)
-            .toList()
+        return runCatching {
+            raw
+                .lineSequence()
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .mapNotNull(::parseLine)
+                .toList()
+        }.onFailure { error ->
+            AppLog.error(
+                tag = "StatisticsRepository",
+                message = "Corrupt stats payload in browser storage - resetting",
+                throwable = error
+            )
+            runCatching { window.localStorage.removeItem(storageKey) }
+        }.getOrElse { emptyList() }
     }
 
     private fun writeEntries(entries: List<StatEntry>) {

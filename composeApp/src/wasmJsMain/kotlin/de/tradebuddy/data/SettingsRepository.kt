@@ -99,6 +99,11 @@ class FileSettingsRepository(
                 message = "Failed to load settings from browser storage",
                 throwable = error
             )
+            // Prevent repeated crashes from malformed persisted payloads.
+            runCatching {
+                window.localStorage.removeItem(storageKeyV2)
+                window.localStorage.removeItem(storageKeyV1)
+            }
         }.getOrNull()
     }
 
