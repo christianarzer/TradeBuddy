@@ -88,9 +88,11 @@ if barstate.isfirst
                 array.push(cityArr, city)
                 array.push(shownArr, false)
 
-                lineColor = str.contains(icon, "☀") ? color.new(color.orange, 0) :
-                    str.contains(icon, "🌙") ? color.new(color.aqua, 0) :
-                    color.new(color.teal, 0)
+                lineColor = color.new(color.teal, 0)
+                if str.contains(icon, "☀")
+                    lineColor := color.new(color.orange, 0)
+                else if str.contains(icon, "🌙")
+                    lineColor := color.new(color.aqua, 0)
 
                 if showLines
                     line.new(ts, 0, ts, 1,
