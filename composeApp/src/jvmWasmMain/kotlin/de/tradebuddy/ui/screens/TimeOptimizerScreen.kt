@@ -69,7 +69,6 @@ import trade_buddy.composeapp.generated.resources.time_optimizer_copy_month
 import trade_buddy.composeapp.generated.resources.time_optimizer_empty
 import trade_buddy.composeapp.generated.resources.time_optimizer_month_next
 import trade_buddy.composeapp.generated.resources.time_optimizer_month_prev
-import trade_buddy.composeapp.generated.resources.time_optimizer_recalculate
 import trade_buddy.composeapp.generated.resources.time_optimizer_subtitle
 import trade_buddy.composeapp.generated.resources.time_optimizer_table_title
 import trade_buddy.composeapp.generated.resources.time_optimizer_title
@@ -338,9 +337,6 @@ fun TimeOptimizerScreen(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(onClick = viewModel::refreshTimeOptimizerMonth) {
-                        Text(stringResource(Res.string.time_optimizer_recalculate))
-                    }
                     OutlinedButton(
                         onClick = { copyToClipboard(exportText) },
                         enabled = exportText.isNotBlank()
