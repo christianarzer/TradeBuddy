@@ -129,7 +129,7 @@ class SunMoonViewModel(
             val cityKey = resolveTimeOptimizerCity(current, current.timeOptimizer.selectedCityKey)?.key()
             val exportCityKeys = resolveTimeOptimizerExportCityKeys(
                 state = current,
-                preferredKeys = current.timeOptimizer.exportCityKeys + listOfNotNull(cityKey)
+                preferredKeys = current.timeOptimizer.exportCityKeys
             )
             current.copy(
                 screen = AppScreen.TimeOptimizer,
@@ -390,6 +390,14 @@ class SunMoonViewModel(
         _state.update { it.copy(selectedTab = tab) }
         when (tab) {
             SunMoonTab.Trend -> loadTrend(YearMonth.from(_state.value.selectedDate))
+            SunMoonTab.Astro -> {
+                refreshAstro()
+                if (_state.value.selectedAstroTab == AstroCalendarTab.MoonPhases) {
+                    loadMoonPhases(YearMonth.from(_state.value.selectedDate))
+                }
+            }
+
+            SunMoonTab.Export -> refreshTimeOptimizerMonth()
             else -> Unit
         }
     }
@@ -411,7 +419,7 @@ class SunMoonViewModel(
             val cityKey = resolveTimeOptimizerCity(updated, current.timeOptimizer.selectedCityKey)?.key()
             val exportCityKeys = resolveTimeOptimizerExportCityKeys(
                 state = updated,
-                preferredKeys = current.timeOptimizer.exportCityKeys + listOfNotNull(cityKey)
+                preferredKeys = current.timeOptimizer.exportCityKeys
             )
             updated.copy(
                 timeOptimizer = updated.timeOptimizer.copy(
@@ -536,7 +544,7 @@ class SunMoonViewModel(
             }
             val exportKeys = resolveTimeOptimizerExportCityKeys(
                 state = snapshot,
-                preferredKeys = snapshot.timeOptimizer.exportCityKeys + city.key()
+                preferredKeys = snapshot.timeOptimizer.exportCityKeys
             )
             val citiesByKey = snapshot.allCities.associateBy { it.key() }
             val exportCities = exportKeys.mapNotNull { key -> citiesByKey[key] }
@@ -1020,7 +1028,7 @@ class SunMoonViewModel(
                 )?.key()
                 val exportCityKeys = resolveTimeOptimizerExportCityKeys(
                     state = withResolvedKeys,
-                    preferredKeys = current.timeOptimizer.exportCityKeys + listOfNotNull(optimizerCityKey)
+                    preferredKeys = current.timeOptimizer.exportCityKeys
                 )
                 current.copy(
                     themeStyle = snapshot.themeStyle ?: current.themeStyle,
@@ -1155,7 +1163,7 @@ class SunMoonViewModel(
         val candidates = if (selected.isNotEmpty()) selected else state.allCities
         val candidateKeys = candidates.map { it.key() }.toSet()
         val filteredPreferred = preferredKeys.filter { it in candidateKeys }.toSet()
-        return if (filteredPreferred.isNotEmpty()) filteredPreferred else candidates.take(1).map { it.key() }.toSet()
+        return if (filteredPreferred.isNotEmpty()) filteredPreferred else candidateKeys
     }
 
     private fun sanitizeAspectOrb(rawOrb: Double): Double {

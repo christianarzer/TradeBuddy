@@ -25,6 +25,8 @@ import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.tab_compact
 import trade_buddy.composeapp.generated.resources.tab_details
 import trade_buddy.composeapp.generated.resources.tab_astro_aspects
+import trade_buddy.composeapp.generated.resources.tab_astro_feature
+import trade_buddy.composeapp.generated.resources.tab_export
 import trade_buddy.composeapp.generated.resources.tab_moon_phases
 import trade_buddy.composeapp.generated.resources.tab_statistics
 import trade_buddy.composeapp.generated.resources.tab_trend
@@ -32,7 +34,6 @@ import trade_buddy.composeapp.generated.resources.tab_trend
 enum class AppScreen {
     SunMoon,
     AstroCalendar,
-    NetworkSniffer,
     Settings,
     Logs,
     TimeOptimizer
@@ -42,7 +43,9 @@ enum class SunMoonTab(val label: StringResource) {
     Compact(Res.string.tab_compact),
     Statistics(Res.string.tab_statistics),
     Details(Res.string.tab_details),
-    Trend(Res.string.tab_trend)
+    Trend(Res.string.tab_trend),
+    Astro(Res.string.tab_astro_feature),
+    Export(Res.string.tab_export)
 }
 
 enum class AstroCalendarTab(val label: StringResource) {
@@ -93,7 +96,7 @@ data class TimeOptimizerUiState(
     val month: YearMonth,
     val selectedCityKey: String? = null,
     val exportCityKeys: Set<String> = emptySet(),
-    val exportUseCityTimeZones: Boolean = false,
+    val exportUseCityTimeZones: Boolean = true,
     val includeSun: Boolean = true,
     val includeMoon: Boolean = true,
     val includeAstro: Boolean = true,
@@ -110,7 +113,7 @@ data class SunMoonUiState(
     val moonPhases: MoonPhaseUiState,
     val astroCalendar: AstroCalendarUiState = AstroCalendarUiState(),
     val screen: AppScreen = AppScreen.SunMoon,
-    val themeStyle: AppThemeStyle = AppThemeStyle.Neon,
+    val themeStyle: AppThemeStyle = AppThemeStyle.Slate,
     val themeMode: AppThemeMode = AppThemeMode.Dark,
     val selectedTab: SunMoonTab = SunMoonTab.Compact,
     val selectedAstroTab: AstroCalendarTab = AstroCalendarTab.Aspects,

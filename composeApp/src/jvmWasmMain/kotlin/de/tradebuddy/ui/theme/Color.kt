@@ -391,18 +391,12 @@ val RubyDarkColors = darkScheme(
 )
 
 fun colorSchemeFor(style: AppThemeStyle, mode: AppThemeMode) = when (style) {
-    AppThemeStyle.Neon -> if (mode == AppThemeMode.Light) NeonLightColors else NeonDarkColors
-    AppThemeStyle.Terminal -> if (mode == AppThemeMode.Light) TerminalLightColors else TerminalDarkColors
     AppThemeStyle.Midnight -> if (mode == AppThemeMode.Light) MidnightLightColors else MidnightDarkColors
-    AppThemeStyle.Horizon -> if (mode == AppThemeMode.Light) HorizonLightColors else HorizonDarkColors
     AppThemeStyle.Ocean -> if (mode == AppThemeMode.Light) OceanLightColors else OceanDarkColors
     AppThemeStyle.Slate -> if (mode == AppThemeMode.Light) SlateLightColors else SlateDarkColors
     AppThemeStyle.Aurora -> if (mode == AppThemeMode.Light) AuroraLightColors else AuroraDarkColors
     AppThemeStyle.Copper -> if (mode == AppThemeMode.Light) CopperLightColors else CopperDarkColors
-    AppThemeStyle.Arctic -> if (mode == AppThemeMode.Light) ArcticLightColors else ArcticDarkColors
     AppThemeStyle.Nimbus -> if (mode == AppThemeMode.Light) NimbusLightColors else NimbusDarkColors
-    AppThemeStyle.Pulse -> if (mode == AppThemeMode.Light) PulseLightColors else PulseDarkColors
-    AppThemeStyle.Ruby -> if (mode == AppThemeMode.Light) RubyLightColors else RubyDarkColors
 }
 
 fun previewColorsFor(style: AppThemeStyle, mode: AppThemeMode): List<Color> {

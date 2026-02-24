@@ -4,7 +4,6 @@
     <string name="app_subtitle">Sonne + Mond Planer</string>
     <string name="window_title">TradeBuddy</string>
     <string name="nav_sun_moon">Sonne/Mond</string>
-    <string name="nav_network_sniffer">Network Sniffer</string>
     <string name="nav_settings">Einstellungen</string>
     <string name="label_theme">Thema</string>
     <string name="action_toggle_theme">Tag/Nacht umschalten</string>
@@ -22,6 +21,8 @@
     <string name="tab_details">Details</string>
     <string name="tab_statistics">Statistik</string>
     <string name="tab_trend">Trend</string>
+    <string name="tab_astro_feature">Astro</string>
+    <string name="tab_export">Export</string>
     <string name="tab_moon_phases">Mondphasen</string>
     <string name="datepicker_ok">OK</string>
     <string name="datepicker_cancel">Abbrechen</string>
@@ -38,6 +39,7 @@
     <string name="compact_col_utc">UTC</string>
     <string name="compact_col_city">Stadt</string>
     <string name="compact_col_event">Ereignis</string>
+    <string name="compact_col_shift">Chips</string>
     <string name="compact_col_azimuth">Azimut</string>
     <string name="compact_col_done">Vergangen</string>
     <string name="compact_col_trend">Trend</string>
@@ -245,9 +247,6 @@
     <string name="time_optimizer_export_all_active">Alle aktiven</string>
     <string name="time_optimizer_export_clear">Auswahl leeren</string>
     <string name="time_optimizer_export_settings_title">Export-Einstellungen</string>
-    <string name="time_optimizer_export_zone_mode_title">Zeitzone im Export</string>
-    <string name="time_optimizer_export_zone_user">User-Zeitzone</string>
-    <string name="time_optimizer_export_zone_city">UTC</string>
     <string name="time_optimizer_export_include_sun">Sonne exportieren</string>
     <string name="time_optimizer_export_include_moon">Mond exportieren</string>
     <string name="time_optimizer_export_include_astro">Astro exportieren</string>

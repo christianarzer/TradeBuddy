@@ -78,7 +78,7 @@ class FileSettingsRepository(
                 aspectOrbs == null
             ) null
             else SettingsSnapshot(
-                themeStyle = themeStyle ?: darkTheme?.let { AppThemeStyle.Neon },
+                themeStyle = themeStyle ?: darkTheme?.let { AppThemeStyle.Slate },
                 themeMode = themeMode ?: darkTheme?.let {
                     if (it) AppThemeMode.Dark else AppThemeMode.Light
                 },

@@ -6,6 +6,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,7 +56,6 @@ import de.tradebuddy.domain.model.CompactEventType
 import de.tradebuddy.domain.model.MoveDirection
 import de.tradebuddy.domain.model.StatEntry
 import de.tradebuddy.domain.util.azimuthToCardinalIndex
-import de.tradebuddy.domain.util.buildChipLabel
 import de.tradebuddy.domain.util.calculateOffsetMinutes
 import de.tradebuddy.ui.theme.appElevatedCardColors
 import java.time.Instant
@@ -73,6 +74,7 @@ import trade_buddy.composeapp.generated.resources.compact_col_done
 import trade_buddy.composeapp.generated.resources.compact_col_event
 import trade_buddy.composeapp.generated.resources.compact_col_local
 import trade_buddy.composeapp.generated.resources.compact_col_offset
+import trade_buddy.composeapp.generated.resources.compact_col_shift
 import trade_buddy.composeapp.generated.resources.compact_col_trend
 import trade_buddy.composeapp.generated.resources.compact_col_utc
 import trade_buddy.composeapp.generated.resources.compact_date
@@ -95,6 +97,7 @@ import trade_buddy.composeapp.generated.resources.stats_offset_label
 import trade_buddy.composeapp.generated.resources.value_dash
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun CompactTimelineCard(
     selectedDate: LocalDate,
     userZone: ZoneId,
@@ -190,9 +193,10 @@ fun CompactTimelineCard(
             val timeWidth = 72.dp
             val utcWidth = 72.dp
             val cityWidth = 140.dp
-            val eventWidth = 220.dp +
+            val eventWidth = 170.dp +
                 if (showUtcTime) 0.dp else utcWidth +
                 if (showAzimuth) 0.dp else 110.dp
+            val chipsWidth = 190.dp
             val azWidth = 110.dp
             val doneWidth = 96.dp
             val trendWidth = 120.dp
@@ -222,6 +226,11 @@ fun CompactTimelineCard(
                 Text(
                     stringResource(Res.string.compact_col_event),
                     modifier = Modifier.width(eventWidth),
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Text(
+                    stringResource(Res.string.compact_col_shift),
+                    modifier = Modifier.width(chipsWidth),
                     style = MaterialTheme.typography.labelLarge
                 )
                 if (showAzimuth) {
@@ -278,6 +287,7 @@ fun CompactTimelineCard(
                             utcWidth = utcWidth,
                             cityWidth = cityWidth,
                             eventWidth = eventWidth,
+                            chipsWidth = chipsWidth,
                             azWidth = azWidth,
                             doneWidth = doneWidth,
                             trendWidth = trendWidth,
@@ -312,6 +322,7 @@ private fun CompactEventRow(
     utcWidth: Dp,
     cityWidth: Dp,
     eventWidth: Dp,
+    chipsWidth: Dp,
     azWidth: Dp,
     doneWidth: Dp,
     trendWidth: Dp,
@@ -330,11 +341,7 @@ private fun CompactEventRow(
         val dir = cardinalLabel(azimuthToCardinalIndex(deg))
         stringResource(Res.string.azimuth_value, deg.roundToInt(), dir)
     } ?: dash
-    val shiftLabel = e.timezoneChipLabel ?: buildChipLabel(
-        eventZoneDate = e.cityTime?.toLocalDate(),
-        userZoneDate = e.userTime?.toLocalDate(),
-        offsetMinutes = calculateOffsetMinutes(e.cityTime, e.userTime) ?: 0
-    )
+    val shiftChips = buildShiftChips(e)
     val eventLabel = eventLabel(e.eventType)
     val selection = draft.selection
     val offsetText = draft.offsetText
@@ -357,19 +364,19 @@ private fun CompactEventRow(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-        Row(
+        Text(
+            eventLabel,
             modifier = Modifier.width(eventWidth),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            color = textColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        FlowRow(
+            modifier = Modifier.width(chipsWidth),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Text(
-                eventLabel,
-                modifier = Modifier.weight(1f),
-                color = textColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (shiftLabel != null) {
+            shiftChips.forEach { chip ->
                 Box(
                     modifier = Modifier
                         .background(
@@ -379,7 +386,7 @@ private fun CompactEventRow(
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        shiftLabel,
+                        chip,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary
                     )
@@ -467,6 +474,31 @@ private fun CompactEventRow(
                 }
             )
         }
+    }
+}
+
+private fun buildShiftChips(event: CompactEvent): List<String> {
+    val offsetMinutes = calculateOffsetMinutes(event.cityTime, event.userTime)
+    val chips = mutableListOf<String>()
+    if (offsetMinutes != null && offsetMinutes != 0) {
+        chips += formatOffsetChip(offsetMinutes)
+    }
+    when {
+        event.cityDayOffset > 0 -> chips += "dort morgen"
+        event.cityDayOffset < 0 -> chips += "dort gestern"
+    }
+    return chips
+}
+
+private fun formatOffsetChip(offsetMinutes: Int): String {
+    val sign = if (offsetMinutes >= 0) "+" else "-"
+    val absMinutes = kotlin.math.abs(offsetMinutes)
+    val hours = absMinutes / 60
+    val minutes = absMinutes % 60
+    return if (minutes == 0) {
+        "${sign}${hours}h"
+    } else {
+        "${sign}${hours}h${minutes}m"
     }
 }
 

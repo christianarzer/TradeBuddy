@@ -17,26 +17,7 @@ entriesInput = input.text_area(
      title = "TradeBuddy Events (eine pro Zeile oder mit Komma getrennt)"
 )
 
-tzChoice = input.string(
-     defval = "Exchange",
-     title  = "Zeitzone",
-     options = [
-         "Exchange",
-         "Europe/Berlin",
-         "Europe/London",
-         "America/New_York",
-         "Etc/UTC",
-         "Asia/Tokyo",
-         "Asia/Singapore",
-         "Asia/Hong_Kong",
-         "Asia/Shanghai",
-         "Australia/Sydney",
-         "Custom…"
-     ]
-)
-
-tzCustom = input.string("Europe/Berlin", "Custom TZ (IANA)", tooltip="Wird nur genutzt wenn Zeitzone = Custom…")
-string tz = tzChoice == "Exchange" ? syminfo.timezone : tzChoice == "Custom…" ? tzCustom : tzChoice
+string tz = "Etc/UTC"
 
 showLines = input.bool(true, "Vertikale Linien")
 showIcons = input.bool(true, "Event-Icons")
@@ -111,8 +92,8 @@ for i = 0 to array.size(tsArr) - 1
             icon = array.get(iconArr, i)
             city = array.get(cityArr, i)
             text = str.length(city) > 0 ? icon + " " + city : icon
-            label.new(bar_index, high, text,
-                style=label.style_label_down,
+            label.new(bar_index, low, text,
+                style=label.style_label_up,
                 textcolor=color.white,
                 color=color.new(color.black, 70),
                 size=size.tiny)

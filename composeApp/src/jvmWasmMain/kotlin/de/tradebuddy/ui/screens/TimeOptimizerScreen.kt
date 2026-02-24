@@ -60,9 +60,6 @@ import trade_buddy.composeapp.generated.resources.time_optimizer_export_include_
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_include_moon
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_include_sun
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_settings_title
-import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_city
-import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_mode_title
-import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_user
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_date
 import trade_buddy.composeapp.generated.resources.time_optimizer_copy_month
 import trade_buddy.composeapp.generated.resources.time_optimizer_empty
@@ -77,7 +74,8 @@ import trade_buddy.composeapp.generated.resources.value_dash
 @Composable
 fun TimeOptimizerScreen(
     state: SunMoonUiState,
-    viewModel: SunMoonViewModel
+    viewModel: SunMoonViewModel,
+    showBackToSettings: Boolean = true
 ) {
     val optimizerState = state.timeOptimizer
     val ext = LocalExtendedColors.current
@@ -94,7 +92,7 @@ fun TimeOptimizerScreen(
     val activeCityKeys = remember(cityCandidates) { cityCandidates.map { it.key() }.toSet() }
     val exportCityKeys = remember(optimizerState.exportCityKeys, activeCityKeys) {
         val normalized = optimizerState.exportCityKeys.filter { it in activeCityKeys }.toSet()
-        if (normalized.isNotEmpty()) normalized else cityCandidates.firstOrNull()?.key()?.let(::setOf).orEmpty()
+        if (normalized.isNotEmpty()) normalized else activeCityKeys
     }
     val previewCity = remember(cityCandidates, exportCityKeys) {
         cityCandidates.firstOrNull { it.key() in exportCityKeys } ?: cityCandidates.firstOrNull()
@@ -231,8 +229,10 @@ fun TimeOptimizerScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    OutlinedButton(onClick = { viewModel.setScreen(AppScreen.Settings) }) {
-                        Text(stringResource(Res.string.time_optimizer_back))
+                    if (showBackToSettings) {
+                        OutlinedButton(onClick = { viewModel.setScreen(AppScreen.Settings) }) {
+                            Text(stringResource(Res.string.time_optimizer_back))
+                        }
                     }
                 }
 
@@ -337,25 +337,6 @@ fun TimeOptimizerScreen(
                         )
                     }
 
-                    Text(
-                        stringResource(Res.string.time_optimizer_export_zone_mode_title),
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(
-                            selected = !optimizerState.exportUseCityTimeZones,
-                            onClick = { viewModel.setTimeOptimizerExportZoneMode(false) },
-                            label = { Text(stringResource(Res.string.time_optimizer_export_zone_user)) }
-                        )
-                        FilterChip(
-                            selected = optimizerState.exportUseCityTimeZones,
-                            onClick = { viewModel.setTimeOptimizerExportZoneMode(true) },
-                            label = { Text(stringResource(Res.string.time_optimizer_export_zone_city)) }
-                        )
-                    }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -489,21 +470,21 @@ fun TimeOptimizerScreen(
                                             )
                                             if (optimizerState.includeSun) {
                                                 Text(
-                                                    "Sonne ↑ $sunRiseDual",
+                                                    "Sonne \u2191 $sunRiseDual",
                                                     style = MaterialTheme.typography.bodySmall
                                                 )
                                                 Text(
-                                                    "Sonne ↓ $sunSetDual",
+                                                    "Sonne \u2193 $sunSetDual",
                                                     style = MaterialTheme.typography.bodySmall
                                                 )
                                             }
                                             if (optimizerState.includeMoon) {
                                                 Text(
-                                                    "Mond ↑ $moonRiseDual",
+                                                    "Mond \u2191 $moonRiseDual",
                                                     style = MaterialTheme.typography.bodySmall
                                                 )
                                                 Text(
-                                                    "Mond ↓ $moonSetDual",
+                                                    "Mond \u2193 $moonSetDual",
                                                     style = MaterialTheme.typography.bodySmall
                                                 )
                                             }
@@ -604,6 +585,7 @@ private fun buildTradingViewInputText(
 
     val exportZone = if (useUtcTimes) ZoneId.of("UTC") else userZone
     val events = mutableListOf<TradingViewEvent>()
+    val astroInstants = linkedSetOf<java.time.Instant>()
 
     cityRows.forEach { (city, rows) ->
         rows.forEach { row ->
@@ -617,7 +599,9 @@ private fun buildTradingViewInputText(
             }
             if (includeAstro) {
                 row.astroInstants.forEach { instant ->
-                    events += TradingViewEvent(instant, "✨", city.label)
+                    if (astroInstants.add(instant)) {
+                        events += TradingViewEvent(instant, "✨", "Astro")
+                    }
                 }
             }
         }
@@ -637,4 +621,3 @@ private fun buildTradingViewInputText(
         }
     }.trim()
 }
-

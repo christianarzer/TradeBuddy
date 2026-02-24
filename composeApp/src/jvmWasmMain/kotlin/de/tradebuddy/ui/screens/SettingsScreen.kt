@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.LocationCity
 import androidx.compose.material.icons.outlined.Search
@@ -87,30 +86,19 @@ import trade_buddy.composeapp.generated.resources.settings_show_utc
 import trade_buddy.composeapp.generated.resources.settings_show_utc_desc
 import trade_buddy.composeapp.generated.resources.settings_storage_desc
 import trade_buddy.composeapp.generated.resources.settings_storage_path
-import trade_buddy.composeapp.generated.resources.settings_subtitle
 import trade_buddy.composeapp.generated.resources.settings_theme_mode
 import trade_buddy.composeapp.generated.resources.settings_theme_mode_desc
-import trade_buddy.composeapp.generated.resources.settings_time_optimizer_desc
-import trade_buddy.composeapp.generated.resources.settings_time_optimizer_open
-import trade_buddy.composeapp.generated.resources.settings_time_optimizer_title
-import trade_buddy.composeapp.generated.resources.settings_title
 import trade_buddy.composeapp.generated.resources.settings_themes_desc
 import trade_buddy.composeapp.generated.resources.tab_statistics
 import trade_buddy.composeapp.generated.resources.theme_active
-import trade_buddy.composeapp.generated.resources.theme_arctic
 import trade_buddy.composeapp.generated.resources.theme_aurora
 import trade_buddy.composeapp.generated.resources.theme_copper
 import trade_buddy.composeapp.generated.resources.theme_day
-import trade_buddy.composeapp.generated.resources.theme_horizon
 import trade_buddy.composeapp.generated.resources.theme_midnight
-import trade_buddy.composeapp.generated.resources.theme_neon
 import trade_buddy.composeapp.generated.resources.theme_night
 import trade_buddy.composeapp.generated.resources.theme_nimbus
 import trade_buddy.composeapp.generated.resources.theme_ocean
-import trade_buddy.composeapp.generated.resources.theme_pulse
-import trade_buddy.composeapp.generated.resources.theme_ruby
 import trade_buddy.composeapp.generated.resources.theme_slate
-import trade_buddy.composeapp.generated.resources.theme_terminal
 
 @Composable
 fun SettingsScreen(
@@ -128,19 +116,6 @@ fun SettingsScreen(
             .verticalScroll(scroll),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                stringResource(Res.string.settings_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                stringResource(Res.string.settings_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
         ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
             Column(
                 Modifier
@@ -342,13 +317,6 @@ fun SettingsScreen(
                     subtitle = stringResource(Res.string.settings_logs_desc),
                     buttonLabel = stringResource(Res.string.settings_logs_open),
                     onOpen = viewModel::openLogsConsole
-                )
-                ToolEntryCard(
-                    icon = Icons.Outlined.DateRange,
-                    title = stringResource(Res.string.settings_time_optimizer_title),
-                    subtitle = stringResource(Res.string.settings_time_optimizer_desc),
-                    buttonLabel = stringResource(Res.string.settings_time_optimizer_open),
-                    onOpen = viewModel::openTimeOptimizer
                 )
             }
         }
@@ -555,18 +523,12 @@ private fun ThemeSwatch(color: Color) {
 
 @Composable
 private fun themeLabel(style: AppThemeStyle): String = when (style) {
-    AppThemeStyle.Neon -> stringResource(Res.string.theme_neon)
-    AppThemeStyle.Terminal -> stringResource(Res.string.theme_terminal)
     AppThemeStyle.Midnight -> stringResource(Res.string.theme_midnight)
-    AppThemeStyle.Horizon -> stringResource(Res.string.theme_horizon)
     AppThemeStyle.Ocean -> stringResource(Res.string.theme_ocean)
     AppThemeStyle.Slate -> stringResource(Res.string.theme_slate)
     AppThemeStyle.Aurora -> stringResource(Res.string.theme_aurora)
     AppThemeStyle.Copper -> stringResource(Res.string.theme_copper)
-    AppThemeStyle.Arctic -> stringResource(Res.string.theme_arctic)
     AppThemeStyle.Nimbus -> stringResource(Res.string.theme_nimbus)
-    AppThemeStyle.Pulse -> stringResource(Res.string.theme_pulse)
-    AppThemeStyle.Ruby -> stringResource(Res.string.theme_ruby)
 }
 
 @Composable

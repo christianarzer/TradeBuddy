@@ -180,6 +180,18 @@ fun SunMoonScreen(
                         onNextMonth = { viewModel.shiftMonth(1) }
                     )
                 }
+
+                SunMoonTab.Astro -> {
+                    AstroCalendarScreen(state = state, viewModel = viewModel)
+                }
+
+                SunMoonTab.Export -> {
+                    TimeOptimizerScreen(
+                        state = state,
+                        viewModel = viewModel,
+                        showBackToSettings = false
+                    )
+                }
             }
         }
     }

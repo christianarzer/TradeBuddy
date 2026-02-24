@@ -1,25 +1,25 @@
 package de.tradebuddy.domain.model
 
 enum class AppThemeStyle(val key: String) {
-    Neon("neon"),
-    Terminal("terminal"),
     Midnight("midnight"),
-    Horizon("horizon"),
     Ocean("ocean"),
     Slate("slate"),
     Aurora("aurora"),
     Copper("copper"),
-    Arctic("arctic"),
-    Nimbus("nimbus"),
-    Pulse("pulse"),
-    Ruby("ruby");
+    Nimbus("nimbus");
 
     companion object {
         fun fromKey(key: String): AppThemeStyle? = when (key) {
-            "graphite" -> Neon
-            "ember" -> Horizon
+            "graphite" -> Slate
+            "ember" -> Ocean
             "sand" -> Nimbus
-            "olive" -> Pulse
+            "olive" -> Aurora
+            "neon" -> Slate
+            "terminal" -> Copper
+            "horizon" -> Ocean
+            "arctic" -> Nimbus
+            "pulse" -> Aurora
+            "ruby" -> Copper
             else -> entries.firstOrNull { it.key == key }
         }
     }

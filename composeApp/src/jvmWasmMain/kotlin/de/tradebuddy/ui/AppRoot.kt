@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -52,7 +51,6 @@ import de.tradebuddy.domain.model.AppThemeMode
 import de.tradebuddy.presentation.AppScreen
 import de.tradebuddy.presentation.SunMoonUiState
 import de.tradebuddy.presentation.SunMoonViewModel
-import de.tradebuddy.ui.screens.AstroCalendarScreen
 import de.tradebuddy.ui.screens.LogsConsoleScreen
 import de.tradebuddy.ui.screens.SettingsScreen
 import de.tradebuddy.ui.screens.SunMoonScreen
@@ -64,8 +62,6 @@ import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.action_toggle_theme
 import trade_buddy.composeapp.generated.resources.app_name
 import trade_buddy.composeapp.generated.resources.app_subtitle
-import trade_buddy.composeapp.generated.resources.nav_astro_calendar
-import trade_buddy.composeapp.generated.resources.nav_network_sniffer
 import trade_buddy.composeapp.generated.resources.nav_settings
 import trade_buddy.composeapp.generated.resources.nav_sun_moon
 
@@ -177,8 +173,7 @@ private fun AppScaffold(
                         ) {
                             when (state.screen) {
                                 AppScreen.SunMoon -> SunMoonScreen(state = state, viewModel = viewModel)
-                                AppScreen.AstroCalendar -> AstroCalendarScreen(state = state, viewModel = viewModel)
-                                AppScreen.NetworkSniffer -> Text("Network Sniffer (coming soon)")
+                                AppScreen.AstroCalendar -> SunMoonScreen(state = state, viewModel = viewModel)
                                 AppScreen.Settings -> SettingsScreen(state = state, viewModel = viewModel)
                                 AppScreen.Logs -> LogsConsoleScreen(viewModel = viewModel)
                                 AppScreen.TimeOptimizer -> TimeOptimizerScreen(state = state, viewModel = viewModel)
@@ -275,30 +270,6 @@ private fun AppNavigationRail(
             }
         )
         NavigationRailItem(
-            selected = screen == AppScreen.AstroCalendar,
-            onClick = { onScreenChange(AppScreen.AstroCalendar) },
-            icon = { Icon(Icons.Outlined.DateRange, contentDescription = null) },
-            label = {
-                Text(
-                    stringResource(Res.string.nav_astro_calendar),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        )
-        NavigationRailItem(
-            selected = screen == AppScreen.NetworkSniffer,
-            onClick = { onScreenChange(AppScreen.NetworkSniffer) },
-            icon = { Icon(Icons.Outlined.DateRange, contentDescription = null) },
-            label = {
-                Text(
-                    stringResource(Res.string.nav_network_sniffer),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        )
-        NavigationRailItem(
             selected = screen == AppScreen.Settings ||
                 screen == AppScreen.Logs ||
                 screen == AppScreen.TimeOptimizer,
@@ -338,12 +309,6 @@ private fun AppBottomBar(
             onClick = { onScreenChange(AppScreen.SunMoon) },
             icon = { Icon(Icons.Outlined.WbSunny, contentDescription = null) },
             label = { Text(stringResource(Res.string.nav_sun_moon)) }
-        )
-        NavigationBarItem(
-            selected = screen == AppScreen.AstroCalendar,
-            onClick = { onScreenChange(AppScreen.AstroCalendar) },
-            icon = { Icon(Icons.Outlined.DateRange, contentDescription = null) },
-            label = { Text(stringResource(Res.string.nav_astro_calendar)) }
         )
         NavigationBarItem(
             selected = screen == AppScreen.Settings ||
