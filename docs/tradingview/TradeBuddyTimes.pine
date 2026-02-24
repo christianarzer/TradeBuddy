@@ -122,15 +122,13 @@ for i = 0 to array.size(tsArr) - 1
             barEventCount += 1
             array.set(shownArr, i, true)
 
-if showIcons and barEventCount > 0
-    label.new(
-        x=time,
-        y=low,
-        xloc=xloc.bar_time,
-        yloc=yloc.belowbar,
-        text=barLabelText,
-        style=label.style_label_up,
-        textcolor=color.white,
-        color=color.new(color.black, 70),
-        size=size.large
-    )
+plotshape(
+    showIcons and barEventCount > 0,
+    title="TradeBuddy Event Label",
+    style=shape.labelup,
+    location=location.bottom,
+    text=barLabelText,
+    textcolor=color.white,
+    color=color.new(color.black, 70),
+    size=size.large
+)
