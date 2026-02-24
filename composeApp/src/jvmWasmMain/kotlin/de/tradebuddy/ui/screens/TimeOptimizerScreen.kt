@@ -8,13 +8,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -61,10 +61,7 @@ import trade_buddy.composeapp.generated.resources.time_optimizer_export_settings
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_city
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_mode_title
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_user
-import trade_buddy.composeapp.generated.resources.time_optimizer_col_astro
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_date
-import trade_buddy.composeapp.generated.resources.time_optimizer_col_moon
-import trade_buddy.composeapp.generated.resources.time_optimizer_col_sun
 import trade_buddy.composeapp.generated.resources.time_optimizer_copy_month
 import trade_buddy.composeapp.generated.resources.time_optimizer_empty
 import trade_buddy.composeapp.generated.resources.time_optimizer_month_next
@@ -397,72 +394,90 @@ fun TimeOptimizerScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            val dayAstroInstants = cityRowsForDay
+                                .flatMap { it.second.astroInstants }
+                                .distinct()
+                                .sorted()
+                            val dayAstroSummary = if (dayAstroInstants.isEmpty()) {
+                                stringResource(Res.string.time_optimizer_astro_none)
+                            } else {
+                                val first = dayAstroInstants.first().atZone(displayZone).toLocalTime().format(timeFmt)
+                                val last = dayAstroInstants.last().atZone(displayZone).toLocalTime().format(timeFmt)
+                                stringResource(Res.string.time_optimizer_astro_summary, dayAstroInstants.size, first, last)
+                            }
+
                             Text(
                                 "${stringResource(Res.string.time_optimizer_col_date)}: $date",
                                 style = MaterialTheme.typography.titleSmall
                             )
-                            cityRowsForDay.forEachIndexed { index, (city, row) ->
-                                if (index > 0) {
-                                    HorizontalDivider()
-                                }
-                                val sunrise = row.sunrise
-                                    ?.toInstant()
-                                    ?.atZone(displayZone)
-                                    ?.format(timeFmt)
-                                    ?: dash
-                                val sunset = row.sunset
-                                    ?.toInstant()
-                                    ?.atZone(displayZone)
-                                    ?.format(timeFmt)
-                                    ?: dash
-                                val moonrise = row.moonrise
-                                    ?.toInstant()
-                                    ?.atZone(displayZone)
-                                    ?.format(timeFmt)
-                                    ?: dash
-                                val moonset = row.moonset
-                                    ?.toInstant()
-                                    ?.atZone(displayZone)
-                                    ?.format(timeFmt)
-                                    ?: dash
-                                val astroFirst = row.firstAstroInstant
-                                    ?.atZone(displayZone)
-                                    ?.toLocalTime()
-                                    ?.format(timeFmt)
-                                val astroLast = row.lastAstroInstant
-                                    ?.atZone(displayZone)
-                                    ?.toLocalTime()
-                                    ?.format(timeFmt)
-                                val astroSummary = if (row.astroEventCount == 0 || astroFirst == null || astroLast == null) {
-                                    stringResource(Res.string.time_optimizer_astro_none)
-                                } else {
-                                    stringResource(Res.string.time_optimizer_astro_summary, row.astroEventCount, astroFirst, astroLast)
-                                }
-
+                            Text(
+                                "Lokal (${displayZone.id}) | UTC",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (optimizerState.includeAstro) {
                                 Text(
-                                    city.label,
-                                    style = MaterialTheme.typography.titleSmall
+                                    "Astro: $dayAstroSummary",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = ext.positive
                                 )
-                                if (optimizerState.includeSun) {
-                                    Text(
-                                        "${stringResource(Res.string.time_optimizer_col_sun)}: $sunrise / $sunset",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                if (optimizerState.includeMoon) {
-                                    Text(
-                                        "${stringResource(Res.string.time_optimizer_col_moon)}: $moonrise / $moonset",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                if (optimizerState.includeAstro) {
-                                    Text(
-                                        "${stringResource(Res.string.time_optimizer_col_astro)}: $astroSummary",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = ext.positive
-                                    )
+                            }
+
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                cityRowsForDay.forEach { (city, row) ->
+                                    fun formatDual(value: java.time.ZonedDateTime?): String {
+                                        if (value == null) return dash
+                                        val instant = value.toInstant()
+                                        val local = instant.atZone(displayZone).format(timeFmt)
+                                        val utc = instant.atZone(ZoneId.of("UTC")).format(timeFmt)
+                                        return "$local | $utc"
+                                    }
+
+                                    val sunRiseDual = formatDual(row.sunrise)
+                                    val sunSetDual = formatDual(row.sunset)
+                                    val moonRiseDual = formatDual(row.moonrise)
+                                    val moonSetDual = formatDual(row.moonset)
+
+                                    ElevatedCard(
+                                        modifier = Modifier.widthIn(min = 210.dp),
+                                        colors = appElevatedCardColors()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(10.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                city.label,
+                                                style = MaterialTheme.typography.titleSmall
+                                            )
+                                            if (optimizerState.includeSun) {
+                                                Text(
+                                                    "Sonne ↑ $sunRiseDual",
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                                Text(
+                                                    "Sonne ↓ $sunSetDual",
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+                                            if (optimizerState.includeMoon) {
+                                                Text(
+                                                    "Mond ↑ $moonRiseDual",
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                                Text(
+                                                    "Mond ↓ $moonSetDual",
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
