@@ -634,20 +634,22 @@ class SunMoonViewModel(
                 timeOptimizer = it.timeOptimizer.copy(month = YearMonth.from(date))
             )
         }
+        val current = _state.value
+        val astroVisible = current.screen == AppScreen.AstroCalendar || current.selectedTab == SunMoonTab.Astro
         refresh()
-        if (_state.value.screen == AppScreen.AstroCalendar) {
+        if (astroVisible) {
             refreshAstro()
         }
-        when (_state.value.selectedTab) {
+        when (current.selectedTab) {
             SunMoonTab.Trend -> loadTrend(YearMonth.from(date))
             else -> Unit
         }
-        if (_state.value.screen == AppScreen.AstroCalendar &&
-            _state.value.selectedAstroTab == AstroCalendarTab.MoonPhases
+        if (astroVisible &&
+            current.selectedAstroTab == AstroCalendarTab.MoonPhases
         ) {
             loadMoonPhases(YearMonth.from(date))
         }
-        if (_state.value.screen == AppScreen.TimeOptimizer) {
+        if (current.screen == AppScreen.TimeOptimizer) {
             refreshTimeOptimizerMonth()
         }
     }
