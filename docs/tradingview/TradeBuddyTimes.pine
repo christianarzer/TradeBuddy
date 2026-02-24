@@ -45,15 +45,24 @@ f_ts(dateTimeRaw) =>
 f_city_alias(cityRaw) =>
     c = str.trim(cityRaw)
     lc = str.lower(c)
-    lc == "new york" ? "NY" :
-     lc == "frankfurt" ? "FRA" :
-     lc == "london" ? "LDN" :
-     lc == "tokyo" or lc == "tokio" ? "TYO" :
-     lc == "shanghai" ? "SHA" :
-     lc == "hong kong" or lc == "hongkong" ? "HKG" :
-     lc == "singapur" or lc == "singapore" ? "SG" :
-     lc == "sydney" ? "SYD" :
-     c
+    str.contains(lc, "new york") ? "NY" :
+     str.contains(lc, "frankfurt") ? "FRA" :
+     str.contains(lc, "london") ? "LDN" :
+     str.contains(lc, "tokyo") or str.contains(lc, "tokio") ? "TYO" :
+     str.contains(lc, "shanghai") ? "SHA" :
+     str.contains(lc, "hong kong") or str.contains(lc, "hongkong") ? "HKG" :
+     str.contains(lc, "singapur") or str.contains(lc, "singapore") ? "SG" :
+     str.contains(lc, "sydney") ? "SYD" :
+     str.length(c) >= 3 ? str.upper(str.substring(c, 0, 3)) : str.upper(c)
+
+f_icon_alias(iconRaw) =>
+    u = str.upper(str.trim(iconRaw))
+    str.contains(u, "SUN") and str.contains(u, "UP") ? "SUN↑" :
+     str.contains(u, "SUN") and str.contains(u, "DOWN") ? "SUN↓" :
+     str.contains(u, "MOON") and str.contains(u, "UP") ? "MOON↑" :
+     str.contains(u, "MOON") and str.contains(u, "DOWN") ? "MOON↓" :
+     str.contains(u, "ASTRO") ? "ASTRO" :
+     str.trim(iconRaw)
 
 var tsArr = array.new_int()
 var iconArr = array.new_string()
@@ -105,23 +114,23 @@ for i = 0 to array.size(tsArr) - 1
         ts = array.get(tsArr, i)
         inBar = time <= ts and ts < time_close
         if inBar and showIcons
-            icon = array.get(iconArr, i)
+            icon = f_icon_alias(array.get(iconArr, i))
             city = array.get(cityArr, i)
             cityAlias = f_city_alias(city)
             eventText = str.length(cityAlias) > 0 ? icon + " " + cityAlias : icon
-            barLabelText := barEventCount == 0 ? eventText : barLabelText + "\n" + eventText
+            barLabelText := barEventCount == 0 ? eventText : barLabelText + " | " + eventText
             barEventCount += 1
             array.set(shownArr, i, true)
 
 if showIcons and barEventCount > 0
     label.new(
-        x=bar_index,
+        x=time,
         y=low,
-        xloc=xloc.bar_index,
+        xloc=xloc.bar_time,
         yloc=yloc.belowbar,
         text=barLabelText,
         style=label.style_label_up,
         textcolor=color.white,
         color=color.new(color.black, 70),
-        size=size.small
+        size=size.large
     )
