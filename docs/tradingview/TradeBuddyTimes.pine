@@ -96,14 +96,14 @@ if barstate.isfirst
                 array.push(cityIdArr, f_city_id(city))
                 array.push(shownArr, false)
 
-                lineColor = color.new(#455A64, 80)
+                lineColor = color.new(#455A64, 65)
                 iconId = f_icon_id(icon)
                 if iconId == 0 or iconId == 1
-                    lineColor := color.new(#FF6D00, 80)
+                    lineColor := color.new(#FF6D00, 65)
                 else if iconId == 2 or iconId == 3
-                    lineColor := color.new(#1565C0, 80)
+                    lineColor := color.new(#1565C0, 65)
                 else if iconId == 4
-                    lineColor := color.new(#6A1B9A, 80)
+                    lineColor := color.new(#6A1B9A, 65)
 
                 if showLines
                     line.new(ts, 0, ts, 1,
