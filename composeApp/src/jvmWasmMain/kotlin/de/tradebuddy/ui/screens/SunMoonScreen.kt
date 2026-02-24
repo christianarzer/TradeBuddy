@@ -182,7 +182,11 @@ fun SunMoonScreen(
                 }
 
                 SunMoonTab.Astro -> {
-                    AstroCalendarScreen(state = state, viewModel = viewModel)
+                    AstroCalendarScreen(
+                        state = state,
+                        viewModel = viewModel,
+                        showDateControls = false
+                    )
                 }
 
                 SunMoonTab.Export -> {

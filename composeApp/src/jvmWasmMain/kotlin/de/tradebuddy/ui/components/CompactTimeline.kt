@@ -56,7 +56,6 @@ import de.tradebuddy.domain.model.CompactEventType
 import de.tradebuddy.domain.model.MoveDirection
 import de.tradebuddy.domain.model.StatEntry
 import de.tradebuddy.domain.util.azimuthToCardinalIndex
-import de.tradebuddy.domain.util.calculateOffsetMinutes
 import de.tradebuddy.ui.theme.appElevatedCardColors
 import java.time.Instant
 import java.time.LocalDate
@@ -478,28 +477,12 @@ private fun CompactEventRow(
 }
 
 private fun buildShiftChips(event: CompactEvent): List<String> {
-    val offsetMinutes = calculateOffsetMinutes(event.cityTime, event.userTime)
     val chips = mutableListOf<String>()
-    if (offsetMinutes != null && offsetMinutes != 0) {
-        chips += formatOffsetChip(offsetMinutes)
-    }
     when {
         event.cityDayOffset > 0 -> chips += "dort morgen"
         event.cityDayOffset < 0 -> chips += "dort gestern"
     }
     return chips
-}
-
-private fun formatOffsetChip(offsetMinutes: Int): String {
-    val sign = if (offsetMinutes >= 0) "+" else "-"
-    val absMinutes = kotlin.math.abs(offsetMinutes)
-    val hours = absMinutes / 60
-    val minutes = absMinutes % 60
-    return if (minutes == 0) {
-        "${sign}${hours}h"
-    } else {
-        "${sign}${hours}h${minutes}m"
-    }
 }
 
 private data class CompactTrendDraft(

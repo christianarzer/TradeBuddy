@@ -21,6 +21,7 @@ string tz = "Etc/UTC"
 
 showLines = input.bool(true, "Vertikale Linien")
 showIcons = input.bool(true, "Event-Icons")
+maxCityChars = input.int(14, "Max. Zeichen Stadt im Label", minval=4, maxval=40)
 
 f_ts(dateTimeRaw) =>
     s = str.trim(dateTimeRaw)
@@ -41,6 +42,13 @@ f_ts(dateTimeRaw) =>
             hh  = int(str.tonumber(array.get(tparts, 0)))
             mm  = int(str.tonumber(array.get(tparts, 1)))
             timestamp(tz, y, m, day, hh, mm)
+
+f_trunc_city(cityRaw, maxChars) =>
+    c = str.trim(cityRaw)
+    if str.length(c) <= maxChars
+        c
+    else
+        str.substring(c, 0, maxChars) + "..."
 
 var tsArr = array.new_int()
 var iconArr = array.new_string()
@@ -83,6 +91,9 @@ if barstate.isfirst
                         style=line.style_dotted,
                         width=1)
 
+barLabelText = ""
+barEventCount = 0
+
 for i = 0 to array.size(tsArr) - 1
     wasShown = array.get(shownArr, i)
     if not wasShown
@@ -91,10 +102,16 @@ for i = 0 to array.size(tsArr) - 1
         if inBar and showIcons
             icon = array.get(iconArr, i)
             city = array.get(cityArr, i)
-            text = str.length(city) > 0 ? icon + " " + city : icon
-            label.new(bar_index, low, text,
-                style=label.style_label_up,
-                textcolor=color.white,
-                color=color.new(color.black, 70),
-                size=size.tiny)
+            shortCity = f_trunc_city(city, maxCityChars)
+            eventText = str.length(shortCity) > 0 ? icon + " " + shortCity : icon
+            barLabelText := barEventCount == 0 ? eventText : barLabelText + "\n" + eventText
+            barEventCount += 1
             array.set(shownArr, i, true)
+
+if showIcons and barEventCount > 0
+    label.new(bar_index, low, barLabelText,
+        yloc=yloc.belowbar,
+        style=label.style_label_up,
+        textcolor=color.white,
+        color=color.new(color.black, 70),
+        size=size.normal)

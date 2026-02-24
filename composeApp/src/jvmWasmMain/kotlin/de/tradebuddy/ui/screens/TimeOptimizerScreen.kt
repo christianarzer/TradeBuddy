@@ -60,6 +60,9 @@ import trade_buddy.composeapp.generated.resources.time_optimizer_export_include_
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_include_moon
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_include_sun
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_settings_title
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_city
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_mode_title
+import trade_buddy.composeapp.generated.resources.time_optimizer_export_zone_user
 import trade_buddy.composeapp.generated.resources.time_optimizer_col_date
 import trade_buddy.composeapp.generated.resources.time_optimizer_copy_month
 import trade_buddy.composeapp.generated.resources.time_optimizer_empty
@@ -334,6 +337,26 @@ fun TimeOptimizerScreen(
                             selected = optimizerState.includeAstro,
                             onClick = { viewModel.setTimeOptimizerIncludeAstro(!optimizerState.includeAstro) },
                             label = { Text(stringResource(Res.string.time_optimizer_export_include_astro)) }
+                        )
+                    }
+
+                    Text(
+                        stringResource(Res.string.time_optimizer_export_zone_mode_title),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = optimizerState.exportUseCityTimeZones,
+                            onClick = { viewModel.setTimeOptimizerExportZoneMode(true) },
+                            label = { Text(stringResource(Res.string.time_optimizer_export_zone_city)) }
+                        )
+                        FilterChip(
+                            selected = !optimizerState.exportUseCityTimeZones,
+                            onClick = { viewModel.setTimeOptimizerExportZoneMode(false) },
+                            label = { Text(stringResource(Res.string.time_optimizer_export_zone_user)) }
                         )
                     }
 

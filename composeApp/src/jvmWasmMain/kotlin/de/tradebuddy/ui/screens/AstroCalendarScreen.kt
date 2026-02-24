@@ -126,7 +126,8 @@ import trade_buddy.composeapp.generated.resources.label_date
 @Composable
 fun AstroCalendarScreen(
     state: SunMoonUiState,
-    viewModel: SunMoonViewModel
+    viewModel: SunMoonViewModel,
+    showDateControls: Boolean = true
 ) {
     val ext = LocalExtendedColors.current
     val astroState = state.astroCalendar
@@ -177,54 +178,56 @@ fun AstroCalendarScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = state.selectedDate.format(dateFmt),
-                    onValueChange = { },
-                    readOnly = true,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    label = { Text(stringResource(Res.string.label_date)) },
-                    trailingIcon = {
-                        IconButton(onClick = { viewModel.showDatePicker(true) }) {
-                            Icon(
-                                Icons.Outlined.DateRange,
-                                contentDescription = stringResource(Res.string.action_pick_date)
-                            )
+                if (showDateControls) {
+                    OutlinedTextField(
+                        modifier = Modifier.fillMaxWidth(),
+                        value = state.selectedDate.format(dateFmt),
+                        onValueChange = { },
+                        readOnly = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        label = { Text(stringResource(Res.string.label_date)) },
+                        trailingIcon = {
+                            IconButton(onClick = { viewModel.showDatePicker(true) }) {
+                                Icon(
+                                    Icons.Outlined.DateRange,
+                                    contentDescription = stringResource(Res.string.action_pick_date)
+                                )
+                            }
                         }
-                    }
-                )
+                    )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AssistChip(
-                        onClick = { viewModel.shiftDate(-1) },
-                        label = { Text(stringResource(Res.string.action_prev_day)) },
-                        leadingIcon = {
-                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
-                        }
-                    )
-                    AssistChip(
-                        onClick = viewModel::goToToday,
-                        label = { Text(stringResource(Res.string.action_today)) },
-                        leadingIcon = { Icon(Icons.Outlined.DateRange, contentDescription = null) }
-                    )
-                    AssistChip(
-                        onClick = { viewModel.shiftDate(1) },
-                        label = { Text(stringResource(Res.string.action_next_day)) },
-                        leadingIcon = {
-                            Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)
-                        }
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AssistChip(
+                            onClick = { viewModel.shiftDate(-1) },
+                            label = { Text(stringResource(Res.string.action_prev_day)) },
+                            leadingIcon = {
+                                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
+                            }
+                        )
+                        AssistChip(
+                            onClick = viewModel::goToToday,
+                            label = { Text(stringResource(Res.string.action_today)) },
+                            leadingIcon = { Icon(Icons.Outlined.DateRange, contentDescription = null) }
+                        )
+                        AssistChip(
+                            onClick = { viewModel.shiftDate(1) },
+                            label = { Text(stringResource(Res.string.action_next_day)) },
+                            leadingIcon = {
+                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)
+                            }
+                        )
+                    }
                 }
 
                 PrimaryTabRow(selectedTabIndex = state.selectedAstroTab.ordinal) {
@@ -501,7 +504,7 @@ fun AstroCalendarScreen(
         }
     }
 
-    if (state.showDatePicker) {
+    if (showDateControls && state.showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = state.selectedDate.atStartOfDay(state.userZone).toInstant().toEpochMilli()
         )
