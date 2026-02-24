@@ -1,4 +1,4 @@
-﻿// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © arzerchriskry
 
 //@version=6
@@ -7,13 +7,13 @@ indicator("TradeBuddy Times + Events", overlay=true, max_lines_count=500, max_la
 // Paste format (from TradeBuddy "TradingView Input kopieren"):
 // yyyy-MM-dd HH:mm|icon|city
 // Example:
-// 2026-02-09 00:16|☀️↑|Berlin
+// 2026-02-09 00:16|SUN_UP|Berlin
 
 entriesInput = input.text_area(
      defval =
-         "2026-02-09 00:16|☀️↑|Berlin\n" +
-         "2026-02-09 01:41|🌙↑|Berlin\n" +
-         "2026-02-09 02:04|✨|Berlin\n",
+         "2026-02-09 00:16|SUN_UP|Berlin\n" +
+         "2026-02-09 01:41|MOON_UP|Berlin\n" +
+         "2026-02-09 02:04|ASTRO|Berlin\n",
      title = "TradeBuddy Events (eine pro Zeile oder mit Komma getrennt)"
 )
 
@@ -42,31 +42,40 @@ f_ts(dateTimeRaw) =>
             mm  = int(str.tonumber(array.get(tparts, 1)))
             timestamp(tz, y, m, day, hh, mm)
 
-f_city_alias(cityRaw) =>
+// Returns a numeric city ID for matching against const strings
+// 0=NY, 1=FRA, 2=LDN, 3=TYO, 4=SHA, 5=HKG, 6=SG, 7=SYD, 8=BER, 9=OTHER
+f_city_id(cityRaw) =>
     c = str.trim(cityRaw)
     lc = str.lower(c)
-    str.contains(lc, "new york") or str.contains(lc, "nyc") or lc == "ny" ? "NY" :
-     str.contains(lc, "frankfurt") or str.contains(lc, "ffm") or lc == "fra" ? "FRA" :
-     str.contains(lc, "london") ? "LDN" :
-     str.contains(lc, "tokyo") or str.contains(lc, "tokio") ? "TYO" :
-     str.contains(lc, "shanghai") ? "SHA" :
-     str.contains(lc, "hong kong") or str.contains(lc, "hongkong") ? "HKG" :
-     str.contains(lc, "singapur") or str.contains(lc, "singapore") or str.contains(lc, "sgp") ? "SG" :
-     str.contains(lc, "sydney") ? "SYD" :
-     str.length(c) >= 3 ? str.upper(str.substring(c, 0, 3)) : str.upper(c)
+    str.contains(lc, "new york") or str.contains(lc, "nyc") or lc == "ny" ? 0 :
+     str.contains(lc, "frankfurt") or str.contains(lc, "ffm") or lc == "fra" ? 1 :
+     str.contains(lc, "london") ? 2 :
+     str.contains(lc, "tokyo") or str.contains(lc, "tokio") ? 3 :
+     str.contains(lc, "shanghai") ? 4 :
+     str.contains(lc, "hong kong") or str.contains(lc, "hongkong") ? 5 :
+     str.contains(lc, "singapur") or str.contains(lc, "singapore") or str.contains(lc, "sgp") ? 6 :
+     str.contains(lc, "sydney") ? 7 :
+     str.contains(lc, "berlin") or str.contains(lc, "ber") ? 8 :
+     9
 
-f_icon_alias(iconRaw) =>
+// Returns a numeric icon ID for matching
+// 0=SUN↑, 1=SUN↓, 2=MOON↑, 3=MOON↓, 4=ASTRO, 5=OTHER
+f_icon_id(iconRaw) =>
     u = str.upper(str.trim(iconRaw))
-    str.contains(u, "SUN") and str.contains(u, "UP") ? "SUN↑" :
-     str.contains(u, "SUN") and str.contains(u, "DOWN") ? "SUN↓" :
-     str.contains(u, "MOON") and str.contains(u, "UP") ? "MOON↑" :
-     str.contains(u, "MOON") and str.contains(u, "DOWN") ? "MOON↓" :
-     str.contains(u, "ASTRO") ? "ASTRO" :
-     str.trim(iconRaw)
+    str.contains(u, "SUN") and (str.contains(u, "UP") or str.contains(u, "↑")) ? 0 :
+     str.contains(u, "SUN") and (str.contains(u, "DOWN") or str.contains(u, "↓")) ? 1 :
+     str.contains(u, "MOON") and (str.contains(u, "UP") or str.contains(u, "↑")) ? 2 :
+     str.contains(u, "MOON") and (str.contains(u, "DOWN") or str.contains(u, "↓")) ? 3 :
+     str.contains(u, "ASTRO") or str.contains(u, "✨") ? 4 :
+     str.contains(u, "☀") and str.contains(u, "↑") ? 0 :
+     str.contains(u, "☀") and str.contains(u, "↓") ? 1 :
+     str.contains(u, "🌙") and str.contains(u, "↑") ? 2 :
+     str.contains(u, "🌙") and str.contains(u, "↓") ? 3 :
+     5
 
 var tsArr = array.new_int()
-var iconArr = array.new_string()
-var cityArr = array.new_string()
+var iconIdArr = array.new_int()
+var cityIdArr = array.new_int()
 var shownArr = array.new_bool()
 
 if barstate.isfirst
@@ -87,14 +96,15 @@ if barstate.isfirst
             ts = f_ts(dt)
             if not na(ts)
                 array.push(tsArr, ts)
-                array.push(iconArr, str.length(icon) > 0 ? icon : "•")
-                array.push(cityArr, city)
+                array.push(iconIdArr, f_icon_id(icon))
+                array.push(cityIdArr, f_city_id(city))
                 array.push(shownArr, false)
 
                 lineColor = color.new(color.teal, 0)
-                if str.contains(icon, "☀") or str.contains(str.upper(icon), "SUN")
+                iconId = f_icon_id(icon)
+                if iconId == 0 or iconId == 1
                     lineColor := color.new(color.orange, 0)
-                else if str.contains(icon, "🌙") or str.contains(str.upper(icon), "MOON")
+                else if iconId == 2 or iconId == 3
                     lineColor := color.new(color.aqua, 0)
 
                 if showLines
@@ -105,10 +115,14 @@ if barstate.isfirst
                         style=line.style_dotted,
                         width=1)
 
-barLabelText = ""
-barEventCount = 0
-firstIcon = ""
-firstCity = ""
+// Collect up to 3 events per bar
+slot1_icon = -1
+slot1_city = -1
+slot2_icon = -1
+slot2_city = -1
+slot3_icon = -1
+slot3_city = -1
+slotCount = 0
 
 for i = 0 to array.size(tsArr) - 1
     wasShown = array.get(shownArr, i)
@@ -116,75 +130,220 @@ for i = 0 to array.size(tsArr) - 1
         ts = array.get(tsArr, i)
         inBar = time <= ts and ts < time_close
         if inBar and showIcons
-            icon = f_icon_alias(array.get(iconArr, i))
-            city = array.get(cityArr, i)
-            cityAlias = f_city_alias(city)
-            eventText = str.length(cityAlias) > 0 ? icon + " " + cityAlias : icon
-            barLabelText := barEventCount == 0 ? eventText : barLabelText + " | " + eventText
-            if barEventCount == 0
-                firstIcon := icon
-                firstCity := cityAlias
-            barEventCount += 1
+            if slotCount == 0
+                slot1_icon := array.get(iconIdArr, i)
+                slot1_city := array.get(cityIdArr, i)
+            else if slotCount == 1
+                slot2_icon := array.get(iconIdArr, i)
+                slot2_city := array.get(cityIdArr, i)
+            else if slotCount == 2
+                slot3_icon := array.get(iconIdArr, i)
+                slot3_city := array.get(cityIdArr, i)
+            slotCount += 1
             array.set(shownArr, i, true)
 
-hasBarEvents = showIcons and barEventCount > 0
+has1 = showIcons and slotCount >= 1
+has2 = showIcons and slotCount >= 2
+has3 = showIcons and slotCount >= 3
 
-isSunUp = firstIcon == "SUN↑"
-isSunDown = firstIcon == "SUN↓"
-isMoonUp = firstIcon == "MOON↑"
-isMoonDown = firstIcon == "MOON↓"
-isAstro = firstIcon == "ASTRO"
+// ── Icon colors ──
+s1_sun   = slot1_icon == 0 or slot1_icon == 1
+s1_moon  = slot1_icon == 2 or slot1_icon == 3
+s1_astro = slot1_icon == 4
+s1_color = s1_sun ? color.new(#FF8C00, 20) : s1_moon ? color.new(#00BFFF, 20) : s1_astro ? color.new(#9370DB, 20) : color.new(color.black, 70)
 
-plotshape(hasBarEvents and isSunUp and firstCity == "NY", title="SUN_UP_NY", style=shape.labelup, location=location.bottom, text="SUN↑ NY", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isSunDown and firstCity == "NY", title="SUN_DOWN_NY", style=shape.labelup, location=location.bottom, text="SUN↓ NY", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonUp and firstCity == "NY", title="MOON_UP_NY", style=shape.labelup, location=location.bottom, text="MOON↑ NY", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonDown and firstCity == "NY", title="MOON_DOWN_NY", style=shape.labelup, location=location.bottom, text="MOON↓ NY", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isAstro and firstCity == "NY", title="ASTRO_NY", style=shape.labelup, location=location.bottom, text="ASTRO NY", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+s2_sun   = slot2_icon == 0 or slot2_icon == 1
+s2_moon  = slot2_icon == 2 or slot2_icon == 3
+s2_astro = slot2_icon == 4
+s2_color = s2_sun ? color.new(#FF8C00, 20) : s2_moon ? color.new(#00BFFF, 20) : s2_astro ? color.new(#9370DB, 20) : color.new(color.black, 70)
 
-plotshape(hasBarEvents and isSunUp and firstCity == "FRA", title="SUN_UP_FRA", style=shape.labelup, location=location.bottom, text="SUN↑ FRA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isSunDown and firstCity == "FRA", title="SUN_DOWN_FRA", style=shape.labelup, location=location.bottom, text="SUN↓ FRA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonUp and firstCity == "FRA", title="MOON_UP_FRA", style=shape.labelup, location=location.bottom, text="MOON↑ FRA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonDown and firstCity == "FRA", title="MOON_DOWN_FRA", style=shape.labelup, location=location.bottom, text="MOON↓ FRA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isAstro and firstCity == "FRA", title="ASTRO_FRA", style=shape.labelup, location=location.bottom, text="ASTRO FRA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+s3_sun   = slot3_icon == 0 or slot3_icon == 1
+s3_moon  = slot3_icon == 2 or slot3_icon == 3
+s3_astro = slot3_icon == 4
+s3_color = s3_sun ? color.new(#FF8C00, 20) : s3_moon ? color.new(#00BFFF, 20) : s3_astro ? color.new(#9370DB, 20) : color.new(color.black, 70)
 
-plotshape(hasBarEvents and isSunUp and firstCity == "LDN", title="SUN_UP_LDN", style=shape.labelup, location=location.bottom, text="SUN↑ LDN", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isSunDown and firstCity == "LDN", title="SUN_DOWN_LDN", style=shape.labelup, location=location.bottom, text="SUN↓ LDN", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonUp and firstCity == "LDN", title="MOON_UP_LDN", style=shape.labelup, location=location.bottom, text="MOON↑ LDN", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonDown and firstCity == "LDN", title="MOON_DOWN_LDN", style=shape.labelup, location=location.bottom, text="MOON↓ LDN", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isAstro and firstCity == "LDN", title="ASTRO_LDN", style=shape.labelup, location=location.bottom, text="ASTRO LDN", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+// ══════════════════════════════════════════════════════════════
+// SLOT 1 – plotshape per icon × city (bottom-pinned)
+// ══════════════════════════════════════════════════════════════
+// --- SUN↑ ---
+plotshape(has1 and slot1_icon==0 and slot1_city==0, title="S1_SU_NY",  style=shape.labelup, location=location.bottom, text="☀↑ NY",  textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==0 and slot1_city==1, title="S1_SU_FRA", style=shape.labelup, location=location.bottom, text="☀↑ FRA", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==0 and slot1_city==2, title="S1_SU_LDN", style=shape.labelup, location=location.bottom, text="☀↑ LDN", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==0 and slot1_city==3, title="S1_SU_TYO", style=shape.labelup, location=location.bottom, text="☀↑ TYO", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==0 and slot1_city==4, title="S1_SU_SHA", style=shape.labelup, location=location.bottom, text="☀↑ SHA", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==0 and slot1_city==5, title="S1_SU_HKG", style=shape.labelup, location=location.bottom, text="☀↑ HKG", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==0 and slot1_city==6, title="S1_SU_SG",  style=shape.labelup, location=location.bottom, text="☀↑ SG",  textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==0 and slot1_city==7, title="S1_SU_SYD", style=shape.labelup, location=location.bottom, text="☀↑ SYD", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==0 and slot1_city==8, title="S1_SU_BER", style=shape.labelup, location=location.bottom, text="☀↑ BER", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==0 and slot1_city==9, title="S1_SU_OTH", style=shape.labelup, location=location.bottom, text="☀↑",     textcolor=color.white, color=s1_color, size=size.small)
+// --- SUN↓ ---
+plotshape(has1 and slot1_icon==1 and slot1_city==0, title="S1_SD_NY",  style=shape.labelup, location=location.bottom, text="☀↓ NY",  textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==1 and slot1_city==1, title="S1_SD_FRA", style=shape.labelup, location=location.bottom, text="☀↓ FRA", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==1 and slot1_city==2, title="S1_SD_LDN", style=shape.labelup, location=location.bottom, text="☀↓ LDN", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==1 and slot1_city==3, title="S1_SD_TYO", style=shape.labelup, location=location.bottom, text="☀↓ TYO", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==1 and slot1_city==4, title="S1_SD_SHA", style=shape.labelup, location=location.bottom, text="☀↓ SHA", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==1 and slot1_city==5, title="S1_SD_HKG", style=shape.labelup, location=location.bottom, text="☀↓ HKG", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==1 and slot1_city==6, title="S1_SD_SG",  style=shape.labelup, location=location.bottom, text="☀↓ SG",  textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==1 and slot1_city==7, title="S1_SD_SYD", style=shape.labelup, location=location.bottom, text="☀↓ SYD", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==1 and slot1_city==8, title="S1_SD_BER", style=shape.labelup, location=location.bottom, text="☀↓ BER", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==1 and slot1_city==9, title="S1_SD_OTH", style=shape.labelup, location=location.bottom, text="☀↓",     textcolor=color.white, color=s1_color, size=size.small)
+// --- MOON↑ ---
+plotshape(has1 and slot1_icon==2 and slot1_city==0, title="S1_MU_NY",  style=shape.labelup, location=location.bottom, text="🌙↑ NY",  textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==2 and slot1_city==1, title="S1_MU_FRA", style=shape.labelup, location=location.bottom, text="🌙↑ FRA", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==2 and slot1_city==2, title="S1_MU_LDN", style=shape.labelup, location=location.bottom, text="🌙↑ LDN", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==2 and slot1_city==3, title="S1_MU_TYO", style=shape.labelup, location=location.bottom, text="🌙↑ TYO", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==2 and slot1_city==4, title="S1_MU_SHA", style=shape.labelup, location=location.bottom, text="🌙↑ SHA", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==2 and slot1_city==5, title="S1_MU_HKG", style=shape.labelup, location=location.bottom, text="🌙↑ HKG", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==2 and slot1_city==6, title="S1_MU_SG",  style=shape.labelup, location=location.bottom, text="🌙↑ SG",  textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==2 and slot1_city==7, title="S1_MU_SYD", style=shape.labelup, location=location.bottom, text="🌙↑ SYD", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==2 and slot1_city==8, title="S1_MU_BER", style=shape.labelup, location=location.bottom, text="🌙↑ BER", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==2 and slot1_city==9, title="S1_MU_OTH", style=shape.labelup, location=location.bottom, text="🌙↑",     textcolor=color.white, color=s1_color, size=size.small)
+// --- MOON↓ ---
+plotshape(has1 and slot1_icon==3 and slot1_city==0, title="S1_MD_NY",  style=shape.labelup, location=location.bottom, text="🌙↓ NY",  textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==3 and slot1_city==1, title="S1_MD_FRA", style=shape.labelup, location=location.bottom, text="🌙↓ FRA", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==3 and slot1_city==2, title="S1_MD_LDN", style=shape.labelup, location=location.bottom, text="🌙↓ LDN", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==3 and slot1_city==3, title="S1_MD_TYO", style=shape.labelup, location=location.bottom, text="🌙↓ TYO", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==3 and slot1_city==4, title="S1_MD_SHA", style=shape.labelup, location=location.bottom, text="🌙↓ SHA", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==3 and slot1_city==5, title="S1_MD_HKG", style=shape.labelup, location=location.bottom, text="🌙↓ HKG", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==3 and slot1_city==6, title="S1_MD_SG",  style=shape.labelup, location=location.bottom, text="🌙↓ SG",  textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==3 and slot1_city==7, title="S1_MD_SYD", style=shape.labelup, location=location.bottom, text="🌙↓ SYD", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==3 and slot1_city==8, title="S1_MD_BER", style=shape.labelup, location=location.bottom, text="🌙↓ BER", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==3 and slot1_city==9, title="S1_MD_OTH", style=shape.labelup, location=location.bottom, text="🌙↓",     textcolor=color.white, color=s1_color, size=size.small)
+// --- ASTRO ---
+plotshape(has1 and slot1_icon==4 and slot1_city==0, title="S1_AS_NY",  style=shape.labelup, location=location.bottom, text="✨ NY",  textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==4 and slot1_city==1, title="S1_AS_FRA", style=shape.labelup, location=location.bottom, text="✨ FRA", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==4 and slot1_city==2, title="S1_AS_LDN", style=shape.labelup, location=location.bottom, text="✨ LDN", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==4 and slot1_city==3, title="S1_AS_TYO", style=shape.labelup, location=location.bottom, text="✨ TYO", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==4 and slot1_city==4, title="S1_AS_SHA", style=shape.labelup, location=location.bottom, text="✨ SHA", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==4 and slot1_city==5, title="S1_AS_HKG", style=shape.labelup, location=location.bottom, text="✨ HKG", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==4 and slot1_city==6, title="S1_AS_SG",  style=shape.labelup, location=location.bottom, text="✨ SG",  textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==4 and slot1_city==7, title="S1_AS_SYD", style=shape.labelup, location=location.bottom, text="✨ SYD", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==4 and slot1_city==8, title="S1_AS_BER", style=shape.labelup, location=location.bottom, text="✨ BER", textcolor=color.white, color=s1_color, size=size.small)
+plotshape(has1 and slot1_icon==4 and slot1_city==9, title="S1_AS_OTH", style=shape.labelup, location=location.bottom, text="✨",     textcolor=color.white, color=s1_color, size=size.small)
+// --- OTHER icon ---
+plotshape(has1 and slot1_icon==5, title="S1_OT", style=shape.labelup, location=location.bottom, text="•", textcolor=color.white, color=s1_color, size=size.small)
 
-plotshape(hasBarEvents and isSunUp and firstCity == "TYO", title="SUN_UP_TYO", style=shape.labelup, location=location.bottom, text="SUN↑ TYO", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isSunDown and firstCity == "TYO", title="SUN_DOWN_TYO", style=shape.labelup, location=location.bottom, text="SUN↓ TYO", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonUp and firstCity == "TYO", title="MOON_UP_TYO", style=shape.labelup, location=location.bottom, text="MOON↑ TYO", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonDown and firstCity == "TYO", title="MOON_DOWN_TYO", style=shape.labelup, location=location.bottom, text="MOON↓ TYO", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isAstro and firstCity == "TYO", title="ASTRO_TYO", style=shape.labelup, location=location.bottom, text="ASTRO TYO", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+// ══════════════════════════════════════════════════════════════
+// SLOT 2 – second event on same bar
+// ══════════════════════════════════════════════════════════════
+// --- SUN↑ ---
+plotshape(has2 and slot2_icon==0 and slot2_city==0, title="S2_SU_NY",  style=shape.labelup, location=location.bottom, text="☀↑ NY",  textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==0 and slot2_city==1, title="S2_SU_FRA", style=shape.labelup, location=location.bottom, text="☀↑ FRA", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==0 and slot2_city==2, title="S2_SU_LDN", style=shape.labelup, location=location.bottom, text="☀↑ LDN", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==0 and slot2_city==3, title="S2_SU_TYO", style=shape.labelup, location=location.bottom, text="☀↑ TYO", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==0 and slot2_city==4, title="S2_SU_SHA", style=shape.labelup, location=location.bottom, text="☀↑ SHA", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==0 and slot2_city==5, title="S2_SU_HKG", style=shape.labelup, location=location.bottom, text="☀↑ HKG", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==0 and slot2_city==6, title="S2_SU_SG",  style=shape.labelup, location=location.bottom, text="☀↑ SG",  textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==0 and slot2_city==7, title="S2_SU_SYD", style=shape.labelup, location=location.bottom, text="☀↑ SYD", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==0 and slot2_city==8, title="S2_SU_BER", style=shape.labelup, location=location.bottom, text="☀↑ BER", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==0 and slot2_city==9, title="S2_SU_OTH", style=shape.labelup, location=location.bottom, text="☀↑",     textcolor=color.white, color=s2_color, size=size.small)
+// --- SUN↓ ---
+plotshape(has2 and slot2_icon==1 and slot2_city==0, title="S2_SD_NY",  style=shape.labelup, location=location.bottom, text="☀↓ NY",  textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==1 and slot2_city==1, title="S2_SD_FRA", style=shape.labelup, location=location.bottom, text="☀↓ FRA", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==1 and slot2_city==2, title="S2_SD_LDN", style=shape.labelup, location=location.bottom, text="☀↓ LDN", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==1 and slot2_city==3, title="S2_SD_TYO", style=shape.labelup, location=location.bottom, text="☀↓ TYO", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==1 and slot2_city==4, title="S2_SD_SHA", style=shape.labelup, location=location.bottom, text="☀↓ SHA", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==1 and slot2_city==5, title="S2_SD_HKG", style=shape.labelup, location=location.bottom, text="☀↓ HKG", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==1 and slot2_city==6, title="S2_SD_SG",  style=shape.labelup, location=location.bottom, text="☀↓ SG",  textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==1 and slot2_city==7, title="S2_SD_SYD", style=shape.labelup, location=location.bottom, text="☀↓ SYD", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==1 and slot2_city==8, title="S2_SD_BER", style=shape.labelup, location=location.bottom, text="☀↓ BER", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==1 and slot2_city==9, title="S2_SD_OTH", style=shape.labelup, location=location.bottom, text="☀↓",     textcolor=color.white, color=s2_color, size=size.small)
+// --- MOON↑ ---
+plotshape(has2 and slot2_icon==2 and slot2_city==0, title="S2_MU_NY",  style=shape.labelup, location=location.bottom, text="🌙↑ NY",  textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==2 and slot2_city==1, title="S2_MU_FRA", style=shape.labelup, location=location.bottom, text="🌙↑ FRA", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==2 and slot2_city==2, title="S2_MU_LDN", style=shape.labelup, location=location.bottom, text="🌙↑ LDN", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==2 and slot2_city==3, title="S2_MU_TYO", style=shape.labelup, location=location.bottom, text="🌙↑ TYO", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==2 and slot2_city==4, title="S2_MU_SHA", style=shape.labelup, location=location.bottom, text="🌙↑ SHA", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==2 and slot2_city==5, title="S2_MU_HKG", style=shape.labelup, location=location.bottom, text="🌙↑ HKG", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==2 and slot2_city==6, title="S2_MU_SG",  style=shape.labelup, location=location.bottom, text="🌙↑ SG",  textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==2 and slot2_city==7, title="S2_MU_SYD", style=shape.labelup, location=location.bottom, text="🌙↑ SYD", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==2 and slot2_city==8, title="S2_MU_BER", style=shape.labelup, location=location.bottom, text="🌙↑ BER", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==2 and slot2_city==9, title="S2_MU_OTH", style=shape.labelup, location=location.bottom, text="🌙↑",     textcolor=color.white, color=s2_color, size=size.small)
+// --- MOON↓ ---
+plotshape(has2 and slot2_icon==3 and slot2_city==0, title="S2_MD_NY",  style=shape.labelup, location=location.bottom, text="🌙↓ NY",  textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==3 and slot2_city==1, title="S2_MD_FRA", style=shape.labelup, location=location.bottom, text="🌙↓ FRA", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==3 and slot2_city==2, title="S2_MD_LDN", style=shape.labelup, location=location.bottom, text="🌙↓ LDN", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==3 and slot2_city==3, title="S2_MD_TYO", style=shape.labelup, location=location.bottom, text="🌙↓ TYO", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==3 and slot2_city==4, title="S2_MD_SHA", style=shape.labelup, location=location.bottom, text="🌙↓ SHA", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==3 and slot2_city==5, title="S2_MD_HKG", style=shape.labelup, location=location.bottom, text="🌙↓ HKG", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==3 and slot2_city==6, title="S2_MD_SG",  style=shape.labelup, location=location.bottom, text="🌙↓ SG",  textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==3 and slot2_city==7, title="S2_MD_SYD", style=shape.labelup, location=location.bottom, text="🌙↓ SYD", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==3 and slot2_city==8, title="S2_MD_BER", style=shape.labelup, location=location.bottom, text="🌙↓ BER", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==3 and slot2_city==9, title="S2_MD_OTH", style=shape.labelup, location=location.bottom, text="🌙↓",     textcolor=color.white, color=s2_color, size=size.small)
+// --- ASTRO ---
+plotshape(has2 and slot2_icon==4 and slot2_city==0, title="S2_AS_NY",  style=shape.labelup, location=location.bottom, text="✨ NY",  textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==4 and slot2_city==1, title="S2_AS_FRA", style=shape.labelup, location=location.bottom, text="✨ FRA", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==4 and slot2_city==2, title="S2_AS_LDN", style=shape.labelup, location=location.bottom, text="✨ LDN", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==4 and slot2_city==3, title="S2_AS_TYO", style=shape.labelup, location=location.bottom, text="✨ TYO", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==4 and slot2_city==4, title="S2_AS_SHA", style=shape.labelup, location=location.bottom, text="✨ SHA", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==4 and slot2_city==5, title="S2_AS_HKG", style=shape.labelup, location=location.bottom, text="✨ HKG", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==4 and slot2_city==6, title="S2_AS_SG",  style=shape.labelup, location=location.bottom, text="✨ SG",  textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==4 and slot2_city==7, title="S2_AS_SYD", style=shape.labelup, location=location.bottom, text="✨ SYD", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==4 and slot2_city==8, title="S2_AS_BER", style=shape.labelup, location=location.bottom, text="✨ BER", textcolor=color.white, color=s2_color, size=size.small)
+plotshape(has2 and slot2_icon==4 and slot2_city==9, title="S2_AS_OTH", style=shape.labelup, location=location.bottom, text="✨",     textcolor=color.white, color=s2_color, size=size.small)
+// --- OTHER icon ---
+plotshape(has2 and slot2_icon==5, title="S2_OT", style=shape.labelup, location=location.bottom, text="•", textcolor=color.white, color=s2_color, size=size.small)
 
-plotshape(hasBarEvents and isSunUp and firstCity == "SHA", title="SUN_UP_SHA", style=shape.labelup, location=location.bottom, text="SUN↑ SHA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isSunDown and firstCity == "SHA", title="SUN_DOWN_SHA", style=shape.labelup, location=location.bottom, text="SUN↓ SHA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonUp and firstCity == "SHA", title="MOON_UP_SHA", style=shape.labelup, location=location.bottom, text="MOON↑ SHA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonDown and firstCity == "SHA", title="MOON_DOWN_SHA", style=shape.labelup, location=location.bottom, text="MOON↓ SHA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isAstro and firstCity == "SHA", title="ASTRO_SHA", style=shape.labelup, location=location.bottom, text="ASTRO SHA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+// ══════════════════════════════════════════════════════════════
+// SLOT 3 – third event on same bar
+// ══════════════════════════════════════════════════════════════
+// --- SUN↑ ---
+plotshape(has3 and slot3_icon==0 and slot3_city==0, title="S3_SU_NY",  style=shape.labelup, location=location.bottom, text="☀↑ NY",  textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==0 and slot3_city==1, title="S3_SU_FRA", style=shape.labelup, location=location.bottom, text="☀↑ FRA", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==0 and slot3_city==2, title="S3_SU_LDN", style=shape.labelup, location=location.bottom, text="☀↑ LDN", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==0 and slot3_city==3, title="S3_SU_TYO", style=shape.labelup, location=location.bottom, text="☀↑ TYO", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==0 and slot3_city==4, title="S3_SU_SHA", style=shape.labelup, location=location.bottom, text="☀↑ SHA", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==0 and slot3_city==5, title="S3_SU_HKG", style=shape.labelup, location=location.bottom, text="☀↑ HKG", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==0 and slot3_city==6, title="S3_SU_SG",  style=shape.labelup, location=location.bottom, text="☀↑ SG",  textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==0 and slot3_city==7, title="S3_SU_SYD", style=shape.labelup, location=location.bottom, text="☀↑ SYD", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==0 and slot3_city==8, title="S3_SU_BER", style=shape.labelup, location=location.bottom, text="☀↑ BER", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==0 and slot3_city==9, title="S3_SU_OTH", style=shape.labelup, location=location.bottom, text="☀↑",     textcolor=color.white, color=s3_color, size=size.small)
+// --- SUN↓ ---
+plotshape(has3 and slot3_icon==1 and slot3_city==0, title="S3_SD_NY",  style=shape.labelup, location=location.bottom, text="☀↓ NY",  textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==1 and slot3_city==1, title="S3_SD_FRA", style=shape.labelup, location=location.bottom, text="☀↓ FRA", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==1 and slot3_city==2, title="S3_SD_LDN", style=shape.labelup, location=location.bottom, text="☀↓ LDN", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==1 and slot3_city==3, title="S3_SD_TYO", style=shape.labelup, location=location.bottom, text="☀↓ TYO", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==1 and slot3_city==4, title="S3_SD_SHA", style=shape.labelup, location=location.bottom, text="☀↓ SHA", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==1 and slot3_city==5, title="S3_SD_HKG", style=shape.labelup, location=location.bottom, text="☀↓ HKG", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==1 and slot3_city==6, title="S3_SD_SG",  style=shape.labelup, location=location.bottom, text="☀↓ SG",  textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==1 and slot3_city==7, title="S3_SD_SYD", style=shape.labelup, location=location.bottom, text="☀↓ SYD", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==1 and slot3_city==8, title="S3_SD_BER", style=shape.labelup, location=location.bottom, text="☀↓ BER", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==1 and slot3_city==9, title="S3_SD_OTH", style=shape.labelup, location=location.bottom, text="☀↓",     textcolor=color.white, color=s3_color, size=size.small)
+// --- MOON↑ ---
+plotshape(has3 and slot3_icon==2 and slot3_city==0, title="S3_MU_NY",  style=shape.labelup, location=location.bottom, text="🌙↑ NY",  textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==2 and slot3_city==1, title="S3_MU_FRA", style=shape.labelup, location=location.bottom, text="🌙↑ FRA", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==2 and slot3_city==2, title="S3_MU_LDN", style=shape.labelup, location=location.bottom, text="🌙↑ LDN", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==2 and slot3_city==3, title="S3_MU_TYO", style=shape.labelup, location=location.bottom, text="🌙↑ TYO", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==2 and slot3_city==4, title="S3_MU_SHA", style=shape.labelup, location=location.bottom, text="🌙↑ SHA", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==2 and slot3_city==5, title="S3_MU_HKG", style=shape.labelup, location=location.bottom, text="🌙↑ HKG", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==2 and slot3_city==6, title="S3_MU_SG",  style=shape.labelup, location=location.bottom, text="🌙↑ SG",  textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==2 and slot3_city==7, title="S3_MU_SYD", style=shape.labelup, location=location.bottom, text="🌙↑ SYD", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==2 and slot3_city==8, title="S3_MU_BER", style=shape.labelup, location=location.bottom, text="🌙↑ BER", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==2 and slot3_city==9, title="S3_MU_OTH", style=shape.labelup, location=location.bottom, text="🌙↑",     textcolor=color.white, color=s3_color, size=size.small)
+// --- MOON↓ ---
+plotshape(has3 and slot3_icon==3 and slot3_city==0, title="S3_MD_NY",  style=shape.labelup, location=location.bottom, text="🌙↓ NY",  textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==3 and slot3_city==1, title="S3_MD_FRA", style=shape.labelup, location=location.bottom, text="🌙↓ FRA", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==3 and slot3_city==2, title="S3_MD_LDN", style=shape.labelup, location=location.bottom, text="🌙↓ LDN", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==3 and slot3_city==3, title="S3_MD_TYO", style=shape.labelup, location=location.bottom, text="🌙↓ TYO", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==3 and slot3_city==4, title="S3_MD_SHA", style=shape.labelup, location=location.bottom, text="🌙↓ SHA", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==3 and slot3_city==5, title="S3_MD_HKG", style=shape.labelup, location=location.bottom, text="🌙↓ HKG", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==3 and slot3_city==6, title="S3_MD_SG",  style=shape.labelup, location=location.bottom, text="🌙↓ SG",  textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==3 and slot3_city==7, title="S3_MD_SYD", style=shape.labelup, location=location.bottom, text="🌙↓ SYD", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==3 and slot3_city==8, title="S3_MD_BER", style=shape.labelup, location=location.bottom, text="🌙↓ BER", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==3 and slot3_city==9, title="S3_MD_OTH", style=shape.labelup, location=location.bottom, text="🌙↓",     textcolor=color.white, color=s3_color, size=size.small)
+// --- ASTRO ---
+plotshape(has3 and slot3_icon==4 and slot3_city==0, title="S3_AS_NY",  style=shape.labelup, location=location.bottom, text="✨ NY",  textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==4 and slot3_city==1, title="S3_AS_FRA", style=shape.labelup, location=location.bottom, text="✨ FRA", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==4 and slot3_city==2, title="S3_AS_LDN", style=shape.labelup, location=location.bottom, text="✨ LDN", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==4 and slot3_city==3, title="S3_AS_TYO", style=shape.labelup, location=location.bottom, text="✨ TYO", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==4 and slot3_city==4, title="S3_AS_SHA", style=shape.labelup, location=location.bottom, text="✨ SHA", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==4 and slot3_city==5, title="S3_AS_HKG", style=shape.labelup, location=location.bottom, text="✨ HKG", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==4 and slot3_city==6, title="S3_AS_SG",  style=shape.labelup, location=location.bottom, text="✨ SG",  textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==4 and slot3_city==7, title="S3_AS_SYD", style=shape.labelup, location=location.bottom, text="✨ SYD", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==4 and slot3_city==8, title="S3_AS_BER", style=shape.labelup, location=location.bottom, text="✨ BER", textcolor=color.white, color=s3_color, size=size.small)
+plotshape(has3 and slot3_icon==4 and slot3_city==9, title="S3_AS_OTH", style=shape.labelup, location=location.bottom, text="✨",     textcolor=color.white, color=s3_color, size=size.small)
+// --- OTHER icon ---
+plotshape(has3 and slot3_icon==5, title="S3_OT", style=shape.labelup, location=location.bottom, text="•", textcolor=color.white, color=s3_color, size=size.small)
 
-plotshape(hasBarEvents and isSunUp and firstCity == "HKG", title="SUN_UP_HKG", style=shape.labelup, location=location.bottom, text="SUN↑ HKG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isSunDown and firstCity == "HKG", title="SUN_DOWN_HKG", style=shape.labelup, location=location.bottom, text="SUN↓ HKG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonUp and firstCity == "HKG", title="MOON_UP_HKG", style=shape.labelup, location=location.bottom, text="MOON↑ HKG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonDown and firstCity == "HKG", title="MOON_DOWN_HKG", style=shape.labelup, location=location.bottom, text="MOON↓ HKG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isAstro and firstCity == "HKG", title="ASTRO_HKG", style=shape.labelup, location=location.bottom, text="ASTRO HKG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-
-plotshape(hasBarEvents and isSunUp and firstCity == "SG", title="SUN_UP_SG", style=shape.labelup, location=location.bottom, text="SUN↑ SG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isSunDown and firstCity == "SG", title="SUN_DOWN_SG", style=shape.labelup, location=location.bottom, text="SUN↓ SG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonUp and firstCity == "SG", title="MOON_UP_SG", style=shape.labelup, location=location.bottom, text="MOON↑ SG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonDown and firstCity == "SG", title="MOON_DOWN_SG", style=shape.labelup, location=location.bottom, text="MOON↓ SG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isAstro and firstCity == "SG", title="ASTRO_SG", style=shape.labelup, location=location.bottom, text="ASTRO SG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-
-plotshape(hasBarEvents and isSunUp and firstCity == "SYD", title="SUN_UP_SYD", style=shape.labelup, location=location.bottom, text="SUN↑ SYD", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isSunDown and firstCity == "SYD", title="SUN_DOWN_SYD", style=shape.labelup, location=location.bottom, text="SUN↓ SYD", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonUp and firstCity == "SYD", title="MOON_UP_SYD", style=shape.labelup, location=location.bottom, text="MOON↑ SYD", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonDown and firstCity == "SYD", title="MOON_DOWN_SYD", style=shape.labelup, location=location.bottom, text="MOON↓ SYD", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isAstro and firstCity == "SYD", title="ASTRO_SYD", style=shape.labelup, location=location.bottom, text="ASTRO SYD", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-
-plotshape(hasBarEvents and isSunUp and firstCity != "NY" and firstCity != "FRA" and firstCity != "LDN" and firstCity != "TYO" and firstCity != "SHA" and firstCity != "HKG" and firstCity != "SG" and firstCity != "SYD", title="SUN_UP_OTHER", style=shape.labelup, location=location.bottom, text="SUN↑ EVT", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isSunDown and firstCity != "NY" and firstCity != "FRA" and firstCity != "LDN" and firstCity != "TYO" and firstCity != "SHA" and firstCity != "HKG" and firstCity != "SG" and firstCity != "SYD", title="SUN_DOWN_OTHER", style=shape.labelup, location=location.bottom, text="SUN↓ EVT", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonUp and firstCity != "NY" and firstCity != "FRA" and firstCity != "LDN" and firstCity != "TYO" and firstCity != "SHA" and firstCity != "HKG" and firstCity != "SG" and firstCity != "SYD", title="MOON_UP_OTHER", style=shape.labelup, location=location.bottom, text="MOON↑ EVT", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isMoonDown and firstCity != "NY" and firstCity != "FRA" and firstCity != "LDN" and firstCity != "TYO" and firstCity != "SHA" and firstCity != "HKG" and firstCity != "SG" and firstCity != "SYD", title="MOON_DOWN_OTHER", style=shape.labelup, location=location.bottom, text="MOON↓ EVT", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
-plotshape(hasBarEvents and isAstro and firstCity != "NY" and firstCity != "FRA" and firstCity != "LDN" and firstCity != "TYO" and firstCity != "SHA" and firstCity != "HKG" and firstCity != "SG" and firstCity != "SYD", title="ASTRO_OTHER", style=shape.labelup, location=location.bottom, text="ASTRO EVT", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+// ── Overflow indicator: 4+ events on one bar ──
+plotshape(showIcons and slotCount > 3, title="OVERFLOW", style=shape.labelup, location=location.bottom, text="+", textcolor=color.yellow, color=color.new(color.red, 30), size=size.small)
