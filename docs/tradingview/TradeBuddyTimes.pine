@@ -96,12 +96,14 @@ if barstate.isfirst
                 array.push(cityIdArr, f_city_id(city))
                 array.push(shownArr, false)
 
-                lineColor = color.new(color.teal, 0)
+                lineColor = color.new(#455A64, 60)
                 iconId = f_icon_id(icon)
                 if iconId == 0 or iconId == 1
-                    lineColor := color.new(color.orange, 0)
+                    lineColor := color.new(#FF6D00, 60)
                 else if iconId == 2 or iconId == 3
-                    lineColor := color.new(color.aqua, 0)
+                    lineColor := color.new(#1565C0, 60)
+                else if iconId == 4
+                    lineColor := color.new(#6A1B9A, 60)
 
                 if showLines
                     line.new(ts, 0, ts, 1,
@@ -131,47 +133,51 @@ if array.size(tsArr) > 0
 
 hasEvt = showIcons and evCount >= 1
 
-// ── Icon color ──
-isSun   = evIcon == 0 or evIcon == 1
-isMoon  = evIcon == 2 or evIcon == 3
-isAstro = evIcon == 4
-evColor = isSun ? color.new(#FF8C00, 20) : isMoon ? color.new(#00BFFF, 20) : isAstro ? color.new(#9370DB, 20) : color.new(color.black, 70)
+// (colors defined as constants in plotshape section below)
 
 // ══════════════════════════════════════════════════════════════
-// plotshape per icon × city – bottom-pinned (27 plotshapes)
-// Each plotshape counts as ~2 plots → 27×2 = 54, under 64 limit
+// plotshape per icon × city – bottom-pinned, auto-stacked
+// 27 plotshapes × ~2 = ~54 plots, under 64 limit
+// Multiple events on same bar stack vertically automatically
 // ══════════════════════════════════════════════════════════════
-// --- ☀↑ SUN_UP (icon 0) × 6 cities ---
-plotshape(hasEvt and evIcon==0 and evCity==0, title="SU_NY",  style=shape.labelup, location=location.bottom, text="☀↑ NY",  textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==1, title="SU_FRA", style=shape.labelup, location=location.bottom, text="☀↑ FRA", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==2, title="SU_LDN", style=shape.labelup, location=location.bottom, text="☀↑ LDN", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==3, title="SU_TYO", style=shape.labelup, location=location.bottom, text="☀↑ TYO", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==4, title="SU_BER", style=shape.labelup, location=location.bottom, text="☀↑ BER", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==5, title="SU_OTH", style=shape.labelup, location=location.bottom, text="☀↑",     textcolor=color.white, color=evColor, size=size.small)
-// --- ☀↓ SUN_DOWN (icon 1) × 6 cities ---
-plotshape(hasEvt and evIcon==1 and evCity==0, title="SD_NY",  style=shape.labelup, location=location.bottom, text="☀↓ NY",  textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==1, title="SD_FRA", style=shape.labelup, location=location.bottom, text="☀↓ FRA", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==2, title="SD_LDN", style=shape.labelup, location=location.bottom, text="☀↓ LDN", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==3, title="SD_TYO", style=shape.labelup, location=location.bottom, text="☀↓ TYO", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==4, title="SD_BER", style=shape.labelup, location=location.bottom, text="☀↓ BER", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==5, title="SD_OTH", style=shape.labelup, location=location.bottom, text="☀↓",     textcolor=color.white, color=evColor, size=size.small)
-// --- 🌙↑ MOON_UP (icon 2) × 6 cities ---
-plotshape(hasEvt and evIcon==2 and evCity==0, title="MU_NY",  style=shape.labelup, location=location.bottom, text="🌙↑ NY",  textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==1, title="MU_FRA", style=shape.labelup, location=location.bottom, text="🌙↑ FRA", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==2, title="MU_LDN", style=shape.labelup, location=location.bottom, text="🌙↑ LDN", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==3, title="MU_TYO", style=shape.labelup, location=location.bottom, text="🌙↑ TYO", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==4, title="MU_BER", style=shape.labelup, location=location.bottom, text="🌙↑ BER", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==5, title="MU_OTH", style=shape.labelup, location=location.bottom, text="🌙↑",     textcolor=color.white, color=evColor, size=size.small)
-// --- 🌙↓ MOON_DOWN (icon 3) × 6 cities ---
-plotshape(hasEvt and evIcon==3 and evCity==0, title="MD_NY",  style=shape.labelup, location=location.bottom, text="🌙↓ NY",  textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==1, title="MD_FRA", style=shape.labelup, location=location.bottom, text="🌙↓ FRA", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==2, title="MD_LDN", style=shape.labelup, location=location.bottom, text="🌙↓ LDN", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==3, title="MD_TYO", style=shape.labelup, location=location.bottom, text="🌙↓ TYO", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==4, title="MD_BER", style=shape.labelup, location=location.bottom, text="🌙↓ BER", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==5, title="MD_OTH", style=shape.labelup, location=location.bottom, text="🌙↓",     textcolor=color.white, color=evColor, size=size.small)
-// --- ✨ ASTRO (icon 4) – always city "Astro" → OTHER ---
-plotshape(hasEvt and evIcon==4, title="ASTRO", style=shape.labelup, location=location.bottom, text="✨", textcolor=color.white, color=evColor, size=size.small)
+
+// Colors per event type
+color SUN_COL   = color.new(#FF6D00, 0)   // warm orange
+color SUN_TXT   = #FFF3E0                  // light cream
+color MOON_COL  = color.new(#1565C0, 0)   // deep blue
+color MOON_TXT  = #E3F2FD                  // light blue
+color ASTRO_COL = color.new(#6A1B9A, 0)   // rich purple
+color ASTRO_TXT = #F3E5F5                  // light purple
+
+// --- ☀ Sunrise (icon 0) × 6 cities ---
+plotshape(hasEvt and evIcon==0 and evCity==0, title="SU_NY",  style=shape.labelup, location=location.bottom, text="☀ ↑  NY",  textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+plotshape(hasEvt and evIcon==0 and evCity==1, title="SU_FRA", style=shape.labelup, location=location.bottom, text="☀ ↑  FRA", textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+plotshape(hasEvt and evIcon==0 and evCity==2, title="SU_LDN", style=shape.labelup, location=location.bottom, text="☀ ↑  LDN", textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+plotshape(hasEvt and evIcon==0 and evCity==3, title="SU_TYO", style=shape.labelup, location=location.bottom, text="☀ ↑  TYO", textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+plotshape(hasEvt and evIcon==0 and evCity==4, title="SU_BER", style=shape.labelup, location=location.bottom, text="☀ ↑  BER", textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+plotshape(hasEvt and evIcon==0 and evCity==5, title="SU_OTH", style=shape.labelup, location=location.bottom, text="☀ ↑",      textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+// --- ☀ Sunset (icon 1) × 6 cities ---
+plotshape(hasEvt and evIcon==1 and evCity==0, title="SD_NY",  style=shape.labelup, location=location.bottom, text="☀ ↓  NY",  textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+plotshape(hasEvt and evIcon==1 and evCity==1, title="SD_FRA", style=shape.labelup, location=location.bottom, text="☀ ↓  FRA", textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+plotshape(hasEvt and evIcon==1 and evCity==2, title="SD_LDN", style=shape.labelup, location=location.bottom, text="☀ ↓  LDN", textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+plotshape(hasEvt and evIcon==1 and evCity==3, title="SD_TYO", style=shape.labelup, location=location.bottom, text="☀ ↓  TYO", textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+plotshape(hasEvt and evIcon==1 and evCity==4, title="SD_BER", style=shape.labelup, location=location.bottom, text="☀ ↓  BER", textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+plotshape(hasEvt and evIcon==1 and evCity==5, title="SD_OTH", style=shape.labelup, location=location.bottom, text="☀ ↓",      textcolor=SUN_TXT, color=SUN_COL, size=size.normal)
+// --- 🌙 Moonrise (icon 2) × 6 cities ---
+plotshape(hasEvt and evIcon==2 and evCity==0, title="MU_NY",  style=shape.labelup, location=location.bottom, text="🌙 ↑  NY",  textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+plotshape(hasEvt and evIcon==2 and evCity==1, title="MU_FRA", style=shape.labelup, location=location.bottom, text="🌙 ↑  FRA", textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+plotshape(hasEvt and evIcon==2 and evCity==2, title="MU_LDN", style=shape.labelup, location=location.bottom, text="🌙 ↑  LDN", textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+plotshape(hasEvt and evIcon==2 and evCity==3, title="MU_TYO", style=shape.labelup, location=location.bottom, text="🌙 ↑  TYO", textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+plotshape(hasEvt and evIcon==2 and evCity==4, title="MU_BER", style=shape.labelup, location=location.bottom, text="🌙 ↑  BER", textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+plotshape(hasEvt and evIcon==2 and evCity==5, title="MU_OTH", style=shape.labelup, location=location.bottom, text="🌙 ↑",      textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+// --- 🌙 Moonset (icon 3) × 6 cities ---
+plotshape(hasEvt and evIcon==3 and evCity==0, title="MD_NY",  style=shape.labelup, location=location.bottom, text="🌙 ↓  NY",  textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+plotshape(hasEvt and evIcon==3 and evCity==1, title="MD_FRA", style=shape.labelup, location=location.bottom, text="🌙 ↓  FRA", textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+plotshape(hasEvt and evIcon==3 and evCity==2, title="MD_LDN", style=shape.labelup, location=location.bottom, text="🌙 ↓  LDN", textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+plotshape(hasEvt and evIcon==3 and evCity==3, title="MD_TYO", style=shape.labelup, location=location.bottom, text="🌙 ↓  TYO", textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+plotshape(hasEvt and evIcon==3 and evCity==4, title="MD_BER", style=shape.labelup, location=location.bottom, text="🌙 ↓  BER", textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+plotshape(hasEvt and evIcon==3 and evCity==5, title="MD_OTH", style=shape.labelup, location=location.bottom, text="🌙 ↓",      textcolor=MOON_TXT, color=MOON_COL, size=size.normal)
+// --- ✦ Astro (icon 4) – just icon, no city ---
+plotshape(hasEvt and evIcon==4, title="ASTRO", style=shape.labelup, location=location.bottom, text="✦", textcolor=ASTRO_TXT, color=ASTRO_COL, size=size.normal)
 // --- OTHER icon (icon 5) ---
-plotshape(hasEvt and evIcon==5, title="OTHER", style=shape.labelup, location=location.bottom, text="•",  textcolor=color.white, color=evColor, size=size.small)
-// ── Multi-event indicator: 2+ events on one bar ──
-plotshape(showIcons and evCount > 1, title="MULTI", style=shape.labelup, location=location.bottom, text="+", textcolor=color.yellow, color=color.new(color.red, 30), size=size.tiny)
+plotshape(hasEvt and evIcon==5, title="OTHER", style=shape.labelup, location=location.bottom, text="•", textcolor=color.white, color=color.new(#455A64, 0), size=size.normal)
