@@ -45,13 +45,13 @@ f_ts(dateTimeRaw) =>
 f_city_alias(cityRaw) =>
     c = str.trim(cityRaw)
     lc = str.lower(c)
-    str.contains(lc, "new york") ? "NY" :
-     str.contains(lc, "frankfurt") ? "FRA" :
+    str.contains(lc, "new york") or str.contains(lc, "nyc") or lc == "ny" ? "NY" :
+     str.contains(lc, "frankfurt") or str.contains(lc, "ffm") or lc == "fra" ? "FRA" :
      str.contains(lc, "london") ? "LDN" :
      str.contains(lc, "tokyo") or str.contains(lc, "tokio") ? "TYO" :
      str.contains(lc, "shanghai") ? "SHA" :
      str.contains(lc, "hong kong") or str.contains(lc, "hongkong") ? "HKG" :
-     str.contains(lc, "singapur") or str.contains(lc, "singapore") ? "SG" :
+     str.contains(lc, "singapur") or str.contains(lc, "singapore") or str.contains(lc, "sgp") ? "SG" :
      str.contains(lc, "sydney") ? "SYD" :
      str.length(c) >= 3 ? str.upper(str.substring(c, 0, 3)) : str.upper(c)
 
@@ -107,6 +107,8 @@ if barstate.isfirst
 
 barLabelText = ""
 barEventCount = 0
+firstIcon = ""
+firstCity = ""
 
 for i = 0 to array.size(tsArr) - 1
     wasShown = array.get(shownArr, i)
@@ -119,31 +121,70 @@ for i = 0 to array.size(tsArr) - 1
             cityAlias = f_city_alias(city)
             eventText = str.length(cityAlias) > 0 ? icon + " " + cityAlias : icon
             barLabelText := barEventCount == 0 ? eventText : barLabelText + " | " + eventText
+            if barEventCount == 0
+                firstIcon := icon
+                firstCity := cityAlias
             barEventCount += 1
             array.set(shownArr, i, true)
 
 hasBarEvents = showIcons and barEventCount > 0
 
-plotshape(
-    hasBarEvents,
-    title="TradeBuddy Event Label",
-    style=shape.labelup,
-    location=location.bottom,
-    text="TB",
-    textcolor=color.white,
-    color=color.new(color.black, 70),
-    size=size.large
-)
+isSunUp = firstIcon == "SUN↑"
+isSunDown = firstIcon == "SUN↓"
+isMoonUp = firstIcon == "MOON↑"
+isMoonDown = firstIcon == "MOON↓"
+isAstro = firstIcon == "ASTRO"
 
-if hasBarEvents
-    label.new(
-        x=time,
-        y=low,
-        xloc=xloc.bar_time,
-        yloc=yloc.belowbar,
-        text=barLabelText,
-        style=label.style_label_up,
-        textcolor=color.white,
-        color=color.new(color.black, 70),
-        size=size.large
-    )
+plotshape(hasBarEvents and isSunUp and firstCity == "NY", title="SUN_UP_NY", style=shape.labelup, location=location.bottom, text="SUN↑ NY", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isSunDown and firstCity == "NY", title="SUN_DOWN_NY", style=shape.labelup, location=location.bottom, text="SUN↓ NY", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonUp and firstCity == "NY", title="MOON_UP_NY", style=shape.labelup, location=location.bottom, text="MOON↑ NY", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonDown and firstCity == "NY", title="MOON_DOWN_NY", style=shape.labelup, location=location.bottom, text="MOON↓ NY", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isAstro and firstCity == "NY", title="ASTRO_NY", style=shape.labelup, location=location.bottom, text="ASTRO NY", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+
+plotshape(hasBarEvents and isSunUp and firstCity == "FRA", title="SUN_UP_FRA", style=shape.labelup, location=location.bottom, text="SUN↑ FRA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isSunDown and firstCity == "FRA", title="SUN_DOWN_FRA", style=shape.labelup, location=location.bottom, text="SUN↓ FRA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonUp and firstCity == "FRA", title="MOON_UP_FRA", style=shape.labelup, location=location.bottom, text="MOON↑ FRA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonDown and firstCity == "FRA", title="MOON_DOWN_FRA", style=shape.labelup, location=location.bottom, text="MOON↓ FRA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isAstro and firstCity == "FRA", title="ASTRO_FRA", style=shape.labelup, location=location.bottom, text="ASTRO FRA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+
+plotshape(hasBarEvents and isSunUp and firstCity == "LDN", title="SUN_UP_LDN", style=shape.labelup, location=location.bottom, text="SUN↑ LDN", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isSunDown and firstCity == "LDN", title="SUN_DOWN_LDN", style=shape.labelup, location=location.bottom, text="SUN↓ LDN", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonUp and firstCity == "LDN", title="MOON_UP_LDN", style=shape.labelup, location=location.bottom, text="MOON↑ LDN", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonDown and firstCity == "LDN", title="MOON_DOWN_LDN", style=shape.labelup, location=location.bottom, text="MOON↓ LDN", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isAstro and firstCity == "LDN", title="ASTRO_LDN", style=shape.labelup, location=location.bottom, text="ASTRO LDN", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+
+plotshape(hasBarEvents and isSunUp and firstCity == "TYO", title="SUN_UP_TYO", style=shape.labelup, location=location.bottom, text="SUN↑ TYO", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isSunDown and firstCity == "TYO", title="SUN_DOWN_TYO", style=shape.labelup, location=location.bottom, text="SUN↓ TYO", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonUp and firstCity == "TYO", title="MOON_UP_TYO", style=shape.labelup, location=location.bottom, text="MOON↑ TYO", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonDown and firstCity == "TYO", title="MOON_DOWN_TYO", style=shape.labelup, location=location.bottom, text="MOON↓ TYO", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isAstro and firstCity == "TYO", title="ASTRO_TYO", style=shape.labelup, location=location.bottom, text="ASTRO TYO", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+
+plotshape(hasBarEvents and isSunUp and firstCity == "SHA", title="SUN_UP_SHA", style=shape.labelup, location=location.bottom, text="SUN↑ SHA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isSunDown and firstCity == "SHA", title="SUN_DOWN_SHA", style=shape.labelup, location=location.bottom, text="SUN↓ SHA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonUp and firstCity == "SHA", title="MOON_UP_SHA", style=shape.labelup, location=location.bottom, text="MOON↑ SHA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonDown and firstCity == "SHA", title="MOON_DOWN_SHA", style=shape.labelup, location=location.bottom, text="MOON↓ SHA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isAstro and firstCity == "SHA", title="ASTRO_SHA", style=shape.labelup, location=location.bottom, text="ASTRO SHA", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+
+plotshape(hasBarEvents and isSunUp and firstCity == "HKG", title="SUN_UP_HKG", style=shape.labelup, location=location.bottom, text="SUN↑ HKG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isSunDown and firstCity == "HKG", title="SUN_DOWN_HKG", style=shape.labelup, location=location.bottom, text="SUN↓ HKG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonUp and firstCity == "HKG", title="MOON_UP_HKG", style=shape.labelup, location=location.bottom, text="MOON↑ HKG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonDown and firstCity == "HKG", title="MOON_DOWN_HKG", style=shape.labelup, location=location.bottom, text="MOON↓ HKG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isAstro and firstCity == "HKG", title="ASTRO_HKG", style=shape.labelup, location=location.bottom, text="ASTRO HKG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+
+plotshape(hasBarEvents and isSunUp and firstCity == "SG", title="SUN_UP_SG", style=shape.labelup, location=location.bottom, text="SUN↑ SG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isSunDown and firstCity == "SG", title="SUN_DOWN_SG", style=shape.labelup, location=location.bottom, text="SUN↓ SG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonUp and firstCity == "SG", title="MOON_UP_SG", style=shape.labelup, location=location.bottom, text="MOON↑ SG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonDown and firstCity == "SG", title="MOON_DOWN_SG", style=shape.labelup, location=location.bottom, text="MOON↓ SG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isAstro and firstCity == "SG", title="ASTRO_SG", style=shape.labelup, location=location.bottom, text="ASTRO SG", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+
+plotshape(hasBarEvents and isSunUp and firstCity == "SYD", title="SUN_UP_SYD", style=shape.labelup, location=location.bottom, text="SUN↑ SYD", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isSunDown and firstCity == "SYD", title="SUN_DOWN_SYD", style=shape.labelup, location=location.bottom, text="SUN↓ SYD", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonUp and firstCity == "SYD", title="MOON_UP_SYD", style=shape.labelup, location=location.bottom, text="MOON↑ SYD", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonDown and firstCity == "SYD", title="MOON_DOWN_SYD", style=shape.labelup, location=location.bottom, text="MOON↓ SYD", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isAstro and firstCity == "SYD", title="ASTRO_SYD", style=shape.labelup, location=location.bottom, text="ASTRO SYD", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+
+plotshape(hasBarEvents and isSunUp and firstCity != "NY" and firstCity != "FRA" and firstCity != "LDN" and firstCity != "TYO" and firstCity != "SHA" and firstCity != "HKG" and firstCity != "SG" and firstCity != "SYD", title="SUN_UP_OTHER", style=shape.labelup, location=location.bottom, text="SUN↑ EVT", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isSunDown and firstCity != "NY" and firstCity != "FRA" and firstCity != "LDN" and firstCity != "TYO" and firstCity != "SHA" and firstCity != "HKG" and firstCity != "SG" and firstCity != "SYD", title="SUN_DOWN_OTHER", style=shape.labelup, location=location.bottom, text="SUN↓ EVT", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonUp and firstCity != "NY" and firstCity != "FRA" and firstCity != "LDN" and firstCity != "TYO" and firstCity != "SHA" and firstCity != "HKG" and firstCity != "SG" and firstCity != "SYD", title="MOON_UP_OTHER", style=shape.labelup, location=location.bottom, text="MOON↑ EVT", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isMoonDown and firstCity != "NY" and firstCity != "FRA" and firstCity != "LDN" and firstCity != "TYO" and firstCity != "SHA" and firstCity != "HKG" and firstCity != "SG" and firstCity != "SYD", title="MOON_DOWN_OTHER", style=shape.labelup, location=location.bottom, text="MOON↓ EVT", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
+plotshape(hasBarEvents and isAstro and firstCity != "NY" and firstCity != "FRA" and firstCity != "LDN" and firstCity != "TYO" and firstCity != "SHA" and firstCity != "HKG" and firstCity != "SG" and firstCity != "SYD", title="ASTRO_OTHER", style=shape.labelup, location=location.bottom, text="ASTRO EVT", textcolor=color.white, color=color.new(color.black, 70), size=size.large)
