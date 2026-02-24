@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -125,18 +126,27 @@ fun TimeOptimizerScreen(
             city to rows
         }
     }
+    val dailyPreviewRows = remember(exportCityRows) {
+        val byDate = linkedMapOf<java.time.LocalDate, MutableList<Pair<de.tradebuddy.domain.model.City, de.tradebuddy.presentation.TimeOptimizerDayRow>>>()
+        exportCityRows.forEach { (city, rows) ->
+            rows.forEach { row ->
+                byDate.getOrPut(row.date) { mutableListOf() }.add(city to row)
+            }
+        }
+        byDate.entries.map { it.key to it.value.toList() }
+    }
     val previewListState = rememberLazyListState()
-    val listProgress by remember(selectedRows, previewListState) {
+    val listProgress by remember(dailyPreviewRows, previewListState) {
         derivedStateOf {
-            val total = selectedRows.size.coerceAtLeast(1)
+            val total = dailyPreviewRows.size.coerceAtLeast(1)
             val visibleCount = previewListState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
             val endIndex = (previewListState.firstVisibleItemIndex + visibleCount).coerceAtMost(total)
             endIndex.toFloat() / total.toFloat()
         }
     }
-    val listPositionLabel by remember(selectedRows, previewListState) {
+    val listPositionLabel by remember(dailyPreviewRows, previewListState) {
         derivedStateOf {
-            val total = selectedRows.size
+            val total = dailyPreviewRows.size
             if (total == 0) {
                 "0/0"
             } else {
@@ -358,7 +368,7 @@ fun TimeOptimizerScreen(
             ,
             color = MaterialTheme.colorScheme.onSurface
         )
-        if (selectedRows.isNotEmpty()) {
+        if (dailyPreviewRows.isNotEmpty()) {
             LinearProgressIndicator(
                 progress = { listProgress.coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth()
@@ -370,7 +380,7 @@ fun TimeOptimizerScreen(
             )
         }
 
-        if (selectedRows.isEmpty()) {
+        if (dailyPreviewRows.isEmpty()) {
             Text(
                 stringResource(Res.string.time_optimizer_empty),
                 style = MaterialTheme.typography.bodySmall,
@@ -382,41 +392,7 @@ fun TimeOptimizerScreen(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(selectedRows, key = { it.date.toString() }) { row ->
-                    val sunrise = row.sunrise
-                        ?.toInstant()
-                        ?.atZone(displayZone)
-                        ?.format(timeFmt)
-                        ?: dash
-                    val sunset = row.sunset
-                        ?.toInstant()
-                        ?.atZone(displayZone)
-                        ?.format(timeFmt)
-                        ?: dash
-                    val moonrise = row.moonrise
-                        ?.toInstant()
-                        ?.atZone(displayZone)
-                        ?.format(timeFmt)
-                        ?: dash
-                    val moonset = row.moonset
-                        ?.toInstant()
-                        ?.atZone(displayZone)
-                        ?.format(timeFmt)
-                        ?: dash
-                    val astroFirst = row.firstAstroInstant
-                        ?.atZone(displayZone)
-                        ?.toLocalTime()
-                        ?.format(timeFmt)
-                    val astroLast = row.lastAstroInstant
-                        ?.atZone(displayZone)
-                        ?.toLocalTime()
-                        ?.format(timeFmt)
-                    val astroSummary = if (row.astroEventCount == 0 || astroFirst == null || astroLast == null) {
-                        stringResource(Res.string.time_optimizer_astro_none)
-                    } else {
-                        stringResource(Res.string.time_optimizer_astro_summary, row.astroEventCount, astroFirst, astroLast)
-                    }
-
+                items(dailyPreviewRows, key = { it.first.toString() }) { (date, cityRowsForDay) ->
                     ElevatedCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = appElevatedCardColors()
@@ -428,22 +404,71 @@ fun TimeOptimizerScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                "${stringResource(Res.string.time_optimizer_col_date)}: ${row.date}",
+                                "${stringResource(Res.string.time_optimizer_col_date)}: $date",
                                 style = MaterialTheme.typography.titleSmall
                             )
-                            Text(
-                                "${stringResource(Res.string.time_optimizer_col_sun)}: $sunrise / $sunset",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Text(
-                                "${stringResource(Res.string.time_optimizer_col_moon)}: $moonrise / $moonset",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Text(
-                                "${stringResource(Res.string.time_optimizer_col_astro)}: $astroSummary",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = ext.positive
-                            )
+                            cityRowsForDay.forEachIndexed { index, (city, row) ->
+                                if (index > 0) {
+                                    HorizontalDivider()
+                                }
+                                val sunrise = row.sunrise
+                                    ?.toInstant()
+                                    ?.atZone(displayZone)
+                                    ?.format(timeFmt)
+                                    ?: dash
+                                val sunset = row.sunset
+                                    ?.toInstant()
+                                    ?.atZone(displayZone)
+                                    ?.format(timeFmt)
+                                    ?: dash
+                                val moonrise = row.moonrise
+                                    ?.toInstant()
+                                    ?.atZone(displayZone)
+                                    ?.format(timeFmt)
+                                    ?: dash
+                                val moonset = row.moonset
+                                    ?.toInstant()
+                                    ?.atZone(displayZone)
+                                    ?.format(timeFmt)
+                                    ?: dash
+                                val astroFirst = row.firstAstroInstant
+                                    ?.atZone(displayZone)
+                                    ?.toLocalTime()
+                                    ?.format(timeFmt)
+                                val astroLast = row.lastAstroInstant
+                                    ?.atZone(displayZone)
+                                    ?.toLocalTime()
+                                    ?.format(timeFmt)
+                                val astroSummary = if (row.astroEventCount == 0 || astroFirst == null || astroLast == null) {
+                                    stringResource(Res.string.time_optimizer_astro_none)
+                                } else {
+                                    stringResource(Res.string.time_optimizer_astro_summary, row.astroEventCount, astroFirst, astroLast)
+                                }
+
+                                Text(
+                                    city.label,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                if (optimizerState.includeSun) {
+                                    Text(
+                                        "${stringResource(Res.string.time_optimizer_col_sun)}: $sunrise / $sunset",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                if (optimizerState.includeMoon) {
+                                    Text(
+                                        "${stringResource(Res.string.time_optimizer_col_moon)}: $moonrise / $moonset",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                if (optimizerState.includeAstro) {
+                                    Text(
+                                        "${stringResource(Res.string.time_optimizer_col_astro)}: $astroSummary",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = ext.positive
+                                    )
+                                }
+                            }
                         }
                     }
                 }
