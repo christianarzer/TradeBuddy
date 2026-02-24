@@ -116,17 +116,18 @@ evIcon = -1
 evCity = -1
 evCount = 0
 
-for i = 0 to array.size(tsArr) - 1
-    wasShown = array.get(shownArr, i)
-    if not wasShown
-        ts = array.get(tsArr, i)
-        inBar = time <= ts and ts < time_close
-        if inBar and showIcons
-            if evCount == 0
-                evIcon := array.get(iconIdArr, i)
-                evCity := array.get(cityIdArr, i)
-            evCount += 1
-            array.set(shownArr, i, true)
+if array.size(tsArr) > 0
+    for i = 0 to array.size(tsArr) - 1
+        wasShown = array.get(shownArr, i)
+        if not wasShown
+            ts = array.get(tsArr, i)
+            inBar = time <= ts and ts < time_close
+            if inBar and showIcons
+                if evCount == 0
+                    evIcon := array.get(iconIdArr, i)
+                    evCity := array.get(cityIdArr, i)
+                evCount += 1
+                array.set(shownArr, i, true)
 
 hasEvt = showIcons and evCount >= 1
 
