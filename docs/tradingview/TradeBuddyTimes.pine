@@ -43,7 +43,7 @@ f_ts(dateTimeRaw) =>
             timestamp(tz, y, m, day, hh, mm)
 
 // Returns a numeric city ID for matching against const strings
-// 0=NY, 1=FRA, 2=LDN, 3=TYO, 4=SHA, 5=HKG, 6=SG, 7=SYD, 8=BER, 9=OTHER
+// 0=NY, 1=FRA, 2=LDN, 3=TYO, 4=BER, 5=OTHER
 f_city_id(cityRaw) =>
     c = str.trim(cityRaw)
     lc = str.lower(c)
@@ -51,12 +51,8 @@ f_city_id(cityRaw) =>
      str.contains(lc, "frankfurt") or str.contains(lc, "ffm") or lc == "fra" ? 1 :
      str.contains(lc, "london") ? 2 :
      str.contains(lc, "tokyo") or str.contains(lc, "tokio") ? 3 :
-     str.contains(lc, "shanghai") ? 4 :
-     str.contains(lc, "hong kong") or str.contains(lc, "hongkong") ? 5 :
-     str.contains(lc, "singapur") or str.contains(lc, "singapore") or str.contains(lc, "sgp") ? 6 :
-     str.contains(lc, "sydney") ? 7 :
-     str.contains(lc, "berlin") or str.contains(lc, "ber") ? 8 :
-     9
+     str.contains(lc, "berlin") or str.contains(lc, "ber") ? 4 :
+     5
 
 // Returns a numeric icon ID for matching
 // 0=SUN↑, 1=SUN↓, 2=MOON↑, 3=MOON↓, 4=ASTRO, 5=OTHER
@@ -141,52 +137,37 @@ isAstro = evIcon == 4
 evColor = isSun ? color.new(#FF8C00, 20) : isMoon ? color.new(#00BFFF, 20) : isAstro ? color.new(#9370DB, 20) : color.new(color.black, 70)
 
 // ══════════════════════════════════════════════════════════════
-// plotshape per icon × city – bottom-pinned (max 43 plots)
+// plotshape per icon × city – bottom-pinned (27 plotshapes)
+// Each plotshape counts as ~2 plots → 27×2 = 54, under 64 limit
 // ══════════════════════════════════════════════════════════════
-// --- ☀↑ SUN_UP (icon 0) ---
+// --- ☀↑ SUN_UP (icon 0) × 6 cities ---
 plotshape(hasEvt and evIcon==0 and evCity==0, title="SU_NY",  style=shape.labelup, location=location.bottom, text="☀↑ NY",  textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==0 and evCity==1, title="SU_FRA", style=shape.labelup, location=location.bottom, text="☀↑ FRA", textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==0 and evCity==2, title="SU_LDN", style=shape.labelup, location=location.bottom, text="☀↑ LDN", textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==0 and evCity==3, title="SU_TYO", style=shape.labelup, location=location.bottom, text="☀↑ TYO", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==4, title="SU_SHA", style=shape.labelup, location=location.bottom, text="☀↑ SHA", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==5, title="SU_HKG", style=shape.labelup, location=location.bottom, text="☀↑ HKG", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==6, title="SU_SG",  style=shape.labelup, location=location.bottom, text="☀↑ SG",  textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==7, title="SU_SYD", style=shape.labelup, location=location.bottom, text="☀↑ SYD", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==8, title="SU_BER", style=shape.labelup, location=location.bottom, text="☀↑ BER", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==9, title="SU_OTH", style=shape.labelup, location=location.bottom, text="☀↑",     textcolor=color.white, color=evColor, size=size.small)
-// --- ☀↓ SUN_DOWN (icon 1) ---
+plotshape(hasEvt and evIcon==0 and evCity==4, title="SU_BER", style=shape.labelup, location=location.bottom, text="☀↑ BER", textcolor=color.white, color=evColor, size=size.small)
+plotshape(hasEvt and evIcon==0 and evCity==5, title="SU_OTH", style=shape.labelup, location=location.bottom, text="☀↑",     textcolor=color.white, color=evColor, size=size.small)
+// --- ☀↓ SUN_DOWN (icon 1) × 6 cities ---
 plotshape(hasEvt and evIcon==1 and evCity==0, title="SD_NY",  style=shape.labelup, location=location.bottom, text="☀↓ NY",  textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==1 and evCity==1, title="SD_FRA", style=shape.labelup, location=location.bottom, text="☀↓ FRA", textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==1 and evCity==2, title="SD_LDN", style=shape.labelup, location=location.bottom, text="☀↓ LDN", textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==1 and evCity==3, title="SD_TYO", style=shape.labelup, location=location.bottom, text="☀↓ TYO", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==4, title="SD_SHA", style=shape.labelup, location=location.bottom, text="☀↓ SHA", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==5, title="SD_HKG", style=shape.labelup, location=location.bottom, text="☀↓ HKG", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==6, title="SD_SG",  style=shape.labelup, location=location.bottom, text="☀↓ SG",  textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==7, title="SD_SYD", style=shape.labelup, location=location.bottom, text="☀↓ SYD", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==8, title="SD_BER", style=shape.labelup, location=location.bottom, text="☀↓ BER", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==9, title="SD_OTH", style=shape.labelup, location=location.bottom, text="☀↓",     textcolor=color.white, color=evColor, size=size.small)
-// --- 🌙↑ MOON_UP (icon 2) ---
+plotshape(hasEvt and evIcon==1 and evCity==4, title="SD_BER", style=shape.labelup, location=location.bottom, text="☀↓ BER", textcolor=color.white, color=evColor, size=size.small)
+plotshape(hasEvt and evIcon==1 and evCity==5, title="SD_OTH", style=shape.labelup, location=location.bottom, text="☀↓",     textcolor=color.white, color=evColor, size=size.small)
+// --- 🌙↑ MOON_UP (icon 2) × 6 cities ---
 plotshape(hasEvt and evIcon==2 and evCity==0, title="MU_NY",  style=shape.labelup, location=location.bottom, text="🌙↑ NY",  textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==2 and evCity==1, title="MU_FRA", style=shape.labelup, location=location.bottom, text="🌙↑ FRA", textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==2 and evCity==2, title="MU_LDN", style=shape.labelup, location=location.bottom, text="🌙↑ LDN", textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==2 and evCity==3, title="MU_TYO", style=shape.labelup, location=location.bottom, text="🌙↑ TYO", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==4, title="MU_SHA", style=shape.labelup, location=location.bottom, text="🌙↑ SHA", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==5, title="MU_HKG", style=shape.labelup, location=location.bottom, text="🌙↑ HKG", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==6, title="MU_SG",  style=shape.labelup, location=location.bottom, text="🌙↑ SG",  textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==7, title="MU_SYD", style=shape.labelup, location=location.bottom, text="🌙↑ SYD", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==8, title="MU_BER", style=shape.labelup, location=location.bottom, text="🌙↑ BER", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==9, title="MU_OTH", style=shape.labelup, location=location.bottom, text="🌙↑",     textcolor=color.white, color=evColor, size=size.small)
-// --- 🌙↓ MOON_DOWN (icon 3) ---
+plotshape(hasEvt and evIcon==2 and evCity==4, title="MU_BER", style=shape.labelup, location=location.bottom, text="🌙↑ BER", textcolor=color.white, color=evColor, size=size.small)
+plotshape(hasEvt and evIcon==2 and evCity==5, title="MU_OTH", style=shape.labelup, location=location.bottom, text="🌙↑",     textcolor=color.white, color=evColor, size=size.small)
+// --- 🌙↓ MOON_DOWN (icon 3) × 6 cities ---
 plotshape(hasEvt and evIcon==3 and evCity==0, title="MD_NY",  style=shape.labelup, location=location.bottom, text="🌙↓ NY",  textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==3 and evCity==1, title="MD_FRA", style=shape.labelup, location=location.bottom, text="🌙↓ FRA", textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==3 and evCity==2, title="MD_LDN", style=shape.labelup, location=location.bottom, text="🌙↓ LDN", textcolor=color.white, color=evColor, size=size.small)
 plotshape(hasEvt and evIcon==3 and evCity==3, title="MD_TYO", style=shape.labelup, location=location.bottom, text="🌙↓ TYO", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==4, title="MD_SHA", style=shape.labelup, location=location.bottom, text="🌙↓ SHA", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==5, title="MD_HKG", style=shape.labelup, location=location.bottom, text="🌙↓ HKG", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==6, title="MD_SG",  style=shape.labelup, location=location.bottom, text="🌙↓ SG",  textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==7, title="MD_SYD", style=shape.labelup, location=location.bottom, text="🌙↓ SYD", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==8, title="MD_BER", style=shape.labelup, location=location.bottom, text="🌙↓ BER", textcolor=color.white, color=evColor, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==9, title="MD_OTH", style=shape.labelup, location=location.bottom, text="🌙↓",     textcolor=color.white, color=evColor, size=size.small)
+plotshape(hasEvt and evIcon==3 and evCity==4, title="MD_BER", style=shape.labelup, location=location.bottom, text="🌙↓ BER", textcolor=color.white, color=evColor, size=size.small)
+plotshape(hasEvt and evIcon==3 and evCity==5, title="MD_OTH", style=shape.labelup, location=location.bottom, text="🌙↓",     textcolor=color.white, color=evColor, size=size.small)
 // --- ✨ ASTRO (icon 4) – always city "Astro" → OTHER ---
 plotshape(hasEvt and evIcon==4, title="ASTRO", style=shape.labelup, location=location.bottom, text="✨", textcolor=color.white, color=evColor, size=size.small)
 // --- OTHER icon (icon 5) ---
