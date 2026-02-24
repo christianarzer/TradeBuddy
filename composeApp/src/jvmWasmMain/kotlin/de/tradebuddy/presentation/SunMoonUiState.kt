@@ -32,6 +32,7 @@ import trade_buddy.composeapp.generated.resources.tab_trend
 enum class AppScreen {
     SunMoon,
     AstroCalendar,
+    NetworkSniffer,
     Settings,
     Logs,
     TimeOptimizer

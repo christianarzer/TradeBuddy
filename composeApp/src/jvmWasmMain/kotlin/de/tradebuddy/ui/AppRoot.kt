@@ -65,6 +65,7 @@ import trade_buddy.composeapp.generated.resources.action_toggle_theme
 import trade_buddy.composeapp.generated.resources.app_name
 import trade_buddy.composeapp.generated.resources.app_subtitle
 import trade_buddy.composeapp.generated.resources.nav_astro_calendar
+import trade_buddy.composeapp.generated.resources.nav_network_sniffer
 import trade_buddy.composeapp.generated.resources.nav_settings
 import trade_buddy.composeapp.generated.resources.nav_sun_moon
 
@@ -177,6 +178,7 @@ private fun AppScaffold(
                             when (state.screen) {
                                 AppScreen.SunMoon -> SunMoonScreen(state = state, viewModel = viewModel)
                                 AppScreen.AstroCalendar -> AstroCalendarScreen(state = state, viewModel = viewModel)
+                                AppScreen.NetworkSniffer -> Text("Network Sniffer (coming soon)")
                                 AppScreen.Settings -> SettingsScreen(state = state, viewModel = viewModel)
                                 AppScreen.Logs -> LogsConsoleScreen(viewModel = viewModel)
                                 AppScreen.TimeOptimizer -> TimeOptimizerScreen(state = state, viewModel = viewModel)
@@ -279,6 +281,18 @@ private fun AppNavigationRail(
             label = {
                 Text(
                     stringResource(Res.string.nav_astro_calendar),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        )
+        NavigationRailItem(
+            selected = screen == AppScreen.NetworkSniffer,
+            onClick = { onScreenChange(AppScreen.NetworkSniffer) },
+            icon = { Icon(Icons.Outlined.DateRange, contentDescription = null) },
+            label = {
+                Text(
+                    stringResource(Res.string.nav_network_sniffer),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

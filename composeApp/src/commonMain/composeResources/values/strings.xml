@@ -4,6 +4,7 @@
     <string name="app_subtitle">Sonne + Mond Planer</string>
     <string name="window_title">TradeBuddy</string>
     <string name="nav_sun_moon">Sonne/Mond</string>
+    <string name="nav_network_sniffer">Network Sniffer</string>
     <string name="nav_settings">Einstellungen</string>
     <string name="label_theme">Thema</string>
     <string name="action_toggle_theme">Tag/Nacht umschalten</string>
