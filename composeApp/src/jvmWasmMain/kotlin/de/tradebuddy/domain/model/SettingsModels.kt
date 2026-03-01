@@ -1,30 +1,5 @@
 package de.tradebuddy.domain.model
 
-enum class AppThemeStyle(val key: String) {
-    Midnight("midnight"),
-    Ocean("ocean"),
-    Slate("slate"),
-    Aurora("aurora"),
-    Copper("copper"),
-    Nimbus("nimbus");
-
-    companion object {
-        fun fromKey(key: String): AppThemeStyle? = when (key) {
-            "graphite" -> Slate
-            "ember" -> Ocean
-            "sand" -> Nimbus
-            "olive" -> Aurora
-            "neon" -> Slate
-            "terminal" -> Copper
-            "horizon" -> Ocean
-            "arctic" -> Nimbus
-            "pulse" -> Aurora
-            "ruby" -> Copper
-            else -> entries.firstOrNull { it.key == key }
-        }
-    }
-}
-
 enum class AppThemeMode(val key: String) {
     Light("light"),
     Dark("dark");
@@ -34,9 +9,23 @@ enum class AppThemeMode(val key: String) {
     }
 }
 
+enum class AppAccentColor(val key: String) {
+    Purple("purple"),
+    Indigo("indigo"),
+    Blue("blue"),
+    Green("green"),
+    Yellow("yellow"),
+    Orange("orange"),
+    Cyan("cyan");
+
+    companion object {
+        fun fromKey(key: String): AppAccentColor? = entries.firstOrNull { it.key == key }
+    }
+}
+
 data class UserSettings(
-    val themeStyle: AppThemeStyle,
     val themeMode: AppThemeMode,
+    val accentColor: AppAccentColor,
     val selectedCityKeys: Set<String>,
     val sunTimeOffsetMinutes: Int,
     val moonTimeOffsetMinutes: Int,

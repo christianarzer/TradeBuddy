@@ -1,4 +1,4 @@
-package de.tradebuddy.data
+﻿package de.tradebuddy.data
 
 import de.tradebuddy.domain.model.City
 
@@ -14,7 +14,7 @@ object DefaultCityDataSource : CityDataSource {
         City("Toronto", "Kanada", "CA", "America/Toronto", 43.6532, -79.3832),
         City("Mexiko-Stadt", "Mexiko", "MX", "America/Mexico_City", 19.4326, -99.1332),
         City("Sao Paulo", "Brasilien", "BR", "America/Sao_Paulo", -23.5505, -46.6333),
-        City("London", "Vereinigtes Koenigreich", "GB", "Europe/London", 51.5074, -0.1278),
+        City("London", "Vereinigtes Königreich", "GB", "Europe/London", 51.5074, -0.1278),
         City("Frankfurt", "Deutschland", "DE", "Europe/Berlin", 50.1109, 8.6821),
         City("Paris", "Frankreich", "FR", "Europe/Paris", 48.8566, 2.3522),
         City("Zuerich", "Schweiz", "CH", "Europe/Zurich", 47.3769, 8.5417),
@@ -34,3 +34,4 @@ object DefaultCityDataSource : CityDataSource {
         City("Sydney", "Australien", "AU", "Australia/Sydney", -33.8688, 151.2093)
     )
 }
+

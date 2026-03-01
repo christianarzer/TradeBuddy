@@ -1,6 +1,15 @@
-package de.tradebuddy.ui.components
+﻿package de.tradebuddy.ui.components
 
-import androidx.compose.foundation.Canvas
+import de.tradebuddy.domain.model.CompactEventType
+import de.tradebuddy.domain.model.MoveDirection
+import de.tradebuddy.domain.model.StatEntry
+import de.tradebuddy.ui.components.shared.SnowToolbar
+import de.tradebuddy.ui.components.shared.SnowToolbarIconButton
+import de.tradebuddy.ui.components.shared.SnowToolbarPopupPanel
+import de.tradebuddy.ui.icons.SnowIcons
+import de.tradebuddy.ui.charts.SnowBarChart
+import de.tradebuddy.ui.charts.SnowBarEntry
+import de.tradebuddy.ui.theme.LocalExtendedColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -13,25 +22,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,16 +44,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import de.tradebuddy.domain.model.CompactEventType
-import de.tradebuddy.domain.model.MoveDirection
-import de.tradebuddy.ui.theme.LocalExtendedColors
-import de.tradebuddy.domain.model.StatEntry
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -60,7 +56,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import de.tradebuddy.ui.theme.appElevatedCardColors
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
@@ -75,11 +70,9 @@ import trade_buddy.composeapp.generated.resources.stats_direction_up
 import trade_buddy.composeapp.generated.resources.stats_empty
 import trade_buddy.composeapp.generated.resources.stats_empty_filtered
 import trade_buddy.composeapp.generated.resources.stats_filter_all
-import trade_buddy.composeapp.generated.resources.stats_filter_clear
 import trade_buddy.composeapp.generated.resources.stats_filter_direction
 import trade_buddy.composeapp.generated.resources.stats_filter_event
 import trade_buddy.composeapp.generated.resources.stats_filter_range
-import trade_buddy.composeapp.generated.resources.stats_filter_search
 import trade_buddy.composeapp.generated.resources.stats_filter_sort
 import trade_buddy.composeapp.generated.resources.stats_filter_title
 import trade_buddy.composeapp.generated.resources.stats_list_title
@@ -94,7 +87,6 @@ import trade_buddy.composeapp.generated.resources.stats_sort_newest
 import trade_buddy.composeapp.generated.resources.stats_sort_offset
 import trade_buddy.composeapp.generated.resources.stats_sort_oldest
 import trade_buddy.composeapp.generated.resources.stats_section_trend
-import trade_buddy.composeapp.generated.resources.stats_subtitle
 import trade_buddy.composeapp.generated.resources.stats_summary_offset
 import trade_buddy.composeapp.generated.resources.stats_summary_total
 import trade_buddy.composeapp.generated.resources.stats_summary_up
@@ -112,12 +104,13 @@ fun StatisticsCard(
     val dateFmt = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.GERMANY) }
     val timeFmt = remember { DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY) }
 
-    var query by rememberSaveable { mutableStateOf("") }
     var directionFilter by rememberSaveable { mutableStateOf<MoveDirection?>(null) }
     var eventFilter by rememberSaveable { mutableStateOf<CompactEventType?>(null) }
     var rangeFilter by rememberSaveable { mutableStateOf(StatsRange.All) }
     var sortMode by rememberSaveable { mutableStateOf(StatsSort.Newest) }
     var showResetDialog by rememberSaveable { mutableStateOf(false) }
+    var showFilterPopup by rememberSaveable { mutableStateOf(false) }
+    var showSortPopup by rememberSaveable { mutableStateOf(false) }
 
     val sunriseLabel = stringResource(Res.string.event_sunrise)
     val sunsetLabel = stringResource(Res.string.event_sunset)
@@ -134,10 +127,8 @@ fun StatisticsCard(
 
     val nowInstant = Instant.now()
     val cutoff = rangeFilter.cutoff(nowInstant)
-    val normalizedQuery = query.trim().lowercase()
     val filtered = remember(
         stats,
-        normalizedQuery,
         directionFilter,
         eventFilter,
         rangeFilter,
@@ -145,12 +136,6 @@ fun StatisticsCard(
         cutoff
     ) {
         stats.asSequence()
-            .filter { entry ->
-                if (normalizedQuery.isBlank()) return@filter true
-                val eventLabel = eventLabels[entry.eventType].orEmpty()
-                entry.cityLabel.lowercase().contains(normalizedQuery) ||
-                    eventLabel.lowercase().contains(normalizedQuery)
-            }
             .filter { entry -> directionFilter?.let { entry.direction == it } ?: true }
             .filter { entry -> eventFilter?.let { entry.eventType == it } ?: true }
             .filter { entry -> cutoff?.let { entry.eventInstant.isAfter(it) } ?: true }
@@ -170,26 +155,19 @@ fun StatisticsCard(
     val upPct = if (total == 0) 0 else (upCount.toDouble() / total * 100).roundToInt()
     val avgOffset = if (total == 0) 0 else visibleStats.map { it.offsetMinutes }.average().roundToInt()
 
-    ElevatedCard(Modifier.fillMaxSize(), colors = appElevatedCardColors()) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(stringResource(Res.string.stats_title), style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            stringResource(Res.string.stats_subtitle, selectedDate.format(dateFmt), userZone.id),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                         if (stats.isNotEmpty()) {
                             Text(
                                 stringResource(Res.string.stats_visible_count, total, stats.size),
@@ -197,12 +175,6 @@ fun StatisticsCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                    OutlinedButton(
-                        onClick = { showResetDialog = true },
-                        enabled = stats.isNotEmpty()
-                    ) {
-                        Text(stringResource(Res.string.stats_reset))
                     }
                 }
             }
@@ -237,25 +209,60 @@ fun StatisticsCard(
             }
 
             item {
-                StatsFilterPanel(
-                    query = query,
-                    onQueryChange = { query = it },
-                    directionFilter = directionFilter,
-                    onDirectionChange = { directionFilter = it },
-                    eventFilter = eventFilter,
-                    onEventChange = { eventFilter = it },
-                    rangeFilter = rangeFilter,
-                    onRangeChange = { rangeFilter = it },
-                    sortMode = sortMode,
-                    onSortChange = { sortMode = it },
-                    onClear = {
-                        query = ""
-                        directionFilter = null
-                        eventFilter = null
-                        rangeFilter = StatsRange.All
-                        sortMode = StatsSort.Newest
+                SnowToolbar {
+                    Box {
+                        SnowToolbarIconButton(icon = SnowIcons.Filter, onClick = { showFilterPopup = true })
+                        DropdownMenu(
+                            expanded = showFilterPopup,
+                            onDismissRequest = { showFilterPopup = false }
+                        ) {
+                            SnowToolbarPopupPanel {
+                                StatsFilterPanel(
+                                    directionFilter = directionFilter,
+                                    onDirectionChange = { directionFilter = it },
+                                    eventFilter = eventFilter,
+                                    onEventChange = { eventFilter = it },
+                                    rangeFilter = rangeFilter,
+                                    onRangeChange = { rangeFilter = it }
+                                )
+                            }
+                        }
                     }
-                )
+                    Box {
+                        SnowToolbarIconButton(
+                            icon = SnowIcons.Sort,
+                            onClick = { showSortPopup = true }
+                        )
+                        DropdownMenu(
+                            expanded = showSortPopup,
+                            onDismissRequest = { showSortPopup = false }
+                        ) {
+                            SnowToolbarPopupPanel(modifier = Modifier.widthIn(min = 220.dp, max = 300.dp)) {
+                                Text(
+                                    text = stringResource(Res.string.stats_filter_sort),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                StatsSort.entries.forEach { sort ->
+                                    FilterChip(
+                                        selected = sortMode == sort,
+                                        onClick = {
+                                            sortMode = sort
+                                            showSortPopup = false
+                                        },
+                                        label = { Text(stringResource(sort.label)) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    OutlinedButton(
+                        onClick = { showResetDialog = true },
+                        enabled = stats.isNotEmpty()
+                    ) {
+                        Text(stringResource(Res.string.stats_reset))
+                    }
+                }
             }
 
             item {
@@ -295,19 +302,19 @@ fun StatisticsCard(
                     )
                 }
             } else {
-                items(visibleStats, key = { it.id }) { entry ->
+                itemsIndexed(visibleStats, key = { _, entry -> entry.id }) { index, entry ->
                     StatEntryRow(
                         entry = entry,
                         userZone = userZone,
                         dateFmt = dateFmt,
                         timeFmt = timeFmt,
                         eventLabel = eventLabels[entry.eventType].orEmpty(),
-                        onDelete = { onDeleteEntry(entry.id) }
+                        onDelete = { onDeleteEntry(entry.id) },
+                        showDivider = index < visibleStats.lastIndex
                     )
                 }
             }
         }
-    }
 
     if (showResetDialog) {
         AlertDialog(
@@ -329,6 +336,7 @@ fun StatisticsCard(
             }
         )
     }
+
 }
 
 @Composable
@@ -342,144 +350,99 @@ private fun TrendSection(
     val upColor = ext.positive
     val downColor = ext.negative
 
-    OutlinedCard {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(stringResource(Res.string.stats_section_trend), style = MaterialTheme.typography.titleSmall)
-            TrendRatioBar(upRatio = upRatio, upColor = upColor, downColor = downColor)
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                TrendLegend(
-                    label = stringResource(Res.string.stats_direction_up),
-                    count = upCount,
-                    color = upColor
-                )
-                TrendLegend(
-                    label = stringResource(Res.string.stats_direction_down),
-                    count = downCount,
-                    color = downColor
-                )
-            }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(ext.toolbarSurface, MaterialTheme.shapes.medium)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(stringResource(Res.string.stats_section_trend), style = MaterialTheme.typography.titleSmall)
+        TrendRatioBar(upRatio = upRatio, upColor = upColor, downColor = downColor)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            TrendLegend(
+                label = stringResource(Res.string.stats_direction_up),
+                count = upCount,
+                color = upColor
+            )
+            TrendLegend(
+                label = stringResource(Res.string.stats_direction_down),
+                count = downCount,
+                color = downColor
+            )
         }
     }
 }
 
 @Composable
 private fun StatsFilterPanel(
-    query: String,
-    onQueryChange: (String) -> Unit,
     directionFilter: MoveDirection?,
     onDirectionChange: (MoveDirection?) -> Unit,
     eventFilter: CompactEventType?,
     onEventChange: (CompactEventType?) -> Unit,
     rangeFilter: StatsRange,
-    onRangeChange: (StatsRange) -> Unit,
-    sortMode: StatsSort,
-    onSortChange: (StatsSort) -> Unit,
-    onClear: () -> Unit
+    onRangeChange: (StatsRange) -> Unit
 ) {
-    OutlinedCard {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(stringResource(Res.string.stats_filter_title), style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onClear) {
-                    Text(stringResource(Res.string.stats_filter_clear))
-                }
-            }
+    Column(
+        modifier = Modifier
+            .widthIn(min = 280.dp, max = 420.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(stringResource(Res.string.stats_filter_title), style = MaterialTheme.typography.titleSmall)
 
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                label = { Text(stringResource(Res.string.stats_filter_search)) }
+        FilterRow(label = stringResource(Res.string.stats_filter_direction)) {
+            FilterChip(
+                selected = directionFilter == null,
+                onClick = { onDirectionChange(null) },
+                label = { Text(stringResource(Res.string.stats_filter_all)) }
             )
+            FilterChip(
+                selected = directionFilter == MoveDirection.Up,
+                onClick = { onDirectionChange(MoveDirection.Up) },
+                label = { Text(stringResource(Res.string.stats_direction_up)) }
+            )
+            FilterChip(
+                selected = directionFilter == MoveDirection.Down,
+                onClick = { onDirectionChange(MoveDirection.Down) },
+                label = { Text(stringResource(Res.string.stats_direction_down)) }
+            )
+        }
 
-            FilterRow(label = stringResource(Res.string.stats_filter_direction)) {
-                FilterChip(
-                    selected = directionFilter == null,
-                    onClick = { onDirectionChange(null) },
-                    label = { Text(stringResource(Res.string.stats_filter_all)) }
-                )
-                FilterChip(
-                    selected = directionFilter == MoveDirection.Up,
-                    onClick = { onDirectionChange(MoveDirection.Up) },
-                    label = { Text(stringResource(Res.string.stats_direction_up)) }
-                )
-                FilterChip(
-                    selected = directionFilter == MoveDirection.Down,
-                    onClick = { onDirectionChange(MoveDirection.Down) },
-                    label = { Text(stringResource(Res.string.stats_direction_down)) }
-                )
-            }
+        FilterRow(label = stringResource(Res.string.stats_filter_event)) {
+            FilterChip(
+                selected = eventFilter == null,
+                onClick = { onEventChange(null) },
+                label = { Text(stringResource(Res.string.stats_filter_all)) }
+            )
+            FilterChip(
+                selected = eventFilter == CompactEventType.Sunrise,
+                onClick = { onEventChange(CompactEventType.Sunrise) },
+                label = { Text(stringResource(Res.string.event_sunrise)) }
+            )
+            FilterChip(
+                selected = eventFilter == CompactEventType.Sunset,
+                onClick = { onEventChange(CompactEventType.Sunset) },
+                label = { Text(stringResource(Res.string.event_sunset)) }
+            )
+            FilterChip(
+                selected = eventFilter == CompactEventType.Moonrise,
+                onClick = { onEventChange(CompactEventType.Moonrise) },
+                label = { Text(stringResource(Res.string.event_moonrise)) }
+            )
+            FilterChip(
+                selected = eventFilter == CompactEventType.Moonset,
+                onClick = { onEventChange(CompactEventType.Moonset) },
+                label = { Text(stringResource(Res.string.event_moonset)) }
+            )
+        }
 
-            FilterRow(label = stringResource(Res.string.stats_filter_event)) {
+        FilterRow(label = stringResource(Res.string.stats_filter_range)) {
+            StatsRange.entries.forEach { range ->
                 FilterChip(
-                    selected = eventFilter == null,
-                    onClick = { onEventChange(null) },
-                    label = { Text(stringResource(Res.string.stats_filter_all)) }
+                    selected = rangeFilter == range,
+                    onClick = { onRangeChange(range) },
+                    label = { Text(stringResource(range.label)) }
                 )
-                FilterChip(
-                    selected = eventFilter == CompactEventType.Sunrise,
-                    onClick = { onEventChange(CompactEventType.Sunrise) },
-                    label = { Text(stringResource(Res.string.event_sunrise)) }
-                )
-                FilterChip(
-                    selected = eventFilter == CompactEventType.Sunset,
-                    onClick = { onEventChange(CompactEventType.Sunset) },
-                    label = { Text(stringResource(Res.string.event_sunset)) }
-                )
-                FilterChip(
-                    selected = eventFilter == CompactEventType.Moonrise,
-                    onClick = { onEventChange(CompactEventType.Moonrise) },
-                    label = { Text(stringResource(Res.string.event_moonrise)) }
-                )
-                FilterChip(
-                    selected = eventFilter == CompactEventType.Moonset,
-                    onClick = { onEventChange(CompactEventType.Moonset) },
-                    label = { Text(stringResource(Res.string.event_moonset)) }
-                )
-            }
-
-            FilterRow(label = stringResource(Res.string.stats_filter_range)) {
-                StatsRange.entries.forEach { range ->
-                    FilterChip(
-                        selected = rangeFilter == range,
-                        onClick = { onRangeChange(range) },
-                        label = { Text(stringResource(range.label)) }
-                    )
-                }
-            }
-
-            FilterRow(label = stringResource(Res.string.stats_filter_sort)) {
-                StatsSort.entries.forEach { sort ->
-                    FilterChip(
-                        selected = sortMode == sort,
-                        onClick = { onSortChange(sort) },
-                        label = { Text(stringResource(sort.label)) }
-                    )
-                }
             }
         }
     }
@@ -510,17 +473,24 @@ private fun StatEntryRow(
     dateFmt: DateTimeFormatter,
     timeFmt: DateTimeFormatter,
     eventLabel: String,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    showDivider: Boolean
 ) {
+    val ext = LocalExtendedColors.current
     val localTime = entry.eventInstant.atZone(userZone)
     val dateText = localTime.format(dateFmt)
     val timeText = localTime.format(timeFmt)
 
-    OutlinedCard(Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -536,11 +506,19 @@ private fun StatEntryRow(
             Text("${entry.offsetMinutes}m", style = MaterialTheme.typography.titleSmall)
             IconButton(onClick = onDelete) {
                 Icon(
-                    imageVector = Icons.Outlined.Delete,
+                    imageVector = SnowIcons.Delete,
                     contentDescription = stringResource(Res.string.stats_delete_entry),
                     tint = MaterialTheme.colorScheme.error
                 )
             }
+        }
+        if (showDivider) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(ext.shellDivider)
+            )
         }
     }
 }
@@ -552,12 +530,12 @@ private fun DirectionBadge(direction: MoveDirection) {
         MoveDirection.Up -> Triple(
             stringResource(Res.string.stats_direction_up),
             ext.positive,
-            Icons.Outlined.ArrowUpward
+            SnowIcons.ArrowUp
         )
         MoveDirection.Down -> Triple(
             stringResource(Res.string.stats_direction_down),
             ext.negative,
-            Icons.Outlined.ArrowDownward
+            SnowIcons.ArrowDown
         )
     }
     Box(
@@ -584,34 +562,25 @@ private fun TrendRatioBar(
     upColor: Color,
     downColor: Color
 ) {
-    val track = MaterialTheme.colorScheme.surfaceVariant
-    Canvas(
+    val ratio = upRatio.coerceIn(0f, 1f)
+    val downRatio = 1f - ratio
+    SnowBarChart(
+        entries = listOf(
+            SnowBarEntry(
+                label = stringResource(Res.string.stats_direction_up),
+                value = (ratio * 100f).toDouble(),
+                color = upColor
+            ),
+            SnowBarEntry(
+                label = stringResource(Res.string.stats_direction_down),
+                value = (downRatio * 100f).toDouble(),
+                color = downColor
+            )
+        ),
         modifier = Modifier
             .fillMaxWidth()
-            .height(12.dp)
-    ) {
-        drawRoundRect(
-            color = track,
-            cornerRadius = CornerRadius(8f, 8f)
-        )
-        val upWidth = size.width * upRatio.coerceIn(0f, 1f)
-        if (upWidth > 0f) {
-            drawRoundRect(
-                color = upColor,
-                size = Size(upWidth, size.height),
-                cornerRadius = CornerRadius(8f, 8f)
-            )
-        }
-        val downWidth = size.width - upWidth
-        if (downWidth > 0f) {
-            drawRoundRect(
-                color = downColor,
-                topLeft = Offset(upWidth, 0f),
-                size = Size(downWidth, size.height),
-                cornerRadius = CornerRadius(8f, 8f)
-            )
-        }
-    }
+            .height(120.dp)
+    )
 }
 
 @Composable
@@ -636,9 +605,16 @@ private fun StatMetric(
     value: String,
     modifier: Modifier = Modifier
 ) {
-    OutlinedCard(modifier) {
+    val ext = LocalExtendedColors.current
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(ext.toolbarSurface, MaterialTheme.shapes.small)
+                .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -664,4 +640,5 @@ private enum class StatsSort(val label: StringResource) {
     Oldest(Res.string.stats_sort_oldest),
     Offset(Res.string.stats_sort_offset);
 }
+
 

@@ -1,5 +1,15 @@
 package de.tradebuddy.ui.components
 
+import de.tradebuddy.domain.model.CompactEvent
+import de.tradebuddy.domain.model.CompactEventType
+import de.tradebuddy.domain.model.MoveDirection
+import de.tradebuddy.domain.model.StatEntry
+import de.tradebuddy.domain.util.azimuthToCardinalIndex
+import de.tradebuddy.ui.components.shared.SnowToolbar
+import de.tradebuddy.ui.components.shared.SnowToolbarIconButton
+import de.tradebuddy.ui.components.shared.SnowToolbarPopupPanel
+import de.tradebuddy.ui.icons.SnowIcons
+import de.tradebuddy.ui.theme.extended
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,22 +26,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
-import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,8 +41,12 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,12 +57,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import de.tradebuddy.domain.model.CompactEvent
-import de.tradebuddy.domain.model.CompactEventType
-import de.tradebuddy.domain.model.MoveDirection
-import de.tradebuddy.domain.model.StatEntry
-import de.tradebuddy.domain.util.azimuthToCardinalIndex
-import de.tradebuddy.ui.theme.appElevatedCardColors
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -65,6 +65,9 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
+import trade_buddy.composeapp.generated.resources.action_next_day
+import trade_buddy.composeapp.generated.resources.action_prev_day
+import trade_buddy.composeapp.generated.resources.action_today
 import trade_buddy.composeapp.generated.resources.action_copy_times
 import trade_buddy.composeapp.generated.resources.azimuth_value
 import trade_buddy.composeapp.generated.resources.compact_col_azimuth
@@ -76,10 +79,15 @@ import trade_buddy.composeapp.generated.resources.compact_col_offset
 import trade_buddy.composeapp.generated.resources.compact_col_shift
 import trade_buddy.composeapp.generated.resources.compact_col_trend
 import trade_buddy.composeapp.generated.resources.compact_col_utc
-import trade_buddy.composeapp.generated.resources.compact_date
+import trade_buddy.composeapp.generated.resources.compact_chip_city_tomorrow
+import trade_buddy.composeapp.generated.resources.compact_chip_city_yesterday
 import trade_buddy.composeapp.generated.resources.compact_empty
-import trade_buddy.composeapp.generated.resources.compact_hint
-import trade_buddy.composeapp.generated.resources.compact_sorted_by
+import trade_buddy.composeapp.generated.resources.compact_filter_all
+import trade_buddy.composeapp.generated.resources.compact_filter_event_type
+import trade_buddy.composeapp.generated.resources.compact_filter_upcoming_only
+import trade_buddy.composeapp.generated.resources.compact_sort_by_city
+import trade_buddy.composeapp.generated.resources.compact_sort_by_event
+import trade_buddy.composeapp.generated.resources.compact_sort_by_time
 import trade_buddy.composeapp.generated.resources.compact_title
 import trade_buddy.composeapp.generated.resources.compact_trend_none
 import trade_buddy.composeapp.generated.resources.content_done
@@ -93,6 +101,7 @@ import trade_buddy.composeapp.generated.resources.label_azimuth
 import trade_buddy.composeapp.generated.resources.stats_direction_down
 import trade_buddy.composeapp.generated.resources.stats_direction_up
 import trade_buddy.composeapp.generated.resources.stats_offset_label
+import trade_buddy.composeapp.generated.resources.stats_filter_sort
 import trade_buddy.composeapp.generated.resources.value_dash
 
 @Composable
@@ -108,21 +117,43 @@ fun CompactTimelineCard(
     showUtcTime: Boolean,
     showAzimuth: Boolean,
     isToday: Boolean,
-    nowInstant: Instant
+    nowInstant: Instant,
+    onShiftDate: (Long) -> Unit,
+    onGoToToday: () -> Unit,
+    onPickDate: () -> Unit
 ) {
-    ElevatedCard(Modifier.fillMaxSize(), colors = appElevatedCardColors()) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+    val ext = MaterialTheme.extended
+    var showFilterPopup by rememberSaveable { mutableStateOf(false) }
+    var showSortPopup by rememberSaveable { mutableStateOf(false) }
+    var eventTypeFilter by rememberSaveable { mutableStateOf<CompactEventType?>(null) }
+    var upcomingOnly by rememberSaveable { mutableStateOf(false) }
+    var sortMode by rememberSaveable { mutableStateOf(CompactSortMode.Time) }
+    val visibleEvents = remember(events, eventTypeFilter, upcomingOnly, sortMode, isToday, nowInstant) {
+        val base = events.asSequence()
+            .filter { event -> eventTypeFilter?.let { event.eventType == it } ?: true }
+            .filter { event ->
+                if (!upcomingOnly || !isToday) true else event.userInstant?.isAfter(nowInstant) == true
+            }
+            .toList()
+        when (sortMode) {
+            CompactSortMode.Time -> base.sortedBy { it.userInstant ?: it.utcTime?.toInstant() ?: Instant.EPOCH }
+            CompactSortMode.City -> base.sortedBy { it.cityLabel }
+            CompactSortMode.Event -> base.sortedBy { it.eventType.name }
+        }
+    }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
             val datePattern = stringResource(Res.string.format_date_short)
             val copyPattern = stringResource(Res.string.format_datetime_copy)
             val dateFmt = remember(datePattern) { DateTimeFormatter.ofPattern(datePattern, Locale.GERMANY) }
             val copyFmt = remember(copyPattern) { DateTimeFormatter.ofPattern(copyPattern, Locale.ROOT) }
             val copyToClipboard = rememberCopyTextToClipboard()
-            val hasCopyTimes = events.any { it.userTime != null }
+            val hasCopyTimes = visibleEvents.any { it.userTime != null }
             val statsByKey = remember(stats) { stats.associateBy(::statKey) }
             val drafts = remember { mutableStateMapOf<String, CompactTrendDraft>() }
             LaunchedEffect(stats) {
@@ -149,41 +180,131 @@ fun CompactTimelineCard(
                 }
             }
 
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                Text(stringResource(Res.string.compact_title), style = MaterialTheme.typography.titleMedium)
+            }
+
+            SnowToolbar {
+                Box {
+                    SnowToolbarIconButton(icon = SnowIcons.Filter, onClick = { showFilterPopup = true })
+                    DropdownMenu(
+                        expanded = showFilterPopup,
+                        onDismissRequest = { showFilterPopup = false }
+                    ) {
+                        SnowToolbarPopupPanel(modifier = Modifier.widthIn(max = 420.dp)) {
+                            Text(
+                                text = stringResource(Res.string.compact_filter_event_type),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                FilterChip(
+                                    selected = eventTypeFilter == null,
+                                    onClick = { eventTypeFilter = null },
+                                    label = { Text(stringResource(Res.string.compact_filter_all)) }
+                                )
+                                FilterChip(
+                                    selected = eventTypeFilter == CompactEventType.Sunrise,
+                                    onClick = { eventTypeFilter = CompactEventType.Sunrise },
+                                    label = { Text(stringResource(Res.string.event_sunrise)) }
+                                )
+                                FilterChip(
+                                    selected = eventTypeFilter == CompactEventType.Sunset,
+                                    onClick = { eventTypeFilter = CompactEventType.Sunset },
+                                    label = { Text(stringResource(Res.string.event_sunset)) }
+                                )
+                                FilterChip(
+                                    selected = eventTypeFilter == CompactEventType.Moonrise,
+                                    onClick = { eventTypeFilter = CompactEventType.Moonrise },
+                                    label = { Text(stringResource(Res.string.event_moonrise)) }
+                                )
+                                FilterChip(
+                                    selected = eventTypeFilter == CompactEventType.Moonset,
+                                    onClick = { eventTypeFilter = CompactEventType.Moonset },
+                                    label = { Text(stringResource(Res.string.event_moonset)) }
+                                )
+                            }
+                            FilterChip(
+                                selected = upcomingOnly,
+                                onClick = { upcomingOnly = !upcomingOnly },
+                                label = { Text(stringResource(Res.string.compact_filter_upcoming_only)) }
+                            )
+                        }
+                    }
+                }
+                Box {
+                    SnowToolbarIconButton(icon = SnowIcons.Sort, onClick = { showSortPopup = true })
+                    DropdownMenu(
+                        expanded = showSortPopup,
+                        onDismissRequest = { showSortPopup = false }
+                    ) {
+                        SnowToolbarPopupPanel(modifier = Modifier.widthIn(min = 220.dp, max = 300.dp)) {
+                            Text(
+                                text = stringResource(Res.string.stats_filter_sort),
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            CompactSortMode.entries.forEach { mode ->
+                                FilterChip(
+                                    selected = sortMode == mode,
+                                    onClick = {
+                                        sortMode = mode
+                                        showSortPopup = false
+                                    },
+                                    label = { Text(stringResource(mode.label)) }
+                                )
+                            }
+                        }
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .background(ext.toolbarSurface, MaterialTheme.shapes.small)
+                        .clickable(onClick = onPickDate)
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(stringResource(Res.string.compact_title), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        stringResource(Res.string.compact_sorted_by, userZone.id),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        stringResource(Res.string.compact_date, selectedDate.format(dateFmt)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = selectedDate.format(dateFmt),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                FilledTonalButton(
+                SnowToolbarIconButton(
+                    icon = SnowIcons.ArrowLeft,
+                    onClick = { onShiftDate(-1) },
+                    contentDescription = stringResource(Res.string.action_prev_day)
+                )
+                SnowToolbarIconButton(
+                    icon = SnowIcons.Calendar,
+                    onClick = onGoToToday,
+                    contentDescription = stringResource(Res.string.action_today)
+                )
+                SnowToolbarIconButton(
+                    icon = SnowIcons.ArrowRight,
+                    onClick = { onShiftDate(1) },
+                    contentDescription = stringResource(Res.string.action_next_day)
+                )
+                Spacer(Modifier.weight(1f))
+                androidx.compose.material3.OutlinedButton(
                     onClick = {
-                        val copyText = events.mapNotNull { it.userTime?.format(copyFmt) }
+                        val copyText = visibleEvents.mapNotNull { it.userTime?.format(copyFmt) }
                             .joinToString(",")
                         copyToClipboard(copyText)
                     },
                     enabled = hasCopyTimes
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.ContentCopy,
+                        imageVector = SnowIcons.Copy,
                         contentDescription = stringResource(Res.string.action_copy_times),
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(stringResource(Res.string.action_copy_times))
                 }
             }
@@ -258,7 +379,7 @@ fun CompactTimelineCard(
 
             HorizontalDivider()
 
-            if (events.isEmpty()) {
+            if (visibleEvents.isEmpty()) {
                 Text(stringResource(Res.string.compact_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 LazyColumn(
@@ -267,7 +388,7 @@ fun CompactTimelineCard(
                         .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    items(events, key = { eventKey(it) }) { e ->
+                    items(visibleEvents, key = { eventKey(it) }) { e ->
                         val passed = isToday && (e.userInstant?.isBefore(nowInstant) == true)
                         val key = eventKey(e)
                         val entry = statsByKey[key]
@@ -300,12 +421,18 @@ fun CompactTimelineCard(
                 }
             }
 
-            Text(
-                stringResource(Res.string.compact_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    }
+}
+
+private enum class CompactSortMode(val label: org.jetbrains.compose.resources.StringResource) {
+    Time(Res.string.compact_sort_by_time),
+    City(Res.string.compact_sort_by_city),
+    Event(Res.string.compact_sort_by_event);
+
+    fun next(): CompactSortMode = when (this) {
+        Time -> City
+        City -> Event
+        Event -> Time
     }
 }
 
@@ -401,7 +528,7 @@ private fun CompactEventRow(
             ) {
                 if (e.azimuthDeg != null) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                        imageVector = SnowIcons.ArrowRight,
                         contentDescription = stringResource(Res.string.label_azimuth),
                         modifier = Modifier
                             .size(16.dp)
@@ -416,7 +543,7 @@ private fun CompactEventRow(
         Box(modifier = Modifier.width(doneWidth), contentAlignment = Alignment.Center) {
             if (passed) {
                 Icon(
-                    imageVector = Icons.Outlined.Check,
+                    imageVector = SnowIcons.Check,
                     contentDescription = stringResource(Res.string.content_done),
                     tint = MaterialTheme.colorScheme.secondary
                 )
@@ -476,11 +603,12 @@ private fun CompactEventRow(
     }
 }
 
+@Composable
 private fun buildShiftChips(event: CompactEvent): List<String> {
     val chips = mutableListOf<String>()
     when {
-        event.cityDayOffset > 0 -> chips += "dort morgen"
-        event.cityDayOffset < 0 -> chips += "dort gestern"
+        event.cityDayOffset > 0 -> chips += stringResource(Res.string.compact_chip_city_tomorrow)
+        event.cityDayOffset < 0 -> chips += stringResource(Res.string.compact_chip_city_yesterday)
     }
     return chips
 }
@@ -499,21 +627,21 @@ private fun TrendSelector(
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
         TrendOptionButton(
-            icon = Icons.Outlined.ArrowUpward,
+            icon = SnowIcons.ArrowUp,
             selected = selection == MoveDirection.Up,
             enabled = enabled,
             contentDescription = stringResource(Res.string.stats_direction_up),
             onClick = { onSelect(MoveDirection.Up) }
         )
         TrendOptionButton(
-            icon = Icons.Outlined.ArrowDownward,
+            icon = SnowIcons.ArrowDown,
             selected = selection == MoveDirection.Down,
             enabled = enabled,
             contentDescription = stringResource(Res.string.stats_direction_down),
             onClick = { onSelect(MoveDirection.Down) }
         )
         TrendOptionButton(
-            icon = Icons.Outlined.Close,
+            icon = SnowIcons.Close,
             selected = false,
             enabled = enabled,
             contentDescription = stringResource(Res.string.compact_trend_none),
@@ -641,12 +769,12 @@ private fun OffsetInput(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             StepButton(
-                icon = Icons.Outlined.KeyboardArrowUp,
+                icon = SnowIcons.CaretUp,
                 enabled = enabled && editable,
                 onClick = { onStep(1) }
             )
             StepButton(
-                icon = Icons.Outlined.KeyboardArrowDown,
+                icon = SnowIcons.CaretDown,
                 enabled = enabled && editable,
                 onClick = { onStep(-1) }
             )

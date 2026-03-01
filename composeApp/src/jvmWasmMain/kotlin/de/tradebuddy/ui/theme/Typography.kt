@@ -4,90 +4,59 @@ import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import org.jetbrains.compose.resources.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import org.jetbrains.compose.resources.ExperimentalResourceApi
-import org.jetbrains.compose.resources.Font
 import trade_buddy.composeapp.generated.resources.Res
-import trade_buddy.composeapp.generated.resources.sora_bold
-import trade_buddy.composeapp.generated.resources.sora_medium
-import trade_buddy.composeapp.generated.resources.sora_regular
+import trade_buddy.composeapp.generated.resources.inter_italic
+import trade_buddy.composeapp.generated.resources.inter_regular
+import trade_buddy.composeapp.generated.resources.inter_semibold
+import trade_buddy.composeapp.generated.resources.inter_semibold_italic
 
-@OptIn(ExperimentalResourceApi::class)
-@Composable
-private fun soraFontFamily(): FontFamily = FontFamily(
-    Font(Res.font.sora_regular, weight = FontWeight.Normal),
-    Font(Res.font.sora_medium, weight = FontWeight.Medium),
-    Font(Res.font.sora_bold, weight = FontWeight.Bold)
+private const val InterFontFeatureSettings = "'ss01' 1, 'cv01' 1, 'cv11' 1"
+
+private fun tradeBuddyStyle(
+    fontFamily: FontFamily,
+    fontWeight: FontWeight,
+    fontSize: Int,
+    lineHeight: Int
+) = TextStyle(
+    fontFamily = fontFamily,
+    fontWeight = fontWeight,
+    fontSize = fontSize.sp,
+    lineHeight = lineHeight.sp,
+    letterSpacing = 0.sp,
+    fontFeatureSettings = InterFontFeatureSettings
 )
 
 @Composable
 fun appTypography(): Typography {
-    val sora = soraFontFamily()
-    return remember(sora) {
+    val interFontFamily = FontFamily(
+        Font(Res.font.inter_regular, weight = FontWeight.Normal),
+        Font(Res.font.inter_italic, weight = FontWeight.Normal, style = FontStyle.Italic),
+        Font(Res.font.inter_semibold, weight = FontWeight.Medium),
+        Font(Res.font.inter_semibold, weight = FontWeight.SemiBold),
+        Font(Res.font.inter_semibold, weight = FontWeight.Bold),
+        Font(Res.font.inter_semibold_italic, weight = FontWeight.SemiBold, style = FontStyle.Italic),
+        Font(Res.font.inter_semibold_italic, weight = FontWeight.Bold, style = FontStyle.Italic)
+    )
+    return remember {
         Typography(
-            displayLarge = TextStyle(
-                fontFamily = sora,
-                fontWeight = FontWeight.Bold,
-                fontSize = 44.sp,
-                lineHeight = 52.sp
-            ),
-            headlineMedium = TextStyle(
-                fontFamily = sora,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 26.sp,
-                lineHeight = 32.sp
-            ),
-            titleLarge = TextStyle(
-                fontFamily = sora,
-                fontWeight = FontWeight.Medium,
-                fontSize = 20.sp,
-                lineHeight = 26.sp
-            ),
-            titleMedium = TextStyle(
-                fontFamily = sora,
-                fontWeight = FontWeight.Medium,
-                fontSize = 16.sp,
-                lineHeight = 22.sp
-            ),
-            bodyLarge = TextStyle(
-                fontFamily = sora,
-                fontWeight = FontWeight.Normal,
-                fontSize = 16.sp,
-                lineHeight = 24.sp
-            ),
-            bodyMedium = TextStyle(
-                fontFamily = sora,
-                fontWeight = FontWeight.Normal,
-                fontSize = 14.sp,
-                lineHeight = 20.sp
-            ),
-            bodySmall = TextStyle(
-                fontFamily = sora,
-                fontWeight = FontWeight.Normal,
-                fontSize = 12.sp,
-                lineHeight = 18.sp
-            ),
-            labelLarge = TextStyle(
-                fontFamily = sora,
-                fontWeight = FontWeight.Medium,
-                fontSize = 12.sp,
-                lineHeight = 16.sp
-            ),
-            labelMedium = TextStyle(
-                fontFamily = sora,
-                fontWeight = FontWeight.Medium,
-                fontSize = 11.sp,
-                lineHeight = 14.sp
-            ),
-            labelSmall = TextStyle(
-                fontFamily = sora,
-                fontWeight = FontWeight.Medium,
-                fontSize = 10.sp,
-                lineHeight = 12.sp
-            )
+            displayLarge = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 32, lineHeight = 40),
+            displayMedium = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 28, lineHeight = 36),
+            headlineLarge = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 24, lineHeight = 32),
+            headlineMedium = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 20, lineHeight = 28),
+            titleLarge = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 20, lineHeight = 28),
+            titleMedium = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14, lineHeight = 20),
+            titleSmall = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14, lineHeight = 20),
+            bodyLarge = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.Normal, fontSize = 14, lineHeight = 20),
+            bodyMedium = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.Normal, fontSize = 14, lineHeight = 20),
+            bodySmall = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.Normal, fontSize = 12, lineHeight = 18),
+            labelLarge = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.SemiBold, fontSize = 14, lineHeight = 20),
+            labelMedium = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.Normal, fontSize = 12, lineHeight = 18),
+            labelSmall = tradeBuddyStyle(fontFamily = interFontFamily, fontWeight = FontWeight.Normal, fontSize = 12, lineHeight = 18)
         )
     }
 }
-

@@ -1,4 +1,4 @@
-package de.tradebuddy.domain.util
+﻿package de.tradebuddy.domain.util
 
 import java.time.Instant
 import java.time.LocalDate
@@ -91,3 +91,4 @@ internal fun formatOffsetHours(offsetMinutes: Int): String {
         "${sign}${hours}h${minutes}m"
     }
 }
+

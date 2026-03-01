@@ -6,7 +6,7 @@ import de.tradebuddy.data.SettingsRepository
 import de.tradebuddy.data.StatisticsRepository
 import de.tradebuddy.data.SunMoonRepository
 import de.tradebuddy.domain.model.AppThemeMode
-import de.tradebuddy.domain.model.AppThemeStyle
+import de.tradebuddy.domain.model.AppAccentColor
 import de.tradebuddy.domain.model.AstroAspectEvent
 import de.tradebuddy.domain.model.AstroAspectType
 import de.tradebuddy.domain.model.AstroCalendarScope
@@ -106,7 +106,13 @@ class SunMoonViewModel(
     }
 
     fun setScreen(screen: AppScreen) {
-        _state.update { it.copy(screen = screen) }
+        val normalizedScreen = if (screen == AppScreen.AstroCalendar) AppScreen.SunMoon else screen
+        _state.update { current ->
+            current.copy(
+                screen = normalizedScreen,
+                selectedTab = if (screen == AppScreen.AstroCalendar) SunMoonTab.Astro else current.selectedTab
+            )
+        }
         when (screen) {
             AppScreen.AstroCalendar -> {
                 refreshAstro()
@@ -117,6 +123,22 @@ class SunMoonViewModel(
 
             AppScreen.TimeOptimizer -> refreshTimeOptimizerMonth()
             else -> Unit
+        }
+    }
+
+    fun setLogsSearchQuery(query: String) {
+        _state.update { it.copy(logsSearchQuery = query) }
+    }
+
+    fun toggleFavorite(screen: AppScreen) {
+        val target = normalizeFavoriteScreen(screen)
+        _state.update { current ->
+            val next = current.favoriteScreens.toMutableSet().apply {
+                if (!add(target)) remove(target)
+            }
+            current.copy(
+                favoriteScreens = if (next.isEmpty()) setOf(AppScreen.SunMoon) else next
+            )
         }
     }
 
@@ -150,13 +172,13 @@ class SunMoonViewModel(
         setThemeMode(next)
     }
 
-    fun setThemeStyle(style: AppThemeStyle) {
-        _state.update { it.copy(themeStyle = style) }
+    fun setThemeMode(mode: AppThemeMode) {
+        _state.update { it.copy(themeMode = mode) }
         persistSettings()
     }
 
-    fun setThemeMode(mode: AppThemeMode) {
-        _state.update { it.copy(themeMode = mode) }
+    fun setAccentColor(color: AppAccentColor) {
+        _state.update { it.copy(accentColor = color) }
         persistSettings()
     }
 
@@ -1026,8 +1048,8 @@ class SunMoonViewModel(
                     preferredKeys = current.timeOptimizer.exportCityKeys
                 )
                 current.copy(
-                    themeStyle = snapshot.themeStyle ?: current.themeStyle,
                     themeMode = snapshot.themeMode ?: current.themeMode,
+                    accentColor = snapshot.accentColor ?: current.accentColor,
                     selectedCityKeys = resolvedKeys,
                     sunTimeOffsetMinutes = snapshot.sunTimeOffsetMinutes ?: current.sunTimeOffsetMinutes,
                     moonTimeOffsetMinutes = snapshot.moonTimeOffsetMinutes ?: current.moonTimeOffsetMinutes,
@@ -1073,8 +1095,8 @@ class SunMoonViewModel(
             runCatching {
                 settingsRepository.saveSettings(
                     UserSettings(
-                        themeStyle = current.themeStyle,
                         themeMode = current.themeMode,
+                        accentColor = current.accentColor,
                         selectedCityKeys = current.selectedCityKeys,
                         sunTimeOffsetMinutes = current.sunTimeOffsetMinutes,
                         moonTimeOffsetMinutes = current.moonTimeOffsetMinutes,
@@ -1165,6 +1187,9 @@ class SunMoonViewModel(
         val clamped = rawOrb.coerceIn(ASTRO_MIN_ORB_DEGREES, ASTRO_MAX_ORB_DEGREES)
         return round(clamped * 10.0) / 10.0
     }
+
+    private fun normalizeFavoriteScreen(screen: AppScreen): AppScreen =
+        if (screen == AppScreen.AstroCalendar) AppScreen.SunMoon else screen
 
     private fun startClock() {
         scope.launch {

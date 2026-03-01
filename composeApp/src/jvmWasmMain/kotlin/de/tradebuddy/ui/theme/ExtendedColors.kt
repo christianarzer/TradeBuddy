@@ -3,12 +3,10 @@ package de.tradebuddy.ui.theme
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import de.tradebuddy.domain.model.AppThemeMode
-import de.tradebuddy.domain.model.AppThemeStyle
 import de.tradebuddy.domain.model.AstroAspectType
 import de.tradebuddy.domain.model.AstroPlanet
 
 data class ExtendedColors(
-    // Trading semantics
     val positive: Color,
     val onPositive: Color,
     val positiveContainer: Color,
@@ -18,21 +16,34 @@ data class ExtendedColors(
     val warning: Color,
     val info: Color,
     val neutral: Color,
-
-    // Chart colors
+    val impactLow: Color,
+    val impactMedium: Color,
+    val impactHigh: Color,
+    val watchlist: Color,
     val chartBackground: Color,
     val gridLine: Color,
     val candleUp: Color,
     val candleDown: Color,
-
-    // Astro – aspects (5 types)
+    val shellBackground: Color,
+    val shellBorder: Color,
+    val shellDivider: Color,
+    val sidebarTextMuted: Color,
+    val sidebarSelection: Color,
+    val toolbarSurface: Color,
+    val tableRowHover: Color,
+    val tableRowSelected: Color,
+    val regionUnitedStates: Color,
+    val regionEuroArea: Color,
+    val regionUnitedKingdom: Color,
+    val regionJapan: Color,
+    val regionChina: Color,
+    val regionGlobal: Color,
+    val portfolioPalette: List<Color>,
     val aspectConjunction: Color,
     val aspectSextile: Color,
     val aspectSquare: Color,
     val aspectTrine: Color,
     val aspectOpposition: Color,
-
-    // Astro – planets (10 planets)
     val planetMoon: Color,
     val planetSun: Color,
     val planetMercury: Color,
@@ -42,121 +53,133 @@ data class ExtendedColors(
     val planetSaturn: Color,
     val planetUranus: Color,
     val planetNeptune: Color,
-    val planetPluto: Color,
+    val planetPluto: Color
 )
-
-// ─── Aspect & Planet helpers ───────────────────────────────────────────────
 
 fun ExtendedColors.colorFor(type: AstroAspectType): Color = when (type) {
     AstroAspectType.Conjunction -> aspectConjunction
-    AstroAspectType.Sextile     -> aspectSextile
-    AstroAspectType.Square      -> aspectSquare
-    AstroAspectType.Trine       -> aspectTrine
-    AstroAspectType.Opposition  -> aspectOpposition
+    AstroAspectType.Sextile -> aspectSextile
+    AstroAspectType.Square -> aspectSquare
+    AstroAspectType.Trine -> aspectTrine
+    AstroAspectType.Opposition -> aspectOpposition
 }
 
 fun ExtendedColors.colorFor(planet: AstroPlanet): Color = when (planet) {
-    AstroPlanet.Moon    -> planetMoon
-    AstroPlanet.Sun     -> planetSun
+    AstroPlanet.Moon -> planetMoon
+    AstroPlanet.Sun -> planetSun
     AstroPlanet.Mercury -> planetMercury
-    AstroPlanet.Venus   -> planetVenus
-    AstroPlanet.Mars    -> planetMars
+    AstroPlanet.Venus -> planetVenus
+    AstroPlanet.Mars -> planetMars
     AstroPlanet.Jupiter -> planetJupiter
-    AstroPlanet.Saturn  -> planetSaturn
-    AstroPlanet.Uranus  -> planetUranus
+    AstroPlanet.Saturn -> planetSaturn
+    AstroPlanet.Uranus -> planetUranus
     AstroPlanet.Neptune -> planetNeptune
-    AstroPlanet.Pluto   -> planetPluto
+    AstroPlanet.Pluto -> planetPluto
 }
-
-// ─── CompositionLocal ─────────────────────────────────────────────────────
 
 val LocalExtendedColors = compositionLocalOf { defaultExtendedColors() }
 
-// ─── Factory ──────────────────────────────────────────────────────────────
-
-fun extendedColorsFor(style: AppThemeStyle, mode: AppThemeMode): ExtendedColors =
+fun extendedColorsFor(mode: AppThemeMode): ExtendedColors =
     if (mode == AppThemeMode.Dark) darkExtendedColors() else lightExtendedColors()
-
-// ─── Default (dark neutral) ───────────────────────────────────────────────
 
 private fun defaultExtendedColors(): ExtendedColors = darkExtendedColors()
 
-// ─── Dark palette ─────────────────────────────────────────────────────────
-
 private fun darkExtendedColors() = ExtendedColors(
-    // Trading
-    positive          = Color(0xFF4CAF50),
-    onPositive        = Color(0xFFFFFFFF),
-    positiveContainer = Color(0xFF1A3A1A),
-    negative          = Color(0xFFEF5350),
-    onNegative        = Color(0xFFFFFFFF),
-    negativeContainer = Color(0xFF3A1A1A),
-    warning           = Color(0xFFFFB300),
-    info              = Color(0xFF42A5F5),
-    neutral           = Color(0xFF78909C),
-
-    // Chart
-    chartBackground = Color(0xFF1A1F28),
-    gridLine        = Color(0xFF2D3545),
-    candleUp        = Color(0xFF4CAF50),
-    candleDown      = Color(0xFFEF5350),
-
-    // Aspects – vibrant for dark backgrounds
-    aspectConjunction = Color(0xFFCA8A04),
-    aspectSextile     = Color(0xFF0D9488),
-    aspectSquare      = Color(0xFFEA580C),
-    aspectTrine       = Color(0xFF16A34A),
-    aspectOpposition  = Color(0xFFDC2626),
-
-    // Planets – vibrant for dark backgrounds
-    planetMoon    = Color(0xFF3B82F6),
-    planetSun     = Color(0xFFF59E0B),
-    planetMercury = Color(0xFF0EA5E9),
-    planetVenus   = Color(0xFFDB2777),
-    planetMars    = Color(0xFFEF4444),
-    planetJupiter = Color(0xFF14B8A6),
-    planetSaturn  = Color(0xFF65A30D),
-    planetUranus  = Color(0xFF06B6D4),
-    planetNeptune = Color(0xFF4F46E5),
-    planetPluto   = Color(0xFF64748B),
+    positive = AppPalette.Green,
+    onPositive = AppPalette.Black,
+    positiveContainer = AppPalette.Green.copy(alpha = 0.24f),
+    negative = AppPalette.Red,
+    onNegative = AppPalette.Black,
+    negativeContainer = AppPalette.Red.copy(alpha = 0.24f),
+    warning = AppPalette.Yellow,
+    info = AppPalette.Blue,
+    neutral = AppPalette.White80,
+    impactLow = AppPalette.Blue,
+    impactMedium = AppPalette.Yellow,
+    impactHigh = AppPalette.Red,
+    watchlist = AppPalette.Indigo,
+    chartBackground = DashboardSurfaceDark,
+    gridLine = AppPalette.White10,
+    candleUp = AppPalette.Green,
+    candleDown = AppPalette.Red,
+    shellBackground = AppPalette.SurfaceDark,
+    shellBorder = AppPalette.White10,
+    shellDivider = AppPalette.White10,
+    sidebarTextMuted = AppPalette.White,
+    sidebarSelection = AppPalette.White10,
+    toolbarSurface = AppPalette.SurfaceDarkAlt,
+    tableRowHover = AppPalette.White4,
+    tableRowSelected = AppPalette.White10,
+    regionUnitedStates = AppPalette.Blue,
+    regionEuroArea = AppPalette.Indigo,
+    regionUnitedKingdom = AppPalette.Purple,
+    regionJapan = AppPalette.Cyan,
+    regionChina = AppPalette.Orange,
+    regionGlobal = AppPalette.White80,
+    portfolioPalette = AppPalette.PortfolioPalette,
+    aspectConjunction = AppPalette.Yellow,
+    aspectSextile = AppPalette.Cyan,
+    aspectSquare = AppPalette.Orange,
+    aspectTrine = AppPalette.Green,
+    aspectOpposition = AppPalette.Red,
+    planetMoon = AppPalette.Blue,
+    planetSun = AppPalette.Yellow,
+    planetMercury = AppPalette.Cyan,
+    planetVenus = AppPalette.Purple,
+    planetMars = AppPalette.Red,
+    planetJupiter = AppPalette.Cyan,
+    planetSaturn = AppPalette.Green,
+    planetUranus = AppPalette.Cyan,
+    planetNeptune = AppPalette.Indigo,
+    planetPluto = AppPalette.White80
 )
 
-// ─── Light palette ────────────────────────────────────────────────────────
-
 private fun lightExtendedColors() = ExtendedColors(
-    // Trading
-    positive          = Color(0xFF2E7D32),
-    onPositive        = Color(0xFFFFFFFF),
-    positiveContainer = Color(0xFFE8F5E9),
-    negative          = Color(0xFFC62828),
-    onNegative        = Color(0xFFFFFFFF),
-    negativeContainer = Color(0xFFFFEBEE),
-    warning           = Color(0xFFE65100),
-    info              = Color(0xFF1565C0),
-    neutral           = Color(0xFF546E7A),
-
-    // Chart
-    chartBackground = Color(0xFFF5F7FA),
-    gridLine        = Color(0xFFDDE4EE),
-    candleUp        = Color(0xFF2E7D32),
-    candleDown      = Color(0xFFC62828),
-
-    // Aspects – slightly darker for light backgrounds
-    aspectConjunction = Color(0xFFB45309),
-    aspectSextile     = Color(0xFF0F766E),
-    aspectSquare      = Color(0xFFC2410C),
-    aspectTrine       = Color(0xFF15803D),
-    aspectOpposition  = Color(0xFFB91C1C),
-
-    // Planets – slightly darker for light backgrounds
-    planetMoon    = Color(0xFF2563EB),
-    planetSun     = Color(0xFFD97706),
-    planetMercury = Color(0xFF0284C7),
-    planetVenus   = Color(0xFFBE185D),
-    planetMars    = Color(0xFFDC2626),
-    planetJupiter = Color(0xFF0F766E),
-    planetSaturn  = Color(0xFF4D7C0F),
-    planetUranus  = Color(0xFF0891B2),
-    planetNeptune = Color(0xFF4338CA),
-    planetPluto   = Color(0xFF475569),
+    positive = AppPalette.Green,
+    onPositive = AppPalette.Black,
+    positiveContainer = AppPalette.Green.copy(alpha = 0.20f),
+    negative = AppPalette.Red,
+    onNegative = AppPalette.Black,
+    negativeContainer = AppPalette.Red.copy(alpha = 0.20f),
+    warning = AppPalette.Yellow,
+    info = AppPalette.Blue,
+    neutral = AppPalette.Black40,
+    impactLow = AppPalette.Blue,
+    impactMedium = AppPalette.Yellow,
+    impactHigh = AppPalette.Red,
+    watchlist = AppPalette.Indigo,
+    chartBackground = DashboardSurfaceLight,
+    gridLine = AppPalette.Black10,
+    candleUp = AppPalette.Green,
+    candleDown = AppPalette.Red,
+    shellBackground = AppPalette.SurfaceLight,
+    shellBorder = AppPalette.Black10,
+    shellDivider = AppPalette.Black10,
+    sidebarTextMuted = AppPalette.Black80,
+    sidebarSelection = AppPalette.Black4,
+    toolbarSurface = AppPalette.SurfaceLightAlt,
+    tableRowHover = AppPalette.Black4,
+    tableRowSelected = AppPalette.Black10,
+    regionUnitedStates = AppPalette.Blue,
+    regionEuroArea = AppPalette.Indigo,
+    regionUnitedKingdom = AppPalette.Purple,
+    regionJapan = AppPalette.Cyan,
+    regionChina = AppPalette.Orange,
+    regionGlobal = AppPalette.Black40,
+    portfolioPalette = AppPalette.PortfolioPalette,
+    aspectConjunction = AppPalette.Yellow,
+    aspectSextile = AppPalette.Cyan,
+    aspectSquare = AppPalette.Orange,
+    aspectTrine = AppPalette.Green,
+    aspectOpposition = AppPalette.Red,
+    planetMoon = AppPalette.Blue,
+    planetSun = AppPalette.Yellow,
+    planetMercury = AppPalette.Cyan,
+    planetVenus = AppPalette.Purple,
+    planetMars = AppPalette.Red,
+    planetJupiter = AppPalette.Cyan,
+    planetSaturn = AppPalette.Green,
+    planetUranus = AppPalette.Cyan,
+    planetNeptune = AppPalette.Indigo,
+    planetPluto = AppPalette.Black80
 )

@@ -1,31 +1,46 @@
-package de.tradebuddy.ui.screens
+﻿package de.tradebuddy.ui.screens
 
+import de.tradebuddy.domain.model.AstroAspectEvent
+import de.tradebuddy.domain.model.AstroAspectType
+import de.tradebuddy.domain.model.AstroPlanet
+import de.tradebuddy.domain.model.DEFAULT_ASTRO_ASPECT_ORBS
+import de.tradebuddy.presentation.AstroCalendarUiState
+import de.tradebuddy.presentation.AstroCalendarTab
+import de.tradebuddy.presentation.SunMoonUiState
+import de.tradebuddy.presentation.SunMoonViewModel
+import de.tradebuddy.ui.components.MoonPhaseCard
+import de.tradebuddy.ui.components.shared.SnowToolbar
+import de.tradebuddy.ui.components.shared.SnowToolbarIconButton
+import de.tradebuddy.ui.components.shared.SnowToolbarPopupPanel
+import de.tradebuddy.ui.components.SnowTabItem
+import de.tradebuddy.ui.components.SnowTabs
+import de.tradebuddy.ui.icons.SnowIcons
+import de.tradebuddy.ui.theme.LocalExtendedColors
+import de.tradebuddy.ui.theme.colorFor
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Remove
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -33,10 +48,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -50,16 +61,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import de.tradebuddy.domain.model.AstroAspectEvent
-import de.tradebuddy.domain.model.AstroAspectType
-import de.tradebuddy.domain.model.AstroEventStatus
-import de.tradebuddy.domain.model.AstroPlanet
-import de.tradebuddy.domain.model.AstroWeekDaySummary
-import de.tradebuddy.domain.model.DEFAULT_ASTRO_ASPECT_ORBS
-import de.tradebuddy.presentation.AstroCalendarTab
-import de.tradebuddy.presentation.SunMoonUiState
-import de.tradebuddy.presentation.SunMoonViewModel
-import de.tradebuddy.ui.components.MoonPhaseCard
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -69,15 +70,12 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import de.tradebuddy.ui.theme.LocalExtendedColors
-import de.tradebuddy.ui.theme.appElevatedCardColors
-import de.tradebuddy.ui.theme.colorFor
 import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.action_next_day
-import trade_buddy.composeapp.generated.resources.action_pick_date
 import trade_buddy.composeapp.generated.resources.action_prev_day
 import trade_buddy.composeapp.generated.resources.action_today
 import trade_buddy.composeapp.generated.resources.astro_aspect_conjunction
@@ -93,19 +91,22 @@ import trade_buddy.composeapp.generated.resources.astro_empty_filtered
 import trade_buddy.composeapp.generated.resources.astro_filter_aspects
 import trade_buddy.composeapp.generated.resources.astro_filter_planets
 import trade_buddy.composeapp.generated.resources.astro_filters_section_title
-import trade_buddy.composeapp.generated.resources.astro_filters_toggle_collapse
-import trade_buddy.composeapp.generated.resources.astro_filters_toggle_expand
+import trade_buddy.composeapp.generated.resources.astro_angle_orb_format
 import trade_buddy.composeapp.generated.resources.astro_label_countdown
 import trade_buddy.composeapp.generated.resources.astro_label_since_signal
 import trade_buddy.composeapp.generated.resources.astro_label_orb
 import trade_buddy.composeapp.generated.resources.astro_orb_controls_title
 import trade_buddy.composeapp.generated.resources.astro_orb_reset_defaults
+import trade_buddy.composeapp.generated.resources.astro_sort_aspect
+import trade_buddy.composeapp.generated.resources.astro_sort_time
+import trade_buddy.composeapp.generated.resources.astro_sort_title
 import trade_buddy.composeapp.generated.resources.astro_status_exact
 import trade_buddy.composeapp.generated.resources.astro_status_passed
 import trade_buddy.composeapp.generated.resources.astro_status_upcoming
-import trade_buddy.composeapp.generated.resources.astro_subtitle
+import trade_buddy.composeapp.generated.resources.astro_time_countdown_format
+import trade_buddy.composeapp.generated.resources.astro_time_local_format
+import trade_buddy.composeapp.generated.resources.astro_time_utc_format
 import trade_buddy.composeapp.generated.resources.astro_title
-import trade_buddy.composeapp.generated.resources.astro_week_title
 import trade_buddy.composeapp.generated.resources.astro_planet_jupiter
 import trade_buddy.composeapp.generated.resources.astro_planet_mars
 import trade_buddy.composeapp.generated.resources.astro_planet_mercury
@@ -120,14 +121,12 @@ import trade_buddy.composeapp.generated.resources.datepicker_cancel
 import trade_buddy.composeapp.generated.resources.datepicker_ok
 import trade_buddy.composeapp.generated.resources.format_date_short
 import trade_buddy.composeapp.generated.resources.format_time_precise
-import trade_buddy.composeapp.generated.resources.label_date
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AstroCalendarScreen(
     state: SunMoonUiState,
-    viewModel: SunMoonViewModel,
-    showDateControls: Boolean = true
+    viewModel: SunMoonViewModel
 ) {
     val ext = LocalExtendedColors.current
     val astroState = state.astroCalendar
@@ -137,23 +136,33 @@ fun AstroCalendarScreen(
     val preciseTimeFmt = remember(preciseTimePattern) {
         DateTimeFormatter.ofPattern(preciseTimePattern, Locale.GERMANY)
     }
-    val weekFmt = remember { DateTimeFormatter.ofPattern("EEE dd.MM", Locale.GERMANY) }
     val isAspectsTab = state.selectedAstroTab == AstroCalendarTab.Aspects
-    var filtersExpanded by rememberSaveable { mutableStateOf(false) }
+    var showFilterPopup by rememberSaveable { mutableStateOf(false) }
+    var showSortPopup by rememberSaveable { mutableStateOf(false) }
+    var sortMode by rememberSaveable { mutableStateOf(AstroListSortMode.Time) }
     val hasCustomOrbs = astroState.aspectOrbs != DEFAULT_ASTRO_ASPECT_ORBS
 
     val filteredEvents = remember(
         astroState.allEvents,
         astroState.selectedAspects,
-        astroState.selectedPlanets
+        astroState.selectedPlanets,
+        sortMode
     ) {
-        astroState.allEvents
+        val base = astroState.allEvents
             .filter { event ->
                 event.aspectType in astroState.selectedAspects &&
                     event.primaryPlanet.isEnabledBy(astroState.selectedPlanets) &&
                     event.secondaryPlanet.isEnabledBy(astroState.selectedPlanets)
             }
-            .sortedBy { it.exactInstant }
+        when (sortMode) {
+            AstroListSortMode.Time -> base.sortedBy { it.exactInstant }
+            AstroListSortMode.Aspect -> base.sortedWith(
+                compareBy<AstroAspectEvent> { it.aspectType.ordinal }
+                    .thenBy { it.primaryPlanet.ordinal }
+                    .thenBy { it.secondaryPlanet.ordinal }
+                    .thenBy { it.exactInstant }
+            )
+        }
     }
     val hasFilteredOutEvents = astroState.allEvents.isNotEmpty() && filteredEvents.isEmpty()
 
@@ -161,242 +170,104 @@ fun AstroCalendarScreen(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
                 Text(
                     stringResource(Res.string.astro_title),
                     style = MaterialTheme.typography.headlineMedium
                 )
-                Text(
-                    stringResource(Res.string.astro_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+
+                SnowTabs(
+                    items = AstroCalendarTab.entries.map { tab ->
+                        SnowTabItem(id = tab.name, label = stringResource(tab.label))
+                    },
+                    selectedId = state.selectedAstroTab.name,
+                    onSelect = { id ->
+                        AstroCalendarTab.entries.firstOrNull { it.name == id }?.let(viewModel::setAstroTab)
+                    }
                 )
 
-                if (showDateControls) {
-                    OutlinedTextField(
-                        modifier = Modifier.fillMaxWidth(),
-                        value = state.selectedDate.format(dateFmt),
-                        onValueChange = { },
-                        readOnly = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurface
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        label = { Text(stringResource(Res.string.label_date)) },
-                        trailingIcon = {
-                            IconButton(onClick = { viewModel.showDatePicker(true) }) {
-                                Icon(
-                                    Icons.Outlined.DateRange,
-                                    contentDescription = stringResource(Res.string.action_pick_date)
-                                )
-                            }
-                        }
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AssistChip(
-                            onClick = { viewModel.shiftDate(-1) },
-                            label = { Text(stringResource(Res.string.action_prev_day)) },
-                            leadingIcon = {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null)
-                            }
-                        )
-                        AssistChip(
-                            onClick = viewModel::goToToday,
-                            label = { Text(stringResource(Res.string.action_today)) },
-                            leadingIcon = { Icon(Icons.Outlined.DateRange, contentDescription = null) }
-                        )
-                        AssistChip(
-                            onClick = { viewModel.shiftDate(1) },
-                            label = { Text(stringResource(Res.string.action_next_day)) },
-                            leadingIcon = {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)
-                            }
-                        )
-                    }
-                }
-
-                PrimaryTabRow(selectedTabIndex = state.selectedAstroTab.ordinal) {
-                    AstroCalendarTab.entries.forEach { tab ->
-                        Tab(
-                            selected = state.selectedAstroTab == tab,
-                            onClick = { viewModel.setAstroTab(tab) },
-                            text = { Text(stringResource(tab.label)) }
-                        )
-                    }
-                }
-
                 if (isAspectsTab) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            stringResource(Res.string.astro_filters_section_title),
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        AssistChip(
-                            onClick = { filtersExpanded = !filtersExpanded },
-                            label = {
-                                Text(
-                                    stringResource(
-                                        if (filtersExpanded) {
-                                            Res.string.astro_filters_toggle_collapse
-                                        } else {
-                                            Res.string.astro_filters_toggle_expand
-                                        }
-                                    )
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = if (filtersExpanded) {
-                                        Icons.Outlined.ExpandLess
-                                    } else {
-                                        Icons.Outlined.ExpandMore
-                                    },
-                                    contentDescription = null
-                                )
-                            }
-                        )
-                    }
-
-                    if (filtersExpanded) {
-                        Text(
-                            stringResource(Res.string.astro_filter_aspects),
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            AstroAspectType.entries.forEach { aspect ->
-                                val selected = aspect in astroState.selectedAspects
-                                val orb = astroState.aspectOrbs[aspect]
-                                    ?: DEFAULT_ASTRO_ASPECT_ORBS.getValue(aspect)
-                                FilterChip(
-                                    selected = selected,
-                                    onClick = { viewModel.setAstroAspectEnabled(aspect, !selected) },
-                                    label = {
-                                        Text("${aspect.label} (${formatDegrees(orb)}�)")
-                                    },
-                                    leadingIcon = {
-                                        AstroGlyphBadge(
-                                            glyph = aspect.glyph,
-                                            tint = ext.colorFor(aspect),
-                                            selected = selected
-                                        )
-                                    }
-                                )
-                            }
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                stringResource(Res.string.astro_orb_controls_title),
-                                style = MaterialTheme.typography.titleSmall
-                            )
-                            FilledTonalButton(
-                                enabled = hasCustomOrbs,
-                                onClick = viewModel::resetAstroAspectOrbs
+                    SnowToolbar {
+                        Box {
+                            SnowToolbarIconButton(icon = SnowIcons.Filter, onClick = { showFilterPopup = true })
+                            DropdownMenu(
+                                expanded = showFilterPopup,
+                                onDismissRequest = { showFilterPopup = false }
                             ) {
-                                Text(stringResource(Res.string.astro_orb_reset_defaults))
+                                SnowToolbarPopupPanel(modifier = Modifier.widthIn(max = 440.dp)) {
+                                    AstroFilterPanel(
+                                        astroState = astroState,
+                                        hasCustomOrbs = hasCustomOrbs,
+                                        onSetAspectEnabled = viewModel::setAstroAspectEnabled,
+                                        onSetPlanetEnabled = viewModel::setAstroPlanetEnabled,
+                                        onAdjustOrb = viewModel::adjustAstroAspectOrb,
+                                        onResetOrbs = viewModel::resetAstroAspectOrbs
+                                    )
+                                }
                             }
                         }
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            AstroAspectType.entries.forEach { aspect ->
-                                val orb = astroState.aspectOrbs[aspect]
-                                    ?: DEFAULT_ASTRO_ASPECT_ORBS.getValue(aspect)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        modifier = Modifier.weight(1f),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        AstroGlyphBadge(
-                                            glyph = aspect.glyph,
-                                            tint = ext.colorFor(aspect),
-                                            selected = true
-                                        )
-                                        Text(
-                                            "${aspect.label}: ${formatDegrees(orb)}�",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = { viewModel.adjustAstroAspectOrb(aspect, increase = false) }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Remove,
-                                            contentDescription = null
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = { viewModel.adjustAstroAspectOrb(aspect, increase = true) }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Add,
-                                            contentDescription = null
+                        Box {
+                            SnowToolbarIconButton(icon = SnowIcons.Sort, onClick = { showSortPopup = true })
+                            DropdownMenu(
+                                expanded = showSortPopup,
+                                onDismissRequest = { showSortPopup = false }
+                            ) {
+                                SnowToolbarPopupPanel(modifier = Modifier.widthIn(min = 220.dp, max = 300.dp)) {
+                                    Text(
+                                        text = stringResource(Res.string.astro_sort_title),
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    AstroListSortMode.entries.forEach { mode ->
+                                        FilterChip(
+                                            selected = sortMode == mode,
+                                            onClick = {
+                                                sortMode = mode
+                                                showSortPopup = false
+                                            },
+                                            label = { Text(stringResource(mode.label)) }
                                         )
                                     }
                                 }
                             }
                         }
-
-                        Text(
-                            stringResource(Res.string.astro_filter_planets),
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        Row(
+                            modifier = Modifier
+                                .background(ext.toolbarSurface, MaterialTheme.shapes.small)
+                                .clickable { viewModel.showDatePicker(true) }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            AstroPlanet.entries.forEach { planet ->
-                                val selected = planet in astroState.selectedPlanets
-                                FilterChip(
-                                    selected = selected,
-                                    onClick = { viewModel.setAstroPlanetEnabled(planet, !selected) },
-                                    label = { Text(planet.label) },
-                                    leadingIcon = {
-                                        AstroGlyphBadge(
-                                            glyph = planet.glyph,
-                                            tint = ext.colorFor(planet),
-                                            selected = selected
-                                        )
-                                    }
-                                )
-                            }
+                            Text(
+                                text = state.selectedDate.format(dateFmt),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
+                        SnowToolbarIconButton(
+                            icon = SnowIcons.ArrowLeft,
+                            onClick = { viewModel.shiftDate(-1) },
+                            contentDescription = stringResource(Res.string.action_prev_day)
+                        )
+                        SnowToolbarIconButton(
+                            icon = SnowIcons.Calendar,
+                            onClick = viewModel::goToToday,
+                            contentDescription = stringResource(Res.string.action_today)
+                        )
+                        SnowToolbarIconButton(
+                            icon = SnowIcons.ArrowRight,
+                            onClick = { viewModel.shiftDate(1) },
+                            contentDescription = stringResource(Res.string.action_next_day)
+                        )
+                        Spacer(Modifier.weight(1f))
                     }
-
                 }
 
             }
-        }
-
         if (!isAspectsTab) {
             MoonPhaseCard(
                 state = state.moonPhases,
@@ -405,31 +276,8 @@ fun AstroCalendarScreen(
                 onPrevMonth = { viewModel.shiftMonth(-1) },
                 onNextMonth = { viewModel.shiftMonth(1) }
             )
-        } else if (astroState.week.isNotEmpty()) {
-            ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        stringResource(Res.string.astro_week_title),
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(astroState.week, key = { it.date.toString() }) { day ->
-                            AstroWeekChip(
-                                day = day,
-                                selectedDate = state.selectedDate,
-                                weekFmt = weekFmt,
-                                onSelect = viewModel::setDate
-                            )
-                        }
-                    }
-                }
-            }
         }
+
 
         if (isAspectsTab && astroState.isLoading) {
             val progress = astroState.loadingProgress
@@ -478,14 +326,14 @@ fun AstroCalendarScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        items(
+                        itemsIndexed(
                             filteredEvents,
-                            key = { event ->
+                            key = { _, event ->
                                 "${event.primaryPlanet.name}-${event.secondaryPlanet.name}-${event.aspectType.name}-${event.exactInstant.epochSecond}"
                             }
-                        ) { event ->
+                        ) { index, event ->
                             AstroEventRow(
                                 event = event,
                                 selectedDate = state.selectedDate,
@@ -495,7 +343,8 @@ fun AstroCalendarScreen(
                                 dateFmt = dateFmt,
                                 timeFmt = preciseTimeFmt,
                                 orbDegrees = astroState.aspectOrbs[event.aspectType]
-                                    ?: DEFAULT_ASTRO_ASPECT_ORBS.getValue(event.aspectType)
+                                    ?: DEFAULT_ASTRO_ASPECT_ORBS.getValue(event.aspectType),
+                                showDivider = index < filteredEvents.lastIndex
                             )
                         }
                     }
@@ -504,7 +353,7 @@ fun AstroCalendarScreen(
         }
     }
 
-    if (showDateControls && state.showDatePicker) {
+    if (state.showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = state.selectedDate.atStartOfDay(state.userZone).toInstant().toEpochMilli()
         )
@@ -532,6 +381,134 @@ fun AstroCalendarScreen(
 }
 
 @Composable
+private fun AstroFilterPanel(
+    astroState: AstroCalendarUiState,
+    hasCustomOrbs: Boolean,
+    onSetAspectEnabled: (AstroAspectType, Boolean) -> Unit,
+    onSetPlanetEnabled: (AstroPlanet, Boolean) -> Unit,
+    onAdjustOrb: (AstroAspectType, Boolean) -> Unit,
+    onResetOrbs: () -> Unit
+) {
+    val ext = LocalExtendedColors.current
+    Column(
+        modifier = Modifier
+            .heightIn(max = 460.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            stringResource(Res.string.astro_filter_aspects),
+            style = MaterialTheme.typography.titleSmall
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AstroAspectType.entries.forEach { aspect ->
+                val selected = aspect in astroState.selectedAspects
+                val orb = astroState.aspectOrbs[aspect] ?: DEFAULT_ASTRO_ASPECT_ORBS.getValue(aspect)
+                FilterChip(
+                    selected = selected,
+                    onClick = { onSetAspectEnabled(aspect, !selected) },
+                    label = { Text("${aspect.label} (${formatDegrees(orb)}°)") },
+                    leadingIcon = {
+                        AstroGlyphBadge(
+                            glyph = aspect.glyph,
+                            tint = ext.colorFor(aspect),
+                            selected = selected
+                        )
+                    }
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                stringResource(Res.string.astro_orb_controls_title),
+                style = MaterialTheme.typography.titleSmall
+            )
+            FilledTonalButton(
+                enabled = hasCustomOrbs,
+                onClick = onResetOrbs
+            ) {
+                Text(stringResource(Res.string.astro_orb_reset_defaults))
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            AstroAspectType.entries.forEach { aspect ->
+                val orb = astroState.aspectOrbs[aspect] ?: DEFAULT_ASTRO_ASPECT_ORBS.getValue(aspect)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AstroGlyphBadge(
+                            glyph = aspect.glyph,
+                            tint = ext.colorFor(aspect),
+                            selected = true
+                        )
+                        Text(
+                            "${aspect.label}: ${formatDegrees(orb)}°",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    IconButton(onClick = { onAdjustOrb(aspect, false) }) {
+                        Icon(imageVector = SnowIcons.Minus, contentDescription = null)
+                    }
+                    IconButton(onClick = { onAdjustOrb(aspect, true) }) {
+                        Icon(imageVector = SnowIcons.Plus, contentDescription = null)
+                    }
+                }
+            }
+        }
+
+        Text(
+            stringResource(Res.string.astro_filter_planets),
+            style = MaterialTheme.typography.titleSmall
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AstroPlanet.entries.forEach { planet ->
+                val selected = planet in astroState.selectedPlanets
+                FilterChip(
+                    selected = selected,
+                    onClick = { onSetPlanetEnabled(planet, !selected) },
+                    label = { Text(planet.label) },
+                    leadingIcon = {
+                        AstroGlyphBadge(
+                            glyph = planet.glyph,
+                            tint = ext.colorFor(planet),
+                            selected = selected
+                        )
+                    }
+                )
+            }
+        }
+    }
+}
+
+private enum class AstroListSortMode(val label: StringResource) {
+    Time(Res.string.astro_sort_time),
+    Aspect(Res.string.astro_sort_aspect);
+
+    fun next(): AstroListSortMode = when (this) {
+        Time -> Aspect
+        Aspect -> Time
+    }
+}
+
+@Composable
 private fun StatusPill(
     label: String,
     color: Color
@@ -544,20 +521,6 @@ private fun StatusPill(
 }
 
 @Composable
-private fun AstroWeekChip(
-    day: AstroWeekDaySummary,
-    selectedDate: LocalDate,
-    weekFmt: DateTimeFormatter,
-    onSelect: (LocalDate) -> Unit
-) {
-    FilterChip(
-        selected = day.date == selectedDate,
-        onClick = { onSelect(day.date) },
-        label = { Text("${day.date.format(weekFmt)} (${day.eventCount})") }
-    )
-}
-
-@Composable
 private fun AstroEventRow(
     event: AstroAspectEvent,
     selectedDate: LocalDate,
@@ -566,7 +529,8 @@ private fun AstroEventRow(
     astroTimeOffsetMinutes: Int,
     dateFmt: DateTimeFormatter,
     timeFmt: DateTimeFormatter,
-    orbDegrees: Double
+    orbDegrees: Double,
+    showDivider: Boolean
 ) {
     val ext = LocalExtendedColors.current
     val adjustedExactInstant = event.exactInstant.plus(Duration.ofMinutes(astroTimeOffsetMinutes.toLong()))
@@ -596,62 +560,68 @@ private fun AstroEventRow(
     )
     val countdown = countdownState(nowInstant, adjustedExactInstant)
 
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                AstroGlyphBadge(
-                    glyph = event.primaryPlanet.glyph,
-                    tint = ext.colorFor(event.primaryPlanet),
-                    selected = true
-                )
-                AstroGlyphBadge(
-                    glyph = event.aspectType.glyph,
-                    tint = ext.colorFor(event.aspectType),
-                    selected = true
-                )
-                AstroGlyphBadge(
-                    glyph = event.secondaryPlanet.glyph,
-                    tint = ext.colorFor(event.secondaryPlanet),
-                    selected = true
-                )
+            AstroGlyphBadge(
+                glyph = event.primaryPlanet.glyph,
+                tint = ext.colorFor(event.primaryPlanet),
+                selected = true
+            )
+            AstroGlyphBadge(
+                glyph = event.aspectType.glyph,
+                tint = ext.colorFor(event.aspectType),
+                selected = true
+            )
+            AstroGlyphBadge(
+                glyph = event.secondaryPlanet.glyph,
+                tint = ext.colorFor(event.secondaryPlanet),
+                selected = true
+            )
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "${event.primaryPlanet.label} ${event.aspectType.label} ${event.secondaryPlanet.label}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        "${event.aspectType.angleDegrees.toInt()}� � ${stringResource(Res.string.astro_label_orb)} �${formatDegrees(orbDegrees)}�",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                StatusPill(label = statusLabel, color = statusColor)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "${event.primaryPlanet.label} ${event.aspectType.label} ${event.secondaryPlanet.label}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    stringResource(
+                        Res.string.astro_angle_orb_format,
+                        event.aspectType.angleDegrees.toInt(),
+                        stringResource(Res.string.astro_label_orb),
+                        formatDegrees(orbDegrees)
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
-            TimeMetricRow(
-                localText = exactLocal,
-                utcText = exactUtc,
-                localZoneId = zoneId.id,
-                countdownText = countdown.text,
-                countdownRelation = countdown.relation
+            StatusPill(label = statusLabel, color = statusColor)
+        }
+
+        TimeMetricRow(
+            localText = exactLocal,
+            utcText = exactUtc,
+            localZoneId = zoneId.id,
+            countdownText = countdown.text,
+            countdownRelation = countdown.relation
+        )
+
+        if (showDivider) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(ext.shellDivider)
             )
         }
     }
@@ -672,17 +642,17 @@ private fun TimeMetricRow(
     }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "${localZoneId}: $localText",
+            text = stringResource(Res.string.astro_time_local_format, localZoneId, localText),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "UTC: $utcText",
+            text = stringResource(Res.string.astro_time_utc_format, utcText),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "${localZoneId} $countdownLabel: $countdownText",
+            text = stringResource(Res.string.astro_time_countdown_format, localZoneId, countdownLabel, countdownText),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -726,6 +696,12 @@ private fun astroGlyphDrawable(glyphKey: String): DrawableResource = when (glyph
     "\u2646" -> Res.drawable.astro_planet_neptune
     "\u2647" -> Res.drawable.astro_planet_pluto
     else -> Res.drawable.astro_planet_sun
+}
+
+private enum class AstroEventStatus {
+    Upcoming,
+    Exact,
+    Passed
 }
 
 private fun eventStatus(nowInstant: Instant, exactInstant: Instant): AstroEventStatus {
@@ -805,5 +781,7 @@ private fun glyphGlyphKey(glyph: String): String = glyph
     .replace("\uFE0E", "")
 
 private fun formatDegrees(value: Double): String = (kotlin.math.round(value * 10.0) / 10.0).toString()
+
+
 
 

@@ -1,7 +1,7 @@
 package de.tradebuddy.data
 
 import de.tradebuddy.domain.model.AppThemeMode
-import de.tradebuddy.domain.model.AppThemeStyle
+import de.tradebuddy.domain.model.AppAccentColor
 import de.tradebuddy.domain.model.AstroAspectType
 import de.tradebuddy.domain.model.ASTRO_MAX_ORB_DEGREES
 import de.tradebuddy.domain.model.ASTRO_MIN_ORB_DEGREES
@@ -15,8 +15,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 data class SettingsSnapshot(
-    val themeStyle: AppThemeStyle?,
     val themeMode: AppThemeMode?,
+    val accentColor: AppAccentColor?,
     val selectedCityKeys: Set<String>?,
     val sunTimeOffsetMinutes: Int?,
     val moonTimeOffsetMinutes: Int?,
@@ -51,8 +51,8 @@ class FileSettingsRepository(
             val raw = rawV2 ?: rawV1 ?: return@withContext null
             val props = decodeMap(raw)
 
-            val themeStyle = props["themeStyle"]?.let { AppThemeStyle.fromKey(it) }
             val themeMode = props["themeMode"]?.let { AppThemeMode.fromKey(it) }
+            val accentColor = props["accentColor"]?.let { AppAccentColor.fromKey(it) }
             val showUtcTime = props["showUtcTime"]?.toBooleanStrictOrNull()
             val showAzimuth = props["showAzimuth"]?.toBooleanStrictOrNull()
             val showSun = props["showSun"]?.toBooleanStrictOrNull()
@@ -79,8 +79,8 @@ class FileSettingsRepository(
             val aspectOrbs = parseAspectOrbs(props["astroAspectOrbs"])
 
             SettingsSnapshot(
-                themeStyle = themeStyle,
                 themeMode = themeMode,
+                accentColor = accentColor,
                 selectedCityKeys = selectedCityKeys,
                 sunTimeOffsetMinutes = sunTimeOffsetMinutes,
                 moonTimeOffsetMinutes = moonTimeOffsetMinutes,
@@ -110,8 +110,8 @@ class FileSettingsRepository(
     override suspend fun saveSettings(settings: UserSettings) = withContext(dispatcher) {
         runCatching {
             val map = linkedMapOf(
-                "themeStyle" to settings.themeStyle.key,
                 "themeMode" to settings.themeMode.key,
+                "accentColor" to settings.accentColor.key,
                 "selectedCities" to settings.selectedCityKeys.joinToString(";"),
                 "sunTimeOffsetMinutes" to settings.sunTimeOffsetMinutes.toString(),
                 "moonTimeOffsetMinutes" to settings.moonTimeOffsetMinutes.toString(),

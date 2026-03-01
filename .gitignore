@@ -1,6 +1,8 @@
 *.iml
 .kotlin
 .gradle
+.gradle-user-home
+.android-user-home
 **/build/
 xcuserdata
 !src/**/build/

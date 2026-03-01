@@ -1,61 +1,58 @@
 package de.tradebuddy
 
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import de.tradebuddy.di.AppContainer
-import de.tradebuddy.domain.model.AppThemeStyle
-import de.tradebuddy.domain.model.AppThemeMode
-import de.tradebuddy.ui.AppRootContent
-import de.tradebuddy.ui.theme.colorSchemeFor
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
-import trade_buddy.composeapp.generated.resources.Res
-import trade_buddy.composeapp.generated.resources.logo_tradebuddy
-import trade_buddy.composeapp.generated.resources.window_title
+import de.tradebuddy.ui.AppRoot
+import java.awt.Color
+import java.awt.Font
+import java.awt.RenderingHints
+import java.awt.Taskbar
+import java.awt.image.BufferedImage
 
-fun main() = application {
-    val container = remember { AppContainer() }
-    val viewModel = remember(container) { container.createSunMoonViewModel() }
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.close() }
-    }
-    val state by viewModel.state.collectAsState()
-    val icon = themedWindowIcon(state.themeStyle, state.themeMode)
+private val TradeBuddyWindowIcons: List<BufferedImage> = listOf(
+    createTradeBuddyWindowIcon(16),
+    createTradeBuddyWindowIcon(24),
+    createTradeBuddyWindowIcon(32),
+    createTradeBuddyWindowIcon(48),
+    createTradeBuddyWindowIcon(64)
+)
 
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = stringResource(Res.string.window_title),
-        icon = icon
-    ) {
-        AppRootContent(state = state, viewModel = viewModel)
-    }
+private fun createTradeBuddyWindowIcon(size: Int): BufferedImage {
+    val image = BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB)
+    val graphics = image.createGraphics()
+    graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+    graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+
+    val circleInset = (size * 0.08f).toInt()
+    graphics.color = Color(0x26, 0x7A, 0xFF)
+    graphics.fillOval(circleInset, circleInset, size - (circleInset * 2), size - (circleInset * 2))
+
+    graphics.color = Color(0xFF, 0xFF, 0xFF)
+    graphics.font = Font("SansSerif", Font.BOLD, (size * 0.43f).toInt().coerceAtLeast(10))
+    val text = "TB"
+    val metrics = graphics.fontMetrics
+    val x = (size - metrics.stringWidth(text)) / 2
+    val y = ((size - metrics.height) / 2) + metrics.ascent
+    graphics.drawString(text, x, y)
+    graphics.dispose()
+    return image
 }
 
-@Composable
-private fun themedWindowIcon(
-    themeStyle: AppThemeStyle,
-    themeMode: AppThemeMode
-): Painter {
-    val base = painterResource(Res.drawable.logo_tradebuddy)
-    val tint = colorSchemeFor(themeStyle, themeMode).primary
-    return remember(base, tint) {
-        object : Painter() {
-            override val intrinsicSize: Size = base.intrinsicSize
-
-            override fun DrawScope.onDraw() {
-                with(base) {
-                    draw(size, colorFilter = ColorFilter.tint(tint))
+fun main() = application {
+    Window(
+        onCloseRequest = ::exitApplication,
+        title = ""
+    ) {
+        DisposableEffect(window) {
+            window.iconImages = TradeBuddyWindowIcons
+            runCatching {
+                if (Taskbar.isTaskbarSupported()) {
+                    Taskbar.getTaskbar().iconImage = TradeBuddyWindowIcons.last()
                 }
             }
+            onDispose {}
         }
+        AppRoot()
     }
 }

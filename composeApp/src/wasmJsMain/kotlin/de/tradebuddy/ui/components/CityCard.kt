@@ -1,16 +1,22 @@
 package de.tradebuddy.ui.components
 
+import de.tradebuddy.domain.model.SunMoonTimes
+import de.tradebuddy.domain.util.azimuthToCardinalIndex
+import de.tradebuddy.domain.util.formatOffsetDiff
+import de.tradebuddy.domain.util.formatUtcOffset
+import de.tradebuddy.ui.icons.SnowIcons
+import de.tradebuddy.ui.theme.extended
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,10 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
-import de.tradebuddy.domain.model.SunMoonTimes
-import de.tradebuddy.domain.util.azimuthToCardinalIndex
-import de.tradebuddy.domain.util.formatOffsetDiff
-import de.tradebuddy.domain.util.formatUtcOffset
 import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -55,8 +57,10 @@ fun CityCard(
     showSun: Boolean,
     showMoon: Boolean,
     showRise: Boolean,
-    showSet: Boolean
+    showSet: Boolean,
+    showDivider: Boolean = false
 ) {
+    val ext = MaterialTheme.extended
     val cityZone = remember(r.city.zoneId) { ZoneId.of(r.city.zoneId) }
 
     val anchorInstant = remember(r.date, cityZone) { r.date.atTime(12, 0).atZone(cityZone).toInstant() }
@@ -78,95 +82,107 @@ fun CityCard(
     fun fmtCity(z: ZonedDateTime?) = z?.format(timeFmt) ?: dash
     fun fmtUser(z: ZonedDateTime?) = z?.withZoneSameInstant(userZone)?.format(timeFmt) ?: dash
 
-    ElevatedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column {
-                Text(
-                    stringResource(Res.string.city_title, r.city.label, r.city.country),
-                    style = MaterialTheme.typography.titleLarge
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Column {
+            Text(
+                stringResource(Res.string.city_title, r.city.label, r.city.country),
+                style = MaterialTheme.typography.titleSmall
+            )
+            Text(
+                stringResource(
+                    Res.string.city_timezone_info,
+                    r.city.zoneId,
+                    formatUtcOffset(cityOffset),
+                    formatUtcOffset(userOffset),
+                    diffLabel
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Row(Modifier.fillMaxWidth()) {
+            Spacer(Modifier.weight(1f))
+            Text(
+                stringResource(Res.string.city_local_time),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.width(90.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                stringResource(Res.string.city_user_time),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.width(90.dp)
+            )
+        }
+
+        HorizontalDivider(color = ext.shellDivider)
+
+        val showSunRise = showSun && showRise
+        val showSunSet = showSun && showSet
+        val showMoonRise = showMoon && showRise
+        val showMoonSet = showMoon && showSet
+        val showSunGroup = showSunRise || showSunSet
+        val showMoonGroup = showMoonRise || showMoonSet
+
+        if (!showSunGroup && !showMoonGroup) {
+            Text(
+                stringResource(Res.string.city_no_events),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            if (showSunRise) {
+                EventRow(
+                    stringResource(Res.string.event_sunrise),
+                    r.sunriseAzimuthDeg,
+                    fmtCity(adjust(r.sunrise, sunEvent = true)),
+                    fmtUser(adjust(r.sunrise, sunEvent = true))
                 )
-                Text(
-                    stringResource(
-                        Res.string.city_timezone_info,
-                        r.city.zoneId,
-                        formatUtcOffset(cityOffset),
-                        formatUtcOffset(userOffset),
-                        diffLabel
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            if (showSunSet) {
+                EventRow(
+                    stringResource(Res.string.event_sunset),
+                    r.sunsetAzimuthDeg,
+                    fmtCity(adjust(r.sunset, sunEvent = true)),
+                    fmtUser(adjust(r.sunset, sunEvent = true))
                 )
             }
 
-            Row(Modifier.fillMaxWidth()) {
-                Spacer(Modifier.weight(1f))
-                Text(
-                    stringResource(Res.string.city_local_time),
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.width(90.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    stringResource(Res.string.city_user_time),
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.width(90.dp)
-                )
+            if (showSunGroup && showMoonGroup) {
+                HorizontalDivider(color = ext.shellDivider)
             }
 
-            HorizontalDivider()
-
-            val showSunRise = showSun && showRise
-            val showSunSet = showSun && showSet
-            val showMoonRise = showMoon && showRise
-            val showMoonSet = showMoon && showSet
-            val showSunGroup = showSunRise || showSunSet
-            val showMoonGroup = showMoonRise || showMoonSet
-
-            if (!showSunGroup && !showMoonGroup) {
-                Text(
-                    stringResource(Res.string.city_no_events),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            if (showMoonRise) {
+                EventRow(
+                    stringResource(Res.string.event_moonrise),
+                    r.moonriseAzimuthDeg,
+                    fmtCity(adjust(r.moonrise, sunEvent = false)),
+                    fmtUser(adjust(r.moonrise, sunEvent = false))
                 )
-            } else {
-                if (showSunRise) {
-                    EventRow(
-                        stringResource(Res.string.event_sunrise),
-                        r.sunriseAzimuthDeg,
-                        fmtCity(adjust(r.sunrise, sunEvent = true)),
-                        fmtUser(adjust(r.sunrise, sunEvent = true))
-                    )
-                }
-                if (showSunSet) {
-                    EventRow(
-                        stringResource(Res.string.event_sunset),
-                        r.sunsetAzimuthDeg,
-                        fmtCity(adjust(r.sunset, sunEvent = true)),
-                        fmtUser(adjust(r.sunset, sunEvent = true))
-                    )
-                }
-
-                if (showSunGroup && showMoonGroup) {
-                    HorizontalDivider()
-                }
-
-                if (showMoonRise) {
-                    EventRow(
-                        stringResource(Res.string.event_moonrise),
-                        r.moonriseAzimuthDeg,
-                        fmtCity(adjust(r.moonrise, sunEvent = false)),
-                        fmtUser(adjust(r.moonrise, sunEvent = false))
-                    )
-                }
-                if (showMoonSet) {
-                    EventRow(
-                        stringResource(Res.string.event_moonset),
-                        r.moonsetAzimuthDeg,
-                        fmtCity(adjust(r.moonset, sunEvent = false)),
-                        fmtUser(adjust(r.moonset, sunEvent = false))
-                    )
-                }
             }
+            if (showMoonSet) {
+                EventRow(
+                    stringResource(Res.string.event_moonset),
+                    r.moonsetAzimuthDeg,
+                    fmtCity(adjust(r.moonset, sunEvent = false)),
+                    fmtUser(adjust(r.moonset, sunEvent = false))
+                )
+            }
+        }
+
+        if (showDivider) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(ext.shellDivider)
+            )
         }
     }
 }
@@ -188,7 +204,7 @@ private fun EventRow(
 
             if (azimuth != null) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                    imageVector = SnowIcons.ArrowRight,
                     contentDescription = stringResource(Res.string.label_azimuth),
                     modifier = Modifier
                         .size(18.dp)

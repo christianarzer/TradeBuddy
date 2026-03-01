@@ -1,4 +1,4 @@
-package de.tradebuddy.domain.util
+﻿package de.tradebuddy.domain.util
 
 import de.tradebuddy.domain.model.City
 import de.tradebuddy.domain.model.CompactEventType
@@ -70,3 +70,4 @@ Tokyo|chip=+14h · in anderer Zeitzone schon morgen
             longitude = 0.0
         )
 }
+

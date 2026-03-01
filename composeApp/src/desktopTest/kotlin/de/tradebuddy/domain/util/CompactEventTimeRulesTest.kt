@@ -1,4 +1,4 @@
-package de.tradebuddy.domain.util
+﻿package de.tradebuddy.domain.util
 
 import de.tradebuddy.domain.model.City
 import de.tradebuddy.domain.model.SunMoonTimes
@@ -233,3 +233,4 @@ class CompactEventTimeRulesTest {
             longitude = 0.0
         )
 }
+

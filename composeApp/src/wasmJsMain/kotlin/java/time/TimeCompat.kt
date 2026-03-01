@@ -1,4 +1,4 @@
-@file:OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
+﻿@file:OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
 
 package java.time
 
@@ -303,7 +303,7 @@ private fun instantToLocalDateTime(epochMillis: Long, zoneId: ZoneId): KLocalDat
 }
 
 /**
- * If [zone] is a fixed-offset zone (UTC, Z, GMT, ±HH:MM, UTC±HH:MM)
+ * If [zone] is a fixed-offset zone (UTC, Z, GMT, Â±HH:MM, UTCÂ±HH:MM)
  * returns the offset in seconds; otherwise returns `null`.
  */
 private fun fixedOffsetSeconds(zone: TimeZone): Long? {
@@ -539,3 +539,4 @@ private fun daysInMonth(year: Int, month: Int): Int = when (month) {
 
 private fun isLeapYear(year: Int): Boolean =
     (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+

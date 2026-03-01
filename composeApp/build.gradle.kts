@@ -12,7 +12,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     jvm("desktop") {
@@ -59,9 +59,11 @@ kotlin {
 
                 implementation(libs.navigation.compose)
                 implementation(libs.lifecycle.runtime.compose)
-                implementation(libs.material.icons.core)
-                implementation(libs.material.icons.extended)
                 implementation(libs.kotlinx.datetime)
+                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.vico.multiplatform)
+                implementation(libs.vico.multiplatform.m3)
+                implementation(libs.phosphor.icon)
             }
         }
 
@@ -121,6 +123,7 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "TradeBuddy"
             packageVersion = "1.0.0"
+            modules("java.net.http")
         }
     }
 }

@@ -6,11 +6,13 @@ compose-multiplatform = "1.10.1"
 compose-material3 = "1.9.0"
 koin = "4.1.1"
 kotlin = "2.3.20-Beta2"
-materialIconsCore = "1.7.3"
 navigationCompose = "2.9.2"
 lifecycleCompose = "2.9.6"
 astronomy = "2.1.19"
 kotlinxDatetime = "0.7.1"
+kotlinxSerializationJson = "1.9.0"
+vico = "2.4.1"
+phosphorIcon = "1.0.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
@@ -23,11 +25,13 @@ compose-components-ui-tooling-preview = { module = "org.jetbrains.compose.compon
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleCompose" }
-material-icons-core = { module = "org.jetbrains.compose.material:material-icons-core", version.ref = "materialIconsCore" }
-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsCore" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 astronomy-engine = { module = "com.github.cosinekitty:astronomy", version.ref = "astronomy" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+vico-multiplatform = { module = "com.patrykandpatrick.vico:multiplatform", version.ref = "vico" }
+vico-multiplatform-m3 = { module = "com.patrykandpatrick.vico:multiplatform-m3", version.ref = "vico" }
+phosphor-icon = { module = "com.adamglin:phosphor-icon", version.ref = "phosphorIcon" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

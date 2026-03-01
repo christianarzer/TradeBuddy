@@ -1,10 +1,24 @@
 package de.tradebuddy.ui.screens
 
-import androidx.compose.foundation.BorderStroke
+import de.tradebuddy.domain.model.AppThemeMode
+import de.tradebuddy.domain.model.AppAccentColor
+import de.tradebuddy.domain.model.City
+import de.tradebuddy.domain.util.key
+import de.tradebuddy.presentation.SunMoonUiState
+import de.tradebuddy.presentation.SunMoonViewModel
+import de.tradebuddy.ui.icons.SnowIcons
+import de.tradebuddy.ui.theme.AppSpacing
+import de.tradebuddy.ui.theme.appBlockCardColors
+import de.tradebuddy.ui.theme.appFlatCardElevation
+import de.tradebuddy.ui.theme.accentColorFor
+import de.tradebuddy.ui.theme.extended
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,44 +29,28 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.LocationCity
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import de.tradebuddy.domain.model.AppThemeMode
-import de.tradebuddy.domain.model.AppThemeStyle
-import de.tradebuddy.domain.model.City
-import de.tradebuddy.domain.util.key
-import de.tradebuddy.presentation.SunMoonUiState
-import de.tradebuddy.presentation.SunMoonViewModel
-import de.tradebuddy.ui.theme.AppSpacing
-import de.tradebuddy.ui.theme.previewColorsFor
-import de.tradebuddy.ui.theme.appElevatedCardColors
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.nav_settings
@@ -60,16 +58,12 @@ import trade_buddy.composeapp.generated.resources.settings_active_count
 import trade_buddy.composeapp.generated.resources.settings_cities_desc
 import trade_buddy.composeapp.generated.resources.settings_cities_empty
 import trade_buddy.composeapp.generated.resources.settings_cities_search
-import trade_buddy.composeapp.generated.resources.settings_logs_desc
-import trade_buddy.composeapp.generated.resources.settings_logs_open
-import trade_buddy.composeapp.generated.resources.settings_logs_title
 import trade_buddy.composeapp.generated.resources.settings_open_settings_dir
 import trade_buddy.composeapp.generated.resources.settings_open_stats_dir
 import trade_buddy.composeapp.generated.resources.settings_section_cities
 import trade_buddy.composeapp.generated.resources.settings_section_compact
 import trade_buddy.composeapp.generated.resources.settings_section_storage
 import trade_buddy.composeapp.generated.resources.settings_section_themes
-import trade_buddy.composeapp.generated.resources.settings_section_tools
 import trade_buddy.composeapp.generated.resources.settings_select_all
 import trade_buddy.composeapp.generated.resources.settings_select_none
 import trade_buddy.composeapp.generated.resources.settings_show_azimuth
@@ -88,23 +82,26 @@ import trade_buddy.composeapp.generated.resources.settings_storage_desc
 import trade_buddy.composeapp.generated.resources.settings_storage_path
 import trade_buddy.composeapp.generated.resources.settings_theme_mode
 import trade_buddy.composeapp.generated.resources.settings_theme_mode_desc
+import trade_buddy.composeapp.generated.resources.settings_theme_accent
+import trade_buddy.composeapp.generated.resources.settings_theme_accent_desc
 import trade_buddy.composeapp.generated.resources.settings_themes_desc
 import trade_buddy.composeapp.generated.resources.tab_statistics
-import trade_buddy.composeapp.generated.resources.theme_active
-import trade_buddy.composeapp.generated.resources.theme_aurora
-import trade_buddy.composeapp.generated.resources.theme_copper
 import trade_buddy.composeapp.generated.resources.theme_day
-import trade_buddy.composeapp.generated.resources.theme_midnight
 import trade_buddy.composeapp.generated.resources.theme_night
-import trade_buddy.composeapp.generated.resources.theme_nimbus
-import trade_buddy.composeapp.generated.resources.theme_ocean
-import trade_buddy.composeapp.generated.resources.theme_slate
+import trade_buddy.composeapp.generated.resources.accent_purple
+import trade_buddy.composeapp.generated.resources.accent_indigo
+import trade_buddy.composeapp.generated.resources.accent_blue
+import trade_buddy.composeapp.generated.resources.accent_green
+import trade_buddy.composeapp.generated.resources.accent_yellow
+import trade_buddy.composeapp.generated.resources.accent_orange
+import trade_buddy.composeapp.generated.resources.accent_cyan
 
 @Composable
 fun SettingsScreen(
     state: SunMoonUiState,
     viewModel: SunMoonViewModel
 ) {
+    val ext = MaterialTheme.extended
     val scroll = rememberScrollState()
     val cityScroll = rememberScrollState()
     var cityQuery by rememberSaveable { mutableStateOf("") }
@@ -114,9 +111,13 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scroll),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.s)
     ) {
-        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
+        ElevatedCard(
+            Modifier.fillMaxWidth(),
+            colors = appBlockCardColors(),
+            elevation = appFlatCardElevation(),
+        ) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -124,11 +125,10 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.itemGap)
             ) {
                 SectionHeader(
-                    icon = Icons.Outlined.DarkMode,
+                    icon = SnowIcons.Moon,
                     title = stringResource(Res.string.settings_section_themes),
                     subtitle = stringResource(Res.string.settings_themes_desc)
                 )
-
                 val modeLabel = if (state.themeMode == AppThemeMode.Dark) {
                     stringResource(Res.string.theme_night)
                 } else {
@@ -142,15 +142,18 @@ fun SettingsScreen(
                         viewModel.setThemeMode(if (enabled) AppThemeMode.Dark else AppThemeMode.Light)
                     }
                 )
-
-                ThemeGrid(
-                    selected = state.themeStyle,
-                    onSelect = viewModel::setThemeStyle
+                SettingsAccentRow(
+                    selected = state.accentColor,
+                    onSelect = viewModel::setAccentColor
                 )
             }
         }
 
-        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
+        ElevatedCard(
+            Modifier.fillMaxWidth(),
+            colors = appBlockCardColors(),
+            elevation = appFlatCardElevation(),
+        ) {
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -158,10 +161,9 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(AppSpacing.itemGap)
             ) {
                 SectionHeader(
-                    icon = Icons.Outlined.Tune,
+                    icon = SnowIcons.Sliders,
                     title = stringResource(Res.string.settings_section_compact)
                 )
-
                 SettingsToggleRow(
                     title = stringResource(Res.string.settings_show_utc),
                     subtitle = stringResource(Res.string.settings_show_utc_desc),
@@ -201,15 +203,19 @@ fun SettingsScreen(
             }
         }
 
-        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
+        ElevatedCard(
+            Modifier.fillMaxWidth(),
+            colors = appBlockCardColors(),
+            elevation = appFlatCardElevation(),
+        ) {
             Column(
                 Modifier
                     .fillMaxWidth()
                     .padding(AppSpacing.cardPadding),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.s)
             ) {
                 SectionHeader(
-                    icon = Icons.Outlined.LocationCity,
+                    icon = SnowIcons.Buildings,
                     title = stringResource(Res.string.settings_section_cities),
                     subtitle = stringResource(Res.string.settings_cities_desc)
                 )
@@ -227,13 +233,13 @@ fun SettingsScreen(
                         unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                         disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    leadingIcon = { Icon(SnowIcons.Search, contentDescription = null) },
                     label = { Text(stringResource(Res.string.settings_cities_search)) }
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     FilledTonalButton(
@@ -274,8 +280,10 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 320.dp)
+                        .background(ext.toolbarSurface, MaterialTheme.shapes.medium)
+                        .padding(horizontal = AppSpacing.s)
                         .verticalScroll(cityScroll),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     if (filteredCities.isEmpty()) {
                         Text(
@@ -300,41 +308,23 @@ fun SettingsScreen(
             }
         }
 
-        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(AppSpacing.cardPadding),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                SectionHeader(
-                    icon = Icons.Outlined.FolderOpen,
-                    title = stringResource(Res.string.settings_section_tools)
-                )
-                ToolEntryCard(
-                    icon = Icons.Outlined.Search,
-                    title = stringResource(Res.string.settings_logs_title),
-                    subtitle = stringResource(Res.string.settings_logs_desc),
-                    buttonLabel = stringResource(Res.string.settings_logs_open),
-                    onOpen = viewModel::openLogsConsole
-                )
-            }
-        }
-
         if (storageUi.visible) {
-            ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
+            ElevatedCard(
+                Modifier.fillMaxWidth(),
+                colors = appBlockCardColors(),
+                elevation = appFlatCardElevation(),
+            ) {
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .padding(AppSpacing.cardPadding),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.s)
                 ) {
                     SectionHeader(
-                        icon = Icons.Outlined.FolderOpen,
+                        icon = SnowIcons.FolderOpen,
                         title = stringResource(Res.string.settings_section_storage),
                         subtitle = stringResource(Res.string.settings_storage_desc)
                     )
-
                     StorageRow(
                         title = stringResource(Res.string.nav_settings),
                         path = storageUi.settingsPath,
@@ -362,176 +352,6 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun ToolEntryCard(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    buttonLabel: String,
-    onOpen: () -> Unit
-) {
-    OutlinedCard(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            OutlinedButton(onClick = onOpen) {
-                Text(buttonLabel)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemeGrid(
-    selected: AppThemeStyle,
-    onSelect: (AppThemeStyle) -> Unit
-) {
-    val items = remember { AppThemeStyle.entries }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        items.chunked(2).forEach { rowItems ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                rowItems.forEach { style ->
-                    ThemeOptionCard(
-                        style = style,
-                        selected = style == selected,
-                        onSelect = onSelect,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                if (rowItems.size == 1) {
-                    Spacer(Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemeOptionCard(
-    style: AppThemeStyle,
-    selected: Boolean,
-    onSelect: (AppThemeStyle) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val dayPreview = remember(style) { previewColorsFor(style, AppThemeMode.Light) }
-    val nightPreview = remember(style) { previewColorsFor(style, AppThemeMode.Dark) }
-    val borderColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-    OutlinedCard(
-        onClick = { onSelect(style) },
-        modifier = modifier,
-        border = BorderStroke(1.dp, borderColor),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
-    ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    ThemeSwatchRow(
-                        label = stringResource(Res.string.theme_day),
-                        colors = dayPreview
-                    )
-                    ThemeSwatchRow(
-                        label = stringResource(Res.string.theme_night),
-                        colors = nightPreview
-                    )
-                }
-                Text(themeLabel(style), style = MaterialTheme.typography.titleSmall)
-            }
-            if (selected) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(8.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = MaterialTheme.shapes.small
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        stringResource(Res.string.theme_active),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemeSwatchRow(label: String, colors: List<Color>) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            colors.forEach { color ->
-                ThemeSwatch(color)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemeSwatch(color: Color) {
-    Box(
-        modifier = Modifier
-            .size(12.dp)
-            .background(color, CircleShape)
-    )
-}
-
-@Composable
-private fun themeLabel(style: AppThemeStyle): String = when (style) {
-    AppThemeStyle.Midnight -> stringResource(Res.string.theme_midnight)
-    AppThemeStyle.Ocean -> stringResource(Res.string.theme_ocean)
-    AppThemeStyle.Slate -> stringResource(Res.string.theme_slate)
-    AppThemeStyle.Aurora -> stringResource(Res.string.theme_aurora)
-    AppThemeStyle.Copper -> stringResource(Res.string.theme_copper)
-    AppThemeStyle.Nimbus -> stringResource(Res.string.theme_nimbus)
-}
-
-@Composable
 private fun SectionHeader(
     icon: ImageVector,
     title: String,
@@ -539,7 +359,7 @@ private fun SectionHeader(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)
     ) {
         Icon(
             imageVector = icon,
@@ -586,31 +406,66 @@ private fun SettingsToggleRow(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SettingsAccentRow(
+    selected: AppAccentColor,
+    onSelect: (AppAccentColor) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+    ) {
+        Text(
+            text = stringResource(Res.string.settings_theme_accent),
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Text(
+            text = stringResource(Res.string.settings_theme_accent_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
+        ) {
+            AppAccentColor.entries.forEach { accent ->
+                FilterChip(
+                    selected = selected == accent,
+                    onClick = { onSelect(accent) },
+                    label = { Text(text = stringResource(accent.labelRes())) },
+                    leadingIcon = {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(accentColorFor(accent), CircleShape)
+                        )
+                    }
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun CityToggleRow(
     city: City,
     checked: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    val borderColor = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-    val containerColor = if (checked) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-
-    OutlinedCard(
-        onClick = { onToggle(!checked) },
+    val ext = MaterialTheme.extended
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        border = BorderStroke(1.dp, borderColor),
-        colors = CardDefaults.outlinedCardColors(containerColor = containerColor)
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .background(if (checked) ext.tableRowSelected else Color.Transparent, MaterialTheme.shapes.small)
+                .clickable { onToggle(!checked) }
+                .padding(horizontal = AppSpacing.s, vertical = AppSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)
         ) {
             CountryFlagBadge(city.countryCode)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -626,7 +481,7 @@ private fun CityToggleRow(
                             MaterialTheme.colorScheme.surfaceVariant,
                             MaterialTheme.shapes.small
                         )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .padding(horizontal = AppSpacing.xs, vertical = AppSpacing.xxs)
                 ) {
                     Text(
                         city.zoneId,
@@ -640,6 +495,12 @@ private fun CityToggleRow(
                 onCheckedChange = onToggle
             )
         }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 1.dp)
+                .background(ext.shellDivider)
+        )
     }
 }
 
@@ -661,6 +522,16 @@ private fun flagEmoji(countryCode: String): String {
     return if (code.length == 2) code else countryCode
 }
 
+private fun AppAccentColor.labelRes() = when (this) {
+    AppAccentColor.Purple -> Res.string.accent_purple
+    AppAccentColor.Indigo -> Res.string.accent_indigo
+    AppAccentColor.Blue -> Res.string.accent_blue
+    AppAccentColor.Green -> Res.string.accent_green
+    AppAccentColor.Yellow -> Res.string.accent_yellow
+    AppAccentColor.Orange -> Res.string.accent_orange
+    AppAccentColor.Cyan -> Res.string.accent_cyan
+}
+
 @Composable
 private fun StorageRow(
     title: String,
@@ -668,18 +539,18 @@ private fun StorageRow(
     buttonLabel: String?,
     onOpen: () -> Unit
 ) {
-    OutlinedCard(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-        )
+    val ext = MaterialTheme.extended
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(ext.toolbarSurface, MaterialTheme.shapes.small)
+            .padding(horizontal = AppSpacing.s, vertical = AppSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(AppSpacing.xs)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(AppSpacing.s)
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(title, style = MaterialTheme.typography.titleSmall)
@@ -697,6 +568,12 @@ private fun StorageRow(
                 }
             }
         }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 1.dp)
+                .background(ext.shellDivider)
+        )
     }
 }
 

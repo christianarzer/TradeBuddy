@@ -1,7 +1,7 @@
 package de.tradebuddy.presentation
 
 import de.tradebuddy.domain.model.AppThemeMode
-import de.tradebuddy.domain.model.AppThemeStyle
+import de.tradebuddy.domain.model.AppAccentColor
 import de.tradebuddy.domain.model.AstroAspectEvent
 import de.tradebuddy.domain.model.AstroAspectType
 import de.tradebuddy.domain.model.AstroCalendarScope
@@ -23,7 +23,6 @@ import java.time.ZonedDateTime
 import org.jetbrains.compose.resources.StringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.tab_compact
-import trade_buddy.composeapp.generated.resources.tab_details
 import trade_buddy.composeapp.generated.resources.tab_astro_aspects
 import trade_buddy.composeapp.generated.resources.tab_astro_feature
 import trade_buddy.composeapp.generated.resources.tab_export
@@ -33,6 +32,9 @@ import trade_buddy.composeapp.generated.resources.tab_trend
 
 enum class AppScreen {
     SunMoon,
+    MarketEvents,
+    Portfolio,
+    Tasks,
     AstroCalendar,
     Settings,
     Logs,
@@ -42,7 +44,6 @@ enum class AppScreen {
 enum class SunMoonTab(val label: StringResource) {
     Compact(Res.string.tab_compact),
     Statistics(Res.string.tab_statistics),
-    Details(Res.string.tab_details),
     Trend(Res.string.tab_trend),
     Astro(Res.string.tab_astro_feature),
     Export(Res.string.tab_export)
@@ -113,8 +114,8 @@ data class SunMoonUiState(
     val moonPhases: MoonPhaseUiState,
     val astroCalendar: AstroCalendarUiState = AstroCalendarUiState(),
     val screen: AppScreen = AppScreen.SunMoon,
-    val themeStyle: AppThemeStyle = AppThemeStyle.Slate,
     val themeMode: AppThemeMode = AppThemeMode.Dark,
+    val accentColor: AppAccentColor = AppAccentColor.Purple,
     val selectedTab: SunMoonTab = SunMoonTab.Compact,
     val selectedAstroTab: AstroCalendarTab = AstroCalendarTab.Aspects,
     val nowInstant: Instant = Instant.now(),
@@ -129,6 +130,8 @@ data class SunMoonUiState(
     val showSet: Boolean = true,
     val allCities: List<City> = emptyList(),
     val selectedCityKeys: Set<String> = emptySet(),
+    val favoriteScreens: Set<AppScreen> = setOf(AppScreen.SunMoon, AppScreen.Tasks),
+    val logsSearchQuery: String = "",
     val results: List<SunMoonTimes> = emptyList(),
     val filteredResults: List<SunMoonTimes> = emptyList(),
     val compactSourceResults: List<SunMoonTimes> = emptyList(),

@@ -1,24 +1,38 @@
 package de.tradebuddy.ui.screens
 
+import de.tradebuddy.domain.model.City
+import de.tradebuddy.domain.util.key
+import de.tradebuddy.presentation.SunMoonUiState
+import de.tradebuddy.presentation.SunMoonViewModel
+import de.tradebuddy.presentation.TimeOptimizerDayRow
+import de.tradebuddy.ui.components.rememberCopyTextToClipboard
+import de.tradebuddy.ui.components.shared.SnowToolbar
+import de.tradebuddy.ui.components.shared.SnowToolbarIconButton
+import de.tradebuddy.ui.components.shared.SnowToolbarPopupPanel
+import de.tradebuddy.ui.icons.SnowIcons
+import de.tradebuddy.ui.theme.LocalExtendedColors
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -30,26 +44,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import de.tradebuddy.domain.util.key
-import de.tradebuddy.presentation.AppScreen
-import de.tradebuddy.presentation.SunMoonUiState
-import de.tradebuddy.presentation.SunMoonViewModel
-import de.tradebuddy.ui.components.rememberCopyTextToClipboard
-import de.tradebuddy.ui.theme.LocalExtendedColors
 import java.time.ZoneId
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import de.tradebuddy.ui.theme.appElevatedCardColors
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.time_optimizer_astro_none
 import trade_buddy.composeapp.generated.resources.time_optimizer_astro_summary
-import trade_buddy.composeapp.generated.resources.time_optimizer_back
 import trade_buddy.composeapp.generated.resources.time_optimizer_copy_tradingview
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_all_active
 import trade_buddy.composeapp.generated.resources.time_optimizer_export_cities_title
@@ -66,6 +68,8 @@ import trade_buddy.composeapp.generated.resources.time_optimizer_copy_month
 import trade_buddy.composeapp.generated.resources.time_optimizer_empty
 import trade_buddy.composeapp.generated.resources.time_optimizer_month_next
 import trade_buddy.composeapp.generated.resources.time_optimizer_month_prev
+import trade_buddy.composeapp.generated.resources.time_optimizer_sort_asc
+import trade_buddy.composeapp.generated.resources.time_optimizer_sort_desc
 import trade_buddy.composeapp.generated.resources.time_optimizer_subtitle
 import trade_buddy.composeapp.generated.resources.time_optimizer_table_title
 import trade_buddy.composeapp.generated.resources.time_optimizer_title
@@ -76,7 +80,7 @@ import trade_buddy.composeapp.generated.resources.value_dash
 fun TimeOptimizerScreen(
     state: SunMoonUiState,
     viewModel: SunMoonViewModel,
-    showBackToSettings: Boolean = true
+    @Suppress("UNUSED_PARAMETER") showBackToSettings: Boolean = false
 ) {
     val optimizerState = state.timeOptimizer
     val ext = LocalExtendedColors.current
@@ -124,7 +128,7 @@ fun TimeOptimizerScreen(
         }
     }
     val dailyPreviewRows = remember(exportCityRows) {
-        val byDate = linkedMapOf<java.time.LocalDate, MutableList<Pair<de.tradebuddy.domain.model.City, de.tradebuddy.presentation.TimeOptimizerDayRow>>>()
+        val byDate = linkedMapOf<java.time.LocalDate, MutableList<Pair<City, TimeOptimizerDayRow>>>()
         exportCityRows.forEach { (city, rows) ->
             rows.forEach { row ->
                 byDate.getOrPut(row.date) { mutableListOf() }.add(city to row)
@@ -132,18 +136,28 @@ fun TimeOptimizerScreen(
         }
         byDate.entries.map { it.key to it.value.toList() }
     }
+    var sortAscending by rememberSaveable { mutableStateOf(true) }
+    var showFilterPopup by rememberSaveable { mutableStateOf(false) }
+    var showSortPopup by rememberSaveable { mutableStateOf(false) }
+    val sortedDailyPreviewRows = remember(dailyPreviewRows, sortAscending) {
+        if (sortAscending) {
+            dailyPreviewRows.sortedBy { it.first }
+        } else {
+            dailyPreviewRows.sortedByDescending { it.first }
+        }
+    }
     val previewListState = rememberLazyListState()
-    val listProgress by remember(dailyPreviewRows, previewListState) {
+    val listProgress by remember(sortedDailyPreviewRows, previewListState) {
         derivedStateOf {
-            val total = dailyPreviewRows.size.coerceAtLeast(1)
+            val total = sortedDailyPreviewRows.size.coerceAtLeast(1)
             val visibleCount = previewListState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
             val endIndex = (previewListState.firstVisibleItemIndex + visibleCount).coerceAtMost(total)
             endIndex.toFloat() / total.toFloat()
         }
     }
-    val listPositionLabel by remember(dailyPreviewRows, previewListState) {
+    val listPositionLabel by remember(sortedDailyPreviewRows, previewListState) {
         derivedStateOf {
-            val total = dailyPreviewRows.size
+            val total = sortedDailyPreviewRows.size
             if (total == 0) {
                 "0/0"
             } else {
@@ -199,179 +213,167 @@ fun TimeOptimizerScreen(
         optimizerState.month.atDay(1).format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.GERMANY))
     }
     val allActiveSelected = exportCityKeys.isNotEmpty() && exportCityKeys.size == activeCityKeys.size
-    var exportSettingsExpanded by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ElevatedCard(Modifier.fillMaxWidth(), colors = appElevatedCardColors()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            stringResource(Res.string.time_optimizer_title),
-                            style = MaterialTheme.typography.headlineMedium
-                        )
-                        Text(
-                            stringResource(Res.string.time_optimizer_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (showBackToSettings) {
-                        OutlinedButton(onClick = { viewModel.setScreen(AppScreen.Settings) }) {
-                            Text(stringResource(Res.string.time_optimizer_back))
-                        }
-                    }
-                }
+        Text(
+            stringResource(Res.string.time_optimizer_title),
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Text(
+            stringResource(Res.string.time_optimizer_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+        SnowToolbar {
+            Box {
+                SnowToolbarIconButton(icon = SnowIcons.Filter, onClick = { showFilterPopup = true })
+                DropdownMenu(
+                    expanded = showFilterPopup,
+                    onDismissRequest = { showFilterPopup = false }
                 ) {
-                    OutlinedButton(onClick = { viewModel.shiftTimeOptimizerMonth(-1) }) {
-                        Text(stringResource(Res.string.time_optimizer_month_prev))
-                    }
-                    OutlinedButton(onClick = { viewModel.shiftTimeOptimizerMonth(1) }) {
-                        Text(stringResource(Res.string.time_optimizer_month_next))
-                    }
-                    Text(
-                        text = monthLabel,
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.align(Alignment.CenterVertically)
-                    )
-                }
-
-                Text(
-                    stringResource(Res.string.time_optimizer_export_cities_title),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AssistChip(
-                        onClick = { viewModel.setTimeOptimizerExportAllActive(true) },
-                        label = { Text(stringResource(Res.string.time_optimizer_export_all_active)) },
-                        leadingIcon = {
-                            if (allActiveSelected) {
-                                Icon(Icons.Outlined.Check, contentDescription = null)
-                            }
-                        }
-                    )
-                    AssistChip(
-                        onClick = { viewModel.setTimeOptimizerExportAllActive(false) },
-                        label = { Text(stringResource(Res.string.time_optimizer_export_clear)) }
-                    )
-                }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    cityCandidates.forEach { city ->
-                        val key = city.key()
-                        val selected = key in exportCityKeys
-                        FilterChip(
-                            selected = selected,
-                            onClick = {
-                                val updated = exportCityKeys.toMutableSet()
-                                if (selected) updated.remove(key) else updated.add(key)
-                                viewModel.setTimeOptimizerExportCities(updated)
-                            },
-                            label = { Text(city.label) }
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(Res.string.time_optimizer_export_settings_title),
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    AssistChip(
-                        onClick = { exportSettingsExpanded = !exportSettingsExpanded },
-                        label = { Text(if (exportSettingsExpanded) "Einklappen" else "Ausklappen") },
-                        leadingIcon = {
-                            Icon(
-                                if (exportSettingsExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                                contentDescription = null
+                    SnowToolbarPopupPanel(modifier = Modifier.widthIn(min = 320.dp, max = 460.dp)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AssistChip(
+                                onClick = { viewModel.setTimeOptimizerExportAllActive(true) },
+                                label = { Text(stringResource(Res.string.time_optimizer_export_all_active)) },
+                                leadingIcon = {
+                                    if (allActiveSelected) {
+                                        Icon(SnowIcons.Check, contentDescription = null)
+                                    }
+                                }
+                            )
+                            AssistChip(
+                                onClick = { viewModel.setTimeOptimizerExportAllActive(false) },
+                                label = { Text(stringResource(Res.string.time_optimizer_export_clear)) }
                             )
                         }
-                    )
+                        Text(
+                            stringResource(Res.string.time_optimizer_export_cities_title),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            cityCandidates.forEach { city ->
+                                val key = city.key()
+                                val selected = key in exportCityKeys
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = {
+                                        val updated = exportCityKeys.toMutableSet()
+                                        if (selected) updated.remove(key) else updated.add(key)
+                                        viewModel.setTimeOptimizerExportCities(updated)
+                                    },
+                                    label = { Text(city.label) }
+                                )
+                            }
+                        }
+                        Text(
+                            stringResource(Res.string.time_optimizer_export_zone_mode_title),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = optimizerState.exportUseCityTimeZones,
+                                onClick = { viewModel.setTimeOptimizerExportZoneMode(true) },
+                                label = { Text(stringResource(Res.string.time_optimizer_export_zone_city)) }
+                            )
+                            FilterChip(
+                                selected = !optimizerState.exportUseCityTimeZones,
+                                onClick = { viewModel.setTimeOptimizerExportZoneMode(false) },
+                                label = { Text(stringResource(Res.string.time_optimizer_export_zone_user)) }
+                            )
+                        }
+                        Text(
+                            stringResource(Res.string.time_optimizer_export_settings_title),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = optimizerState.includeSun,
+                                onClick = { viewModel.setTimeOptimizerIncludeSun(!optimizerState.includeSun) },
+                                label = { Text(stringResource(Res.string.time_optimizer_export_include_sun)) }
+                            )
+                            FilterChip(
+                                selected = optimizerState.includeMoon,
+                                onClick = { viewModel.setTimeOptimizerIncludeMoon(!optimizerState.includeMoon) },
+                                label = { Text(stringResource(Res.string.time_optimizer_export_include_moon)) }
+                            )
+                            FilterChip(
+                                selected = optimizerState.includeAstro,
+                                onClick = { viewModel.setTimeOptimizerIncludeAstro(!optimizerState.includeAstro) },
+                                label = { Text(stringResource(Res.string.time_optimizer_export_include_astro)) }
+                            )
+                        }
+                    }
                 }
-                if (exportSettingsExpanded) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+            }
+            Box {
+                SnowToolbarIconButton(icon = SnowIcons.Sort, onClick = { showSortPopup = true })
+                DropdownMenu(
+                    expanded = showSortPopup,
+                    onDismissRequest = { showSortPopup = false }
+                ) {
+                    SnowToolbarPopupPanel(modifier = Modifier.widthIn(min = 220.dp, max = 280.dp)) {
                         FilterChip(
-                            selected = optimizerState.includeSun,
-                            onClick = { viewModel.setTimeOptimizerIncludeSun(!optimizerState.includeSun) },
-                            label = { Text(stringResource(Res.string.time_optimizer_export_include_sun)) }
+                            selected = sortAscending,
+                            onClick = {
+                                sortAscending = true
+                                showSortPopup = false
+                            },
+                            label = { Text(stringResource(Res.string.time_optimizer_sort_asc)) }
                         )
                         FilterChip(
-                            selected = optimizerState.includeMoon,
-                            onClick = { viewModel.setTimeOptimizerIncludeMoon(!optimizerState.includeMoon) },
-                            label = { Text(stringResource(Res.string.time_optimizer_export_include_moon)) }
+                            selected = !sortAscending,
+                            onClick = {
+                                sortAscending = false
+                                showSortPopup = false
+                            },
+                            label = { Text(stringResource(Res.string.time_optimizer_sort_desc)) }
                         )
-                        FilterChip(
-                            selected = optimizerState.includeAstro,
-                            onClick = { viewModel.setTimeOptimizerIncludeAstro(!optimizerState.includeAstro) },
-                            label = { Text(stringResource(Res.string.time_optimizer_export_include_astro)) }
-                        )
-                    }
-
-                    Text(
-                        stringResource(Res.string.time_optimizer_export_zone_mode_title),
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(
-                            selected = optimizerState.exportUseCityTimeZones,
-                            onClick = { viewModel.setTimeOptimizerExportZoneMode(true) },
-                            label = { Text(stringResource(Res.string.time_optimizer_export_zone_city)) }
-                        )
-                        FilterChip(
-                            selected = !optimizerState.exportUseCityTimeZones,
-                            onClick = { viewModel.setTimeOptimizerExportZoneMode(false) },
-                            label = { Text(stringResource(Res.string.time_optimizer_export_zone_user)) }
-                        )
-                    }
-
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(
-                        onClick = { copyToClipboard(exportText) },
-                        enabled = exportText.isNotBlank()
-                    ) {
-                        Text(stringResource(Res.string.time_optimizer_copy_month))
-                    }
-                    OutlinedButton(
-                        onClick = { copyToClipboard(tradingViewInputText) },
-                        enabled = tradingViewInputText.isNotBlank()
-                    ) {
-                        Text(stringResource(Res.string.time_optimizer_copy_tradingview))
                     }
                 }
+            }
+            SnowToolbarIconButton(
+                icon = SnowIcons.ArrowLeft,
+                onClick = { viewModel.shiftTimeOptimizerMonth(-1) },
+                contentDescription = stringResource(Res.string.time_optimizer_month_prev)
+            )
+            Text(
+                text = monthLabel,
+                style = MaterialTheme.typography.titleSmall
+            )
+            SnowToolbarIconButton(
+                icon = SnowIcons.ArrowRight,
+                onClick = { viewModel.shiftTimeOptimizerMonth(1) },
+                contentDescription = stringResource(Res.string.time_optimizer_month_next)
+            )
+            Spacer(Modifier.weight(1f))
+            androidx.compose.material3.OutlinedButton(
+                onClick = { copyToClipboard(exportText) },
+                enabled = exportText.isNotBlank()
+            ) {
+                Text(stringResource(Res.string.time_optimizer_copy_month))
+            }
+            androidx.compose.material3.OutlinedButton(
+                onClick = { copyToClipboard(tradingViewInputText) },
+                enabled = tradingViewInputText.isNotBlank()
+            ) {
+                Text(stringResource(Res.string.time_optimizer_copy_tradingview))
             }
         }
 
@@ -392,7 +394,7 @@ fun TimeOptimizerScreen(
             ,
             color = MaterialTheme.colorScheme.onSurface
         )
-        if (dailyPreviewRows.isNotEmpty()) {
+        if (sortedDailyPreviewRows.isNotEmpty()) {
             LinearProgressIndicator(
                 progress = { listProgress.coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxWidth()
@@ -404,7 +406,7 @@ fun TimeOptimizerScreen(
             )
         }
 
-        if (dailyPreviewRows.isEmpty()) {
+        if (sortedDailyPreviewRows.isEmpty()) {
             Text(
                 stringResource(Res.string.time_optimizer_empty),
                 style = MaterialTheme.typography.bodySmall,
@@ -414,105 +416,104 @@ fun TimeOptimizerScreen(
             LazyColumn(
                 state = previewListState,
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                items(dailyPreviewRows, key = { it.first.toString() }) { (date, cityRowsForDay) ->
-                    ElevatedCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = appElevatedCardColors()
+                items(sortedDailyPreviewRows, key = { it.first.toString() }) { (date, cityRowsForDay) ->
+                    val dayAstroInstants = cityRowsForDay
+                        .flatMap { it.second.astroInstants }
+                        .distinct()
+                        .sorted()
+                    val dayAstroSummary = if (dayAstroInstants.isEmpty()) {
+                        stringResource(Res.string.time_optimizer_astro_none)
+                    } else {
+                        val first = dayAstroInstants.first().atZone(displayZone).toLocalTime().format(timeFmt)
+                        val last = dayAstroInstants.last().atZone(displayZone).toLocalTime().format(timeFmt)
+                        stringResource(Res.string.time_optimizer_astro_summary, dayAstroInstants.size, first, last)
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
+                        Text(
+                            "${stringResource(Res.string.time_optimizer_col_date)}: $date",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            "Lokal (${displayZone.id}) | UTC",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (optimizerState.includeAstro) {
+                            Text(
+                                "Astro: $dayAstroSummary",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ext.positive
+                            )
+                        }
+
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            val dayAstroInstants = cityRowsForDay
-                                .flatMap { it.second.astroInstants }
-                                .distinct()
-                                .sorted()
-                            val dayAstroSummary = if (dayAstroInstants.isEmpty()) {
-                                stringResource(Res.string.time_optimizer_astro_none)
-                            } else {
-                                val first = dayAstroInstants.first().atZone(displayZone).toLocalTime().format(timeFmt)
-                                val last = dayAstroInstants.last().atZone(displayZone).toLocalTime().format(timeFmt)
-                                stringResource(Res.string.time_optimizer_astro_summary, dayAstroInstants.size, first, last)
-                            }
+                            cityRowsForDay.forEach { (city, row) ->
+                                fun formatDual(value: java.time.ZonedDateTime?): String {
+                                    if (value == null) return dash
+                                    val instant = value.toInstant()
+                                    val local = instant.atZone(displayZone).format(timeFmt)
+                                    val utc = instant.atZone(ZoneId.of("UTC")).format(timeFmt)
+                                    return "$local | $utc"
+                                }
 
-                            Text(
-                                "${stringResource(Res.string.time_optimizer_col_date)}: $date",
-                                style = MaterialTheme.typography.titleSmall
-                            )
-                            Text(
-                                "Lokal (${displayZone.id}) | UTC",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (optimizerState.includeAstro) {
-                                Text(
-                                    "Astro: $dayAstroSummary",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = ext.positive
-                                )
-                            }
+                                val sunRiseDual = formatDual(row.sunrise)
+                                val sunSetDual = formatDual(row.sunset)
+                                val moonRiseDual = formatDual(row.moonrise)
+                                val moonSetDual = formatDual(row.moonset)
 
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                cityRowsForDay.forEach { (city, row) ->
-                                    fun formatDual(value: java.time.ZonedDateTime?): String {
-                                        if (value == null) return dash
-                                        val instant = value.toInstant()
-                                        val local = instant.atZone(displayZone).format(timeFmt)
-                                        val utc = instant.atZone(ZoneId.of("UTC")).format(timeFmt)
-                                        return "$local | $utc"
+                                Column(
+                                    modifier = Modifier
+                                        .widthIn(min = 210.dp)
+                                        .padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        city.label,
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    if (optimizerState.includeSun) {
+                                        Text(
+                                            "Sonne \u2191 $sunRiseDual",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        Text(
+                                            "Sonne \u2193 $sunSetDual",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
                                     }
-
-                                    val sunRiseDual = formatDual(row.sunrise)
-                                    val sunSetDual = formatDual(row.sunset)
-                                    val moonRiseDual = formatDual(row.moonrise)
-                                    val moonSetDual = formatDual(row.moonset)
-
-                                    ElevatedCard(
-                                        modifier = Modifier.widthIn(min = 210.dp),
-                                        colors = appElevatedCardColors()
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(10.dp),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Text(
-                                                city.label,
-                                                style = MaterialTheme.typography.titleSmall
-                                            )
-                                            if (optimizerState.includeSun) {
-                                                Text(
-                                                    "Sonne \u2191 $sunRiseDual",
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                                Text(
-                                                    "Sonne \u2193 $sunSetDual",
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                            }
-                                            if (optimizerState.includeMoon) {
-                                                Text(
-                                                    "Mond \u2191 $moonRiseDual",
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                                Text(
-                                                    "Mond \u2193 $moonSetDual",
-                                                    style = MaterialTheme.typography.bodySmall
-                                                )
-                                            }
-                                        }
+                                    if (optimizerState.includeMoon) {
+                                        Text(
+                                            "Mond \u2191 $moonRiseDual",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        Text(
+                                            "Mond \u2193 $moonSetDual",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
                                     }
                                 }
                             }
                         }
                     }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                            .height(1.dp)
+                            .background(ext.shellDivider)
+                    )
                 }
             }
         }
@@ -522,7 +523,7 @@ fun TimeOptimizerScreen(
 private fun buildMonthlyExportText(
     month: YearMonth,
     userZone: ZoneId,
-    cityRows: List<Pair<de.tradebuddy.domain.model.City, List<de.tradebuddy.presentation.TimeOptimizerDayRow>>>,
+    cityRows: List<Pair<City, List<TimeOptimizerDayRow>>>,
     useUtcTimes: Boolean,
     includeSun: Boolean,
     includeMoon: Boolean,
@@ -587,7 +588,7 @@ private fun buildMonthlyExportText(
 private fun buildTradingViewInputText(
     month: YearMonth,
     userZone: ZoneId,
-    cityRows: List<Pair<de.tradebuddy.domain.model.City, List<de.tradebuddy.presentation.TimeOptimizerDayRow>>>,
+    cityRows: List<Pair<City, List<TimeOptimizerDayRow>>>,
     useUtcTimes: Boolean,
     includeSun: Boolean,
     includeMoon: Boolean,
