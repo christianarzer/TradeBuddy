@@ -7,6 +7,7 @@ import de.tradebuddy.data.StatisticsRepository
 import de.tradebuddy.data.SunMoonRepository
 import de.tradebuddy.domain.model.AppThemeMode
 import de.tradebuddy.domain.model.AppAccentColor
+import de.tradebuddy.domain.model.AppDisplayCurrency
 import de.tradebuddy.domain.model.AstroAspectEvent
 import de.tradebuddy.domain.model.AstroAspectType
 import de.tradebuddy.domain.model.AstroCalendarScope
@@ -178,6 +179,20 @@ class SunMoonViewModel(
 
     fun setAccentColor(color: AppAccentColor) {
         _state.update { it.copy(accentColor = color) }
+        persistSettings()
+    }
+
+    fun toggleDisplayCurrency() {
+        val next = if (_state.value.displayCurrency == AppDisplayCurrency.Eur) {
+            AppDisplayCurrency.Usd
+        } else {
+            AppDisplayCurrency.Eur
+        }
+        setDisplayCurrency(next)
+    }
+
+    fun setDisplayCurrency(currency: AppDisplayCurrency) {
+        _state.update { it.copy(displayCurrency = currency) }
         persistSettings()
     }
 
@@ -1057,6 +1072,7 @@ class SunMoonViewModel(
                 current.copy(
                     themeMode = snapshot.themeMode ?: current.themeMode,
                     accentColor = snapshot.accentColor ?: current.accentColor,
+                    displayCurrency = snapshot.displayCurrency ?: current.displayCurrency,
                     selectedCityKeys = resolvedKeys,
                     sunTimeOffsetMinutes = snapshot.sunTimeOffsetMinutes ?: current.sunTimeOffsetMinutes,
                     moonTimeOffsetMinutes = snapshot.moonTimeOffsetMinutes ?: current.moonTimeOffsetMinutes,
@@ -1104,6 +1120,7 @@ class SunMoonViewModel(
                     UserSettings(
                         themeMode = current.themeMode,
                         accentColor = current.accentColor,
+                        displayCurrency = current.displayCurrency,
                         selectedCityKeys = current.selectedCityKeys,
                         sunTimeOffsetMinutes = current.sunTimeOffsetMinutes,
                         moonTimeOffsetMinutes = current.moonTimeOffsetMinutes,

@@ -1,6 +1,7 @@
 package de.tradebuddy.ui.screens
 
 import de.tradebuddy.domain.model.AssetCategory
+import de.tradebuddy.domain.model.AppDisplayCurrency
 import de.tradebuddy.domain.model.PerformanceRange
 import de.tradebuddy.domain.model.PortfolioAllocationSlice
 import de.tradebuddy.domain.model.PortfolioGroup
@@ -40,6 +41,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
@@ -53,8 +55,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -62,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
@@ -85,6 +90,7 @@ import trade_buddy.composeapp.generated.resources.portfolio_category_etf
 import trade_buddy.composeapp.generated.resources.portfolio_category_forex
 import trade_buddy.composeapp.generated.resources.portfolio_category_other
 import trade_buddy.composeapp.generated.resources.portfolio_current_price
+import trade_buddy.composeapp.generated.resources.portfolio_currency
 import trade_buddy.composeapp.generated.resources.portfolio_delete
 import trade_buddy.composeapp.generated.resources.portfolio_edit
 import trade_buddy.composeapp.generated.resources.portfolio_empty
@@ -117,12 +123,19 @@ import trade_buddy.composeapp.generated.resources.portfolio_table_top
 import trade_buddy.composeapp.generated.resources.portfolio_title
 import trade_buddy.composeapp.generated.resources.portfolio_title_subtitle
 import trade_buddy.composeapp.generated.resources.portfolio_total_value
+import trade_buddy.composeapp.generated.resources.currency_eur
+import trade_buddy.composeapp.generated.resources.currency_usd
+
+private val LocalPortfolioDisplayCurrency = compositionLocalOf { AppDisplayCurrency.Eur }
+private const val USD_TO_EUR_RATE = 0.92
 
 @Composable
 fun PortfolioScreen(
     state: PortfolioUiState,
-    viewModel: PortfolioViewModel
+    viewModel: PortfolioViewModel,
+    displayCurrency: AppDisplayCurrency
 ) {
+    CompositionLocalProvider(LocalPortfolioDisplayCurrency provides displayCurrency) {
     var editingGroup by remember { mutableStateOf<PortfolioGroup?>(null) }
     var showGroupDialog by rememberSaveable { mutableStateOf(false) }
     var editingPosition by remember { mutableStateOf<PortfolioPositionMetrics?>(null) }
@@ -319,6 +332,7 @@ fun PortfolioScreen(
         PositionEditorDialog(
             groups = state.groups,
             initial = editingPosition,
+            defaultCurrency = displayCurrency,
             onDismiss = {
                 showPositionDialog = false
                 editingPosition = null
@@ -340,6 +354,7 @@ fun PortfolioScreen(
                 editingPosition = null
             }
         )
+    }
     }
 }
 
@@ -1234,6 +1249,7 @@ private data class PositionEditorForm(
 private fun PositionEditorDialog(
     groups: List<PortfolioGroup>,
     initial: PortfolioPositionMetrics?,
+    defaultCurrency: AppDisplayCurrency,
     onDismiss: () -> Unit,
     onSave: (PositionEditorForm) -> Unit
 ) {
@@ -1245,7 +1261,15 @@ private fun PositionEditorDialog(
     var quantityText by rememberSaveable(initial?.position?.id) { mutableStateOf(initial?.position?.quantity?.toPlainText() ?: "0") }
     var averageText by rememberSaveable(initial?.position?.id) { mutableStateOf(initial?.position?.averagePrice?.toPlainText() ?: "0") }
     var currentText by rememberSaveable(initial?.position?.id) { mutableStateOf(initial?.position?.currentPrice?.toPlainText() ?: "0") }
-    var currency by rememberSaveable(initial?.position?.id) { mutableStateOf(initial?.position?.currency ?: "USD") }
+    var currency by rememberSaveable(initial?.position?.id) {
+        mutableStateOf(
+            when (initial?.position?.currency?.uppercase()) {
+                "EUR" -> "EUR"
+                "USD" -> "USD"
+                else -> defaultCurrency.toCurrencyCode()
+            }
+        )
+    }
     var tags by rememberSaveable(initial?.position?.id) { mutableStateOf(initial?.position?.tags?.joinToString(", ").orEmpty()) }
     var category by rememberSaveable(initial?.position?.id) { mutableStateOf(initial?.position?.category ?: AssetCategory.Equity) }
 
@@ -1308,32 +1332,48 @@ private fun PositionEditorDialog(
                 }
                 OutlinedTextField(
                     value = quantityText,
-                    onValueChange = { quantityText = it },
+                    onValueChange = { quantityText = sanitizePositiveDecimalInput(it) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     label = { Text(stringResource(Res.string.portfolio_quantity)) }
                 )
                 OutlinedTextField(
                     value = averageText,
-                    onValueChange = { averageText = it },
+                    onValueChange = { averageText = sanitizePositiveDecimalInput(it) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     label = { Text(stringResource(Res.string.portfolio_average_price)) }
                 )
                 OutlinedTextField(
                     value = currentText,
-                    onValueChange = { currentText = it },
+                    onValueChange = { currentText = sanitizePositiveDecimalInput(it) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     label = { Text(stringResource(Res.string.portfolio_current_price)) }
                 )
-                OutlinedTextField(
-                    value = currency,
-                    onValueChange = { currency = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text(stringResource(Res.string.portfolio_total_value)) }
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.xxs)) {
+                    Text(
+                        text = stringResource(Res.string.portfolio_currency),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs)) {
+                        listOf("EUR", "USD").forEach { candidate ->
+                            AssistChip(
+                                onClick = { currency = candidate },
+                                label = { Text(currencyDisplayLabel(candidate)) },
+                                leadingIcon = if (currency == candidate) {
+                                    { Dot(MaterialTheme.colorScheme.primary) }
+                                } else {
+                                    null
+                                }
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = tags,
                     onValueChange = { tags = it },
@@ -1362,7 +1402,7 @@ private fun PositionEditorDialog(
                             quantity = quantity ?: 0.0,
                             averagePrice = averagePrice ?: 0.0,
                             currentPrice = currentPrice ?: 0.0,
-                            currency = currency,
+                            currency = currency.uppercase(),
                             tags = tags.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
                         )
                     )
@@ -1414,12 +1454,30 @@ private fun String.toColorOrDefault(): Color = runCatching {
     }
 }.getOrDefault(AppPalette.Indigo)
 
-private fun Double.asMoney(currency: String = "USD"): String = "$currency ${toPlainText()}"
+@Composable
+private fun Double.asMoney(sourceCurrencyCode: String = "USD"): String {
+    val targetCurrency = LocalPortfolioDisplayCurrency.current
+    val sourceCurrency = sourceCurrencyCode.toDisplayCurrencyOrNull()
+    val convertedValue = if (sourceCurrency != null) {
+        convertCurrencyAmount(this, sourceCurrency, targetCurrency)
+    } else {
+        this
+    }
+    return "${targetCurrency.toCurrencyCode()} ${convertedValue.toPlainText()}"
+}
 
-private fun Double.asSignedMoney(currency: String = "USD"): String {
-    val absValue = abs(this).toPlainText()
+@Composable
+private fun Double.asSignedMoney(sourceCurrencyCode: String = "USD"): String {
+    val targetCurrency = LocalPortfolioDisplayCurrency.current
+    val sourceCurrency = sourceCurrencyCode.toDisplayCurrencyOrNull()
+    val convertedValue = if (sourceCurrency != null) {
+        convertCurrencyAmount(this, sourceCurrency, targetCurrency)
+    } else {
+        this
+    }
+    val absValue = abs(convertedValue).toPlainText()
     val prefix = if (this >= 0.0) "+" else "-"
-    return "$prefix$currency $absValue"
+    return "$prefix${targetCurrency.toCurrencyCode()} $absValue"
 }
 
 private fun Double.asPercent(): String = "${toPlainText()}%"
@@ -1436,5 +1494,55 @@ private fun Double.toPlainText(): String {
     val rounded = (this * 100.0).roundToInt() / 100.0
     val raw = rounded.toString()
     return if (raw.endsWith(".0")) raw.dropLast(2) else raw
+}
+
+private fun String.toDisplayCurrencyOrNull(): AppDisplayCurrency? = when (uppercase()) {
+    "EUR" -> AppDisplayCurrency.Eur
+    "USD" -> AppDisplayCurrency.Usd
+    else -> null
+}
+
+private fun AppDisplayCurrency.toCurrencyCode(): String = when (this) {
+    AppDisplayCurrency.Eur -> "EUR"
+    AppDisplayCurrency.Usd -> "USD"
+}
+
+private fun convertCurrencyAmount(
+    amount: Double,
+    sourceCurrency: AppDisplayCurrency,
+    targetCurrency: AppDisplayCurrency
+): Double {
+    if (sourceCurrency == targetCurrency) return amount
+    return when {
+        sourceCurrency == AppDisplayCurrency.Usd && targetCurrency == AppDisplayCurrency.Eur -> amount * USD_TO_EUR_RATE
+        sourceCurrency == AppDisplayCurrency.Eur && targetCurrency == AppDisplayCurrency.Usd -> amount / USD_TO_EUR_RATE
+        else -> amount
+    }
+}
+
+@Composable
+private fun currencyDisplayLabel(currencyCode: String): String = when (currencyCode.uppercase()) {
+    "EUR" -> stringResource(Res.string.currency_eur)
+    "USD" -> stringResource(Res.string.currency_usd)
+    else -> currencyCode
+}
+
+private fun sanitizePositiveDecimalInput(rawInput: String): String {
+    val normalized = rawInput.replace(',', '.')
+    val builder = StringBuilder()
+    var hasDot = false
+    normalized.forEachIndexed { index, ch ->
+        when {
+            ch.isDigit() -> builder.append(ch)
+            ch == '.' && !hasDot -> {
+                hasDot = true
+                if (builder.isEmpty()) builder.append('0')
+                builder.append('.')
+            }
+            ch == '-' && index == 0 -> Unit
+            else -> Unit
+        }
+    }
+    return builder.toString()
 }
 

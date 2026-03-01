@@ -40,6 +40,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -65,7 +66,7 @@ fun MonthlyTrendCard(
     val ext = MaterialTheme.extended
     val sunColor = ext.planetSun
     val moonColor = ext.planetMoon
-    val currentDate = remember { LocalDate.now() }
+    val currentDate = remember { LocalDate.now(ZoneId.systemDefault()) }
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),

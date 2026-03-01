@@ -2,6 +2,7 @@ package de.tradebuddy.data
 
 import de.tradebuddy.domain.model.AppThemeMode
 import de.tradebuddy.domain.model.AppAccentColor
+import de.tradebuddy.domain.model.AppDisplayCurrency
 import de.tradebuddy.domain.model.AstroAspectType
 import de.tradebuddy.domain.model.ASTRO_MAX_ORB_DEGREES
 import de.tradebuddy.domain.model.ASTRO_MIN_ORB_DEGREES
@@ -18,6 +19,7 @@ import kotlinx.coroutines.withContext
 data class SettingsSnapshot(
     val themeMode: AppThemeMode?,
     val accentColor: AppAccentColor?,
+    val displayCurrency: AppDisplayCurrency?,
     val selectedCityKeys: Set<String>?,
     val sunTimeOffsetMinutes: Int?,
     val moonTimeOffsetMinutes: Int?,
@@ -52,6 +54,7 @@ class FileSettingsRepository(
 
             val themeMode = props.getProperty("themeMode")?.let { AppThemeMode.fromKey(it) }
             val accentColor = props.getProperty("accentColor")?.let { AppAccentColor.fromKey(it) }
+            val displayCurrency = props.getProperty("displayCurrency")?.let { AppDisplayCurrency.fromKey(it) }
             val darkTheme = props.getProperty("darkTheme")?.toBooleanStrictOrNull()
             val showUtcTime = props.getProperty("showUtcTime")?.toBooleanStrictOrNull()
             val showAzimuth = props.getProperty("showAzimuth")?.toBooleanStrictOrNull()
@@ -70,7 +73,7 @@ class FileSettingsRepository(
                 ?.filter { it.isNotEmpty() }
                 ?.toSet()
 
-            if (themeMode == null && accentColor == null && darkTheme == null &&
+            if (themeMode == null && accentColor == null && displayCurrency == null && darkTheme == null &&
                 selectedCityKeys == null && showUtcTime == null && showAzimuth == null &&
                 showSun == null && showMoon == null && showRise == null && showSet == null &&
                 sunTimeOffsetMinutes == null && moonTimeOffsetMinutes == null &&
@@ -82,6 +85,7 @@ class FileSettingsRepository(
                     if (it) AppThemeMode.Dark else AppThemeMode.Light
                 },
                 accentColor = accentColor,
+                displayCurrency = displayCurrency,
                 selectedCityKeys = selectedCityKeys,
                 sunTimeOffsetMinutes = sunTimeOffsetMinutes,
                 moonTimeOffsetMinutes = moonTimeOffsetMinutes,
@@ -109,6 +113,7 @@ class FileSettingsRepository(
             val props = Properties()
             props.setProperty("themeMode", settings.themeMode.key)
             props.setProperty("accentColor", settings.accentColor.key)
+            props.setProperty("displayCurrency", settings.displayCurrency.key)
             props.setProperty("selectedCities", settings.selectedCityKeys.joinToString(";"))
             props.setProperty("sunTimeOffsetMinutes", settings.sunTimeOffsetMinutes.toString())
             props.setProperty("moonTimeOffsetMinutes", settings.moonTimeOffsetMinutes.toString())

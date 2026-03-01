@@ -10,6 +10,7 @@ import de.tradebuddy.domain.model.AstroSortMode
 import de.tradebuddy.domain.model.AstroWeekDaySummary
 import de.tradebuddy.domain.model.City
 import de.tradebuddy.domain.model.CompactEvent
+import de.tradebuddy.domain.model.AppDisplayCurrency
 import de.tradebuddy.domain.model.DEFAULT_ASTRO_ASPECT_ORBS
 import de.tradebuddy.domain.model.MonthTrend
 import de.tradebuddy.domain.model.MoonPhaseEvent
@@ -116,6 +117,7 @@ data class SunMoonUiState(
     val screen: AppScreen = AppScreen.SunMoon,
     val themeMode: AppThemeMode = AppThemeMode.Dark,
     val accentColor: AppAccentColor = AppAccentColor.Purple,
+    val displayCurrency: AppDisplayCurrency = AppDisplayCurrency.Eur,
     val selectedTab: SunMoonTab = SunMoonTab.Compact,
     val selectedAstroTab: AstroCalendarTab = AstroCalendarTab.Aspects,
     val nowInstant: Instant = Instant.now(),

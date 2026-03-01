@@ -124,8 +124,8 @@ fun MarketEventsScreen(
     var sortMode by rememberSaveable { mutableStateOf(MarketEventsSortMode.TimeAsc) }
     val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM HH:mm", Locale.GERMANY) }
 
-    val groupedRows = remember(state.filteredGroups, sortMode, zoneId) {
-        val sorted = when (sortMode) {
+    val groupedRows: List<Pair<LocalDate, List<MarketEvent>>> = remember(state.filteredGroups, sortMode, zoneId) {
+        val sortedEvents: List<MarketEvent> = when (sortMode) {
             MarketEventsSortMode.TimeAsc -> state.filteredGroups
                 .flatMap { it.events }
                 .sortedWith(
@@ -148,25 +148,26 @@ fun MarketEventsScreen(
                         .thenBy { it.title }
                 )
         }
-        sorted
-            .groupBy { it.scheduledAt.atZone(zoneId).toLocalDate() }
-            .toSortedMap()
+        val groupedByDate: Map<LocalDate, List<MarketEvent>> = sortedEvents
+            .groupBy { event -> event.scheduledAt.atZone(zoneId).toLocalDate() }
+        groupedByDate
             .entries
+            .sortedBy { entry -> entry.key }
             .map { entry -> entry.key to entry.value }
     }
-    val visibleCount = groupedRows.sumOf { it.second.size }
+    val visibleCount = groupedRows.sumOf { row -> row.second.size }
     val watchlistCount = state.watchPreferences.size
-    val highImpactCount = groupedRows.sumOf { (_, events) ->
-        events.count { it.impact == MarketEventImpact.High }
+    val highImpactCount = groupedRows.sumOf { row ->
+        row.second.count { event -> event.impact == MarketEventImpact.High }
     }
-    val mediumImpactCount = groupedRows.sumOf { (_, events) ->
-        events.count { it.impact == MarketEventImpact.Medium }
+    val mediumImpactCount = groupedRows.sumOf { row ->
+        row.second.count { event -> event.impact == MarketEventImpact.Medium }
     }
     val nextCountdown = groupedRows
         .asSequence()
-        .flatMap { (_, events) -> events.asSequence() }
-        .filter { it.scheduledAt.isAfter(state.nowInstant) }
-        .sortedBy { it.scheduledAt }
+        .flatMap { row -> row.second.asSequence() }
+        .filter { event -> event.scheduledAt.isAfter(state.nowInstant) }
+        .sortedBy { event -> event.scheduledAt }
         .firstOrNull()
         ?.relativeLabel(state.nowInstant)
         ?: stringResource(Res.string.market_events_not_available)
@@ -250,7 +251,9 @@ fun MarketEventsScreen(
 
                 else -> {
                     LazyColumn(modifier = Modifier.weight(1f, fill = true)) {
-                        groupedRows.forEach { (date, events) ->
+                        groupedRows.forEach { row ->
+                            val date = row.first
+                            val eventsForDate = row.second
                             item(key = "day-${date}") {
                                 DaySeparator(
                                     date = date,
@@ -259,8 +262,10 @@ fun MarketEventsScreen(
                                     zoneId = zoneId
                                 )
                             }
-                            items(events, key = { it.id }) { event ->
-                                val watchPreference = state.watchPreferences.firstOrNull { it.eventId == event.id }
+                            items(items = eventsForDate, key = { event: MarketEvent -> event.id }) { event ->
+                                val watchPreference = state.watchPreferences.firstOrNull { preference ->
+                                    preference.eventId == event.id
+                                }
                                 EventsTableRow(
                                     event = event,
                                     watchPreference = watchPreference,

@@ -9,6 +9,9 @@
     <string name="nav_settings">Einstellungen</string>
     <string name="label_theme">Thema</string>
     <string name="action_toggle_theme">Tag/Nacht umschalten</string>
+    <string name="action_toggle_currency">Währung wechseln</string>
+    <string name="currency_eur">EUR</string>
+    <string name="currency_usd">USD</string>
     <string name="action_pick_date">Datum wählen</string>
     <string name="action_copy_times">Zeiten kopieren</string>
     <string name="label_date">Datum</string>
@@ -332,6 +335,7 @@
     <string name="portfolio_average_price">Einstandspreis</string>
     <string name="portfolio_current_price">Aktueller Preis</string>
     <string name="portfolio_total_value">Wert / Währung</string>
+    <string name="portfolio_currency">Währung</string>
     <string name="tasks_title">Aufgaben</string>
     <string name="tasks_tab_overview">Übersicht</string>
     <string name="tasks_tab_targets">Ziele</string>

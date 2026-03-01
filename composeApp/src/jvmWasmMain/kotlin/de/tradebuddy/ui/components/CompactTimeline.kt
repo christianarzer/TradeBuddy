@@ -49,6 +49,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.SolidColor
@@ -136,7 +137,7 @@ fun CompactTimelineCard(
             }
             .toList()
         when (sortMode) {
-            CompactSortMode.Time -> base.sortedBy { it.userInstant ?: it.utcTime?.toInstant() ?: Instant.EPOCH }
+            CompactSortMode.Time -> base.sortedBy { it.userInstant ?: it.utcTime?.toInstant() ?: Instant.ofEpochMilli(0L) }
             CompactSortMode.City -> base.sortedBy { it.cityLabel }
             CompactSortMode.Event -> base.sortedBy { it.eventType.name }
         }
@@ -458,7 +459,11 @@ private fun CompactEventRow(
     onUpsertStatEntry: (CompactEvent, MoveDirection, Int) -> Unit,
     onDeleteStatEntry: (CompactEvent) -> Unit
 ) {
-    val textColor = if (passed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+    val textColor = if (passed) {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
 
     val dash = stringResource(Res.string.value_dash)
     val timeStr = e.userTime?.format(timeFmt) ?: dash
@@ -476,7 +481,8 @@ private fun CompactEventRow(
 
     Row(
         modifier
-            .padding(vertical = 2.dp),
+            .padding(vertical = 2.dp)
+            .alpha(if (passed) 0.72f else 1f),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(timeStr, modifier = Modifier.width(timeWidth), color = textColor)
@@ -506,7 +512,11 @@ private fun CompactEventRow(
                 Box(
                     modifier = Modifier
                         .background(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            color = if (passed) {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                            } else {
+                                MaterialTheme.colorScheme.tertiaryContainer
+                            },
                             shape = MaterialTheme.shapes.small
                         )
                         .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -514,7 +524,11 @@ private fun CompactEventRow(
                     Text(
                         chip,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary
+                        color = if (passed) {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
+                        } else {
+                            MaterialTheme.colorScheme.tertiary
+                        }
                     )
                 }
             }

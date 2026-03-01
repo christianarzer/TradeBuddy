@@ -2,6 +2,7 @@ package de.tradebuddy.ui
 
 import de.tradebuddy.di.AppContainer
 import de.tradebuddy.domain.model.AppThemeMode
+import de.tradebuddy.domain.model.AppDisplayCurrency
 import de.tradebuddy.presentation.AppScreen
 import de.tradebuddy.presentation.MarketEventsUiState
 import de.tradebuddy.presentation.MarketEventsViewModel
@@ -83,6 +84,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.action_toggle_theme
+import trade_buddy.composeapp.generated.resources.action_toggle_currency
 import trade_buddy.composeapp.generated.resources.app_name
 import trade_buddy.composeapp.generated.resources.app_section_dashboards
 import trade_buddy.composeapp.generated.resources.app_section_favorites
@@ -92,6 +94,8 @@ import trade_buddy.composeapp.generated.resources.app_shell_search
 import trade_buddy.composeapp.generated.resources.app_shell_separator
 import trade_buddy.composeapp.generated.resources.app_shell_shortcut_slash
 import trade_buddy.composeapp.generated.resources.action_toggle_favorite
+import trade_buddy.composeapp.generated.resources.currency_eur
+import trade_buddy.composeapp.generated.resources.currency_usd
 import trade_buddy.composeapp.generated.resources.logo_tradebuddy_dark
 import trade_buddy.composeapp.generated.resources.logo_tradebuddy_light
 import trade_buddy.composeapp.generated.resources.nav_market_events
@@ -222,9 +226,11 @@ private fun DesktopDashboardShell(
                 DashboardHeader(
                     currentScreen = sunMoonState.screen,
                     themeMode = sunMoonState.themeMode,
+                    displayCurrency = sunMoonState.displayCurrency,
                     isFavorite = normalizedScreen(sunMoonState.screen) in sunMoonState.favoriteScreens,
                     onToggleFavorite = { sunMoonViewModel.toggleFavorite(sunMoonState.screen) },
                     onToggleTheme = sunMoonViewModel::toggleTheme,
+                    onToggleCurrency = sunMoonViewModel::toggleDisplayCurrency,
                     searchQuery = toolbarSearchQuery,
                     onSearchQueryChange = { query ->
                         toolbarSearchQuery = query
@@ -371,7 +377,11 @@ private fun ScreenContent(
         AppScreen.SunMoon -> SunMoonScreen(state = sunMoonState, viewModel = sunMoonViewModel)
         AppScreen.AstroCalendar -> SunMoonScreen(state = sunMoonState, viewModel = sunMoonViewModel)
         AppScreen.MarketEvents -> MarketEventsScreen(state = marketEventsState, viewModel = marketEventsViewModel)
-        AppScreen.Portfolio -> PortfolioScreen(state = portfolioState, viewModel = portfolioViewModel)
+        AppScreen.Portfolio -> PortfolioScreen(
+            state = portfolioState,
+            viewModel = portfolioViewModel,
+            displayCurrency = sunMoonState.displayCurrency
+        )
         AppScreen.Tasks -> TasksScreen(state = tasksState, viewModel = tasksViewModel)
         AppScreen.Settings -> SettingsScreen(state = sunMoonState, viewModel = sunMoonViewModel)
         AppScreen.Logs -> LogsConsoleScreen(
@@ -644,9 +654,11 @@ private fun SidebarTextLink(
 private fun DashboardHeader(
     currentScreen: AppScreen,
     themeMode: AppThemeMode,
+    displayCurrency: AppDisplayCurrency,
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
     onToggleTheme: () -> Unit,
+    onToggleCurrency: () -> Unit,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onSearchSubmit: () -> Unit
@@ -698,6 +710,11 @@ private fun DashboardHeader(
             )
 
             Spacer(Modifier.width(8.dp))
+            HeaderCurrencyButton(
+                currency = displayCurrency,
+                onClick = onToggleCurrency
+            )
+            Spacer(Modifier.width(8.dp))
             HeaderIconButton(
                 onClick = onToggleTheme,
                 icon = themeToggleIcon(themeMode),
@@ -709,6 +726,37 @@ private fun DashboardHeader(
                 .fillMaxWidth()
                 .height(1.dp)
                 .background(ext.shellDivider)
+        )
+    }
+}
+
+@Composable
+private fun HeaderCurrencyButton(
+    currency: AppDisplayCurrency,
+    onClick: () -> Unit
+) {
+    val ext = MaterialTheme.extended
+    Row(
+        modifier = Modifier
+            .height(30.dp)
+            .clip(MaterialTheme.shapes.small)
+            .background(ext.tableRowHover)
+            .border(width = 1.dp, color = ext.shellDivider, shape = MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = SnowIcons.Sort,
+            contentDescription = stringResource(Res.string.action_toggle_currency),
+            modifier = Modifier.size(AppIconSize.xs),
+            tint = ext.sidebarTextMuted
+        )
+        Text(
+            text = currencyLabel(currency),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -868,6 +916,12 @@ private fun screenSectionLabel(screen: AppScreen): String = when (screen) {
 
 private fun themeToggleIcon(themeMode: AppThemeMode): ImageVector =
     if (themeMode == AppThemeMode.Dark) SnowIcons.Sun else SnowIcons.Moon
+
+@Composable
+private fun currencyLabel(currency: AppDisplayCurrency): String = when (currency) {
+    AppDisplayCurrency.Eur -> stringResource(Res.string.currency_eur)
+    AppDisplayCurrency.Usd -> stringResource(Res.string.currency_usd)
+}
 
 @Composable
 private fun HeaderIconButton(

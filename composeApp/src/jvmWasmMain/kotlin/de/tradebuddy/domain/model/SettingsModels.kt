@@ -23,9 +23,19 @@ enum class AppAccentColor(val key: String) {
     }
 }
 
+enum class AppDisplayCurrency(val key: String) {
+    Eur("eur"),
+    Usd("usd");
+
+    companion object {
+        fun fromKey(key: String): AppDisplayCurrency? = entries.firstOrNull { it.key == key }
+    }
+}
+
 data class UserSettings(
     val themeMode: AppThemeMode,
     val accentColor: AppAccentColor,
+    val displayCurrency: AppDisplayCurrency,
     val selectedCityKeys: Set<String>,
     val sunTimeOffsetMinutes: Int,
     val moonTimeOffsetMinutes: Int,

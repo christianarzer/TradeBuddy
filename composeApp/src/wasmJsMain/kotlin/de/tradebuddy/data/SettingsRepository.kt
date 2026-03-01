@@ -2,6 +2,7 @@ package de.tradebuddy.data
 
 import de.tradebuddy.domain.model.AppThemeMode
 import de.tradebuddy.domain.model.AppAccentColor
+import de.tradebuddy.domain.model.AppDisplayCurrency
 import de.tradebuddy.domain.model.AstroAspectType
 import de.tradebuddy.domain.model.ASTRO_MAX_ORB_DEGREES
 import de.tradebuddy.domain.model.ASTRO_MIN_ORB_DEGREES
@@ -17,6 +18,7 @@ import kotlinx.coroutines.withContext
 data class SettingsSnapshot(
     val themeMode: AppThemeMode?,
     val accentColor: AppAccentColor?,
+    val displayCurrency: AppDisplayCurrency?,
     val selectedCityKeys: Set<String>?,
     val sunTimeOffsetMinutes: Int?,
     val moonTimeOffsetMinutes: Int?,
@@ -53,6 +55,7 @@ class FileSettingsRepository(
 
             val themeMode = props["themeMode"]?.let { AppThemeMode.fromKey(it) }
             val accentColor = props["accentColor"]?.let { AppAccentColor.fromKey(it) }
+            val displayCurrency = props["displayCurrency"]?.let { AppDisplayCurrency.fromKey(it) }
             val showUtcTime = props["showUtcTime"]?.toBooleanStrictOrNull()
             val showAzimuth = props["showAzimuth"]?.toBooleanStrictOrNull()
             val showSun = props["showSun"]?.toBooleanStrictOrNull()
@@ -81,6 +84,7 @@ class FileSettingsRepository(
             SettingsSnapshot(
                 themeMode = themeMode,
                 accentColor = accentColor,
+                displayCurrency = displayCurrency,
                 selectedCityKeys = selectedCityKeys,
                 sunTimeOffsetMinutes = sunTimeOffsetMinutes,
                 moonTimeOffsetMinutes = moonTimeOffsetMinutes,
@@ -112,6 +116,7 @@ class FileSettingsRepository(
             val map = linkedMapOf(
                 "themeMode" to settings.themeMode.key,
                 "accentColor" to settings.accentColor.key,
+                "displayCurrency" to settings.displayCurrency.key,
                 "selectedCities" to settings.selectedCityKeys.joinToString(";"),
                 "sunTimeOffsetMinutes" to settings.sunTimeOffsetMinutes.toString(),
                 "moonTimeOffsetMinutes" to settings.moonTimeOffsetMinutes.toString(),

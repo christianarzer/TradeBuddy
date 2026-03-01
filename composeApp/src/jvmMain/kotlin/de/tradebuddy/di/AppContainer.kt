@@ -28,7 +28,7 @@ import de.tradebuddy.presentation.SunMoonViewModel
 import de.tradebuddy.presentation.TasksViewModel
 import java.io.File
 import java.net.HttpURLConnection
-import java.net.URL
+import java.net.URI
 import java.util.Properties
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -100,7 +100,7 @@ class AppContainer(
         url: String,
         headers: Map<String, String>
     ): String = withContext(Dispatchers.IO) {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+        val connection = (URI(url).toURL().openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 20_000
             readTimeout = 30_000
