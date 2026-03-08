@@ -14,6 +14,7 @@ Die UI blockiert nicht: Datenladen und Simulation laufen asynchron, mit Fortschr
 - `engine/`
   - `BacktestingEngine`: deterministische Bar-by-Bar-Simulation.
   - Unterstützt Market/Limit, Maker/Taker Fees, Slippage, Fill-Ratio, Volumen-Partizipation, Leverage/Margin, Funding, Risk-Exits.
+  - `validation/EdgeLabValidator`: Phase-1 Edge-Check (CPCV/SPA) mit Python-Sidecar auf JVM.
 - `metrics/`
   - `BacktestingMetrics`: Kennzahlen, Drawdown-Serie, Monatsrenditen, Walk-Forward, Monte-Carlo.
 - `presentation/`
@@ -68,6 +69,7 @@ Die UI blockiert nicht: Datenladen und Simulation laufen asynchron, mit Fortschr
   - Equity/Drawdown/Trade-PnL Charts.
   - Trades-Tabelle mit Filter/Sort.
   - Analysebereich (Monatsrenditen, Walk-Forward, Monte-Carlo).
+  - Edge Lab (Phase 1): Edge Score + Status (`Passed`, `Warning`, `Failed`, `Unavailable`) inkl. CPCV/SPA-Metriken.
 - Optimierung:
   - Grid Search und Random Search (kostenfrei lokal).
   - Konfigurierbare Parameter-Ranges (SMA fast/slow, RSI-Periode, Breakout-Lookback).
@@ -98,3 +100,4 @@ Die UI blockiert nicht: Datenladen und Simulation laufen asynchron, mit Fortschr
 - Quellen liefern OHLCV unterschiedlich granular (Exchange-seitige Limits/Range-Fenster bleiben relevant).
 - Kein Tick-/Orderbook-Level Fill-Modell (OHLCV-basiert).
 - Keine echte L2/L3-Orderbook-Simulation (Queue-Position/Latency nur approximierbar auf OHLCV).
+- Python-Sidecar benötigt eine verfügbare Python-Runtime (`python3`, `python` oder `py -3`; optional `TRADEBUDDY_PYTHON`).

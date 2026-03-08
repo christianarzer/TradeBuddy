@@ -2,6 +2,8 @@
 
 import de.tradebuddy.data.BacktestingRepository
 import de.tradebuddy.domain.model.BacktestDataRequest
+import de.tradebuddy.domain.model.BacktestEdgeValidation
+import de.tradebuddy.domain.model.BacktestEdgeValidationStatus
 import de.tradebuddy.domain.model.BacktestExchange
 import de.tradebuddy.domain.model.BacktestExecutionSettings
 import de.tradebuddy.domain.model.BacktestHistoryRun
@@ -20,6 +22,8 @@ import de.tradebuddy.domain.model.BacktestWalkForwardFoldResult
 import de.tradebuddy.domain.model.OhlcvCandle
 import de.tradebuddy.engine.BacktestingEngine
 import de.tradebuddy.logging.AppLog
+import de.tradebuddy.validation.EdgeLabValidator
+import de.tradebuddy.validation.NoOpEdgeLabValidator
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -44,7 +48,8 @@ import kotlinx.serialization.json.Json
 
 class BacktestingViewModel(
     private val repository: BacktestingRepository,
-    private val engine: BacktestingEngine = BacktestingEngine()
+    private val engine: BacktestingEngine = BacktestingEngine(),
+    private val edgeLabValidator: EdgeLabValidator = NoOpEdgeLabValidator()
 ) : AutoCloseable {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var runJob: Job? = null
@@ -218,12 +223,42 @@ class BacktestingViewModel(
                         }
                     }
                 }
+                _state.update { current ->
+                    if (!current.isRunning) {
+                        current
+                    } else {
+                        current.copy(
+                            runProgress = 0.96f,
+                            runStatus = "Edge Lab validiert"
+                        )
+                    }
+                }
+                val edgeValidation = runCatching { edgeLabValidator.validate(result) }
+                    .getOrElse { error ->
+                        AppLog.warn(
+                            tag = "BacktestingViewModel",
+                            message = "Edge-Lab-Validierung fehlgeschlagen",
+                            throwable = error
+                        )
+                        BacktestEdgeValidation(
+                            status = BacktestEdgeValidationStatus.Unavailable,
+                            edgeScore = 0.0,
+                            sampleCount = result.trades.size,
+                            cpcvSplits = 0,
+                            cpcvPaths = 0,
+                            notes = listOf(error.message ?: "Edge Lab konnte nicht ausgeführt werden.")
+                        )
+                    }
+                val finalResult = result.copy(
+                    edgeValidation = edgeValidation,
+                    dataNotes = (result.dataNotes + marketData.notes + edgeValidation.notes).distinct()
+                )
                 val historyRun = BacktestHistoryRun(
-                    id = result.runId,
+                    id = finalResult.runId,
                     title = "${parsed.data.symbol} - ${parsed.strategy.template.label} - ${parsed.data.timeframe.label}",
                     createdAt = Instant.now(),
                     request = parsed,
-                    result = result.copy(dataNotes = result.dataNotes + marketData.notes)
+                    result = finalResult
                 )
                 repository.saveHistoryRun(historyRun)
                 val history = repository.loadHistory()

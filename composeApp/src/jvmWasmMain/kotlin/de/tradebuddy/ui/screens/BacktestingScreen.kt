@@ -55,6 +55,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.tradebuddy.data.DefaultCityDataSource
+import de.tradebuddy.domain.model.BacktestEdgeValidation
+import de.tradebuddy.domain.model.BacktestEdgeValidationStatus
 import de.tradebuddy.domain.model.BacktestExchange
 import de.tradebuddy.domain.model.BacktestHistoryRun
 import de.tradebuddy.domain.model.BacktestMarginMode
@@ -146,6 +148,20 @@ import trade_buddy.composeapp.generated.resources.backtesting_delete
 import trade_buddy.composeapp.generated.resources.backtesting_expectancy
 import trade_buddy.composeapp.generated.resources.backtesting_execution_title
 import trade_buddy.composeapp.generated.resources.backtesting_exchange
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_cpcv
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_notes
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_oos_return
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_oos_sharpe
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_positive_paths
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_samples
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_score
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_spa_pvalue
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_status
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_status_failed
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_status_passed
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_status_unavailable
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_status_warning
+import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_title
 import trade_buddy.composeapp.generated.resources.backtesting_exposure_time
 import trade_buddy.composeapp.generated.resources.backtesting_export_json
 import trade_buddy.composeapp.generated.resources.backtesting_export_trades
@@ -1071,6 +1087,7 @@ fun BacktestingScreen(
                         color = ext.sidebarTextMuted
                     )
                     MetricsGrid(result)
+                    EdgeLabSection(result.edgeValidation)
                     ResultCharts(
                         result = result,
                         selectedTradeId = state.selectedTradeId,
@@ -1587,6 +1604,70 @@ private fun MetricsGrid(result: BacktestResult) {
                 Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.extended.sidebarTextMuted)
                 Text(value, style = MaterialTheme.typography.titleSmall)
             }
+        }
+    }
+}
+
+@Composable
+private fun EdgeLabSection(validation: BacktestEdgeValidation?) {
+    val edge = validation ?: return
+    val ext = MaterialTheme.extended
+    val statusLabel = when (edge.status) {
+        BacktestEdgeValidationStatus.Passed -> stringResource(Res.string.backtesting_edge_lab_status_passed)
+        BacktestEdgeValidationStatus.Warning -> stringResource(Res.string.backtesting_edge_lab_status_warning)
+        BacktestEdgeValidationStatus.Failed -> stringResource(Res.string.backtesting_edge_lab_status_failed)
+        BacktestEdgeValidationStatus.Unavailable -> stringResource(Res.string.backtesting_edge_lab_status_unavailable)
+    }
+    val statusColor = when (edge.status) {
+        BacktestEdgeValidationStatus.Passed -> ext.positive
+        BacktestEdgeValidationStatus.Warning -> ext.warning
+        BacktestEdgeValidationStatus.Failed -> ext.negative
+        BacktestEdgeValidationStatus.Unavailable -> ext.sidebarTextMuted
+    }
+
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(stringResource(Res.string.backtesting_edge_lab_title), style = MaterialTheme.typography.labelMedium)
+    Text(
+        text = "${stringResource(Res.string.backtesting_edge_lab_status)}: $statusLabel",
+        style = MaterialTheme.typography.bodySmall,
+        color = statusColor
+    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AnalysisMetricChip(stringResource(Res.string.backtesting_edge_lab_score), edge.edgeScore.pretty())
+        AnalysisMetricChip(stringResource(Res.string.backtesting_edge_lab_samples), edge.sampleCount.toString())
+        AnalysisMetricChip(
+            stringResource(Res.string.backtesting_edge_lab_cpcv),
+            "${edge.cpcvSplits}/${edge.cpcvPaths}"
+        )
+        AnalysisMetricChip(
+            stringResource(Res.string.backtesting_edge_lab_oos_sharpe),
+            edge.oosSharpe?.pretty() ?: "-"
+        )
+        AnalysisMetricChip(
+            stringResource(Res.string.backtesting_edge_lab_oos_return),
+            edge.oosReturnPercent?.prettyPercent() ?: "-"
+        )
+        AnalysisMetricChip(
+            stringResource(Res.string.backtesting_edge_lab_positive_paths),
+            edge.oosPositivePathPercent?.prettyPercent() ?: "-"
+        )
+        AnalysisMetricChip(
+            stringResource(Res.string.backtesting_edge_lab_spa_pvalue),
+            edge.spaPValue?.pretty() ?: "-"
+        )
+    }
+    if (edge.notes.isNotEmpty()) {
+        Text(
+            text = stringResource(Res.string.backtesting_edge_lab_notes),
+            style = MaterialTheme.typography.labelSmall,
+            color = ext.sidebarTextMuted
+        )
+        edge.notes.take(4).forEach { note ->
+            Text(
+                text = "- $note",
+                style = MaterialTheme.typography.bodySmall,
+                color = ext.sidebarTextMuted
+            )
         }
     }
 }

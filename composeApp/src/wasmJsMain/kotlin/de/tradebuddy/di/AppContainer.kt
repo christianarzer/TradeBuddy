@@ -43,6 +43,7 @@ import de.tradebuddy.presentation.MarketEventsViewModel
 import de.tradebuddy.presentation.PortfolioViewModel
 import de.tradebuddy.presentation.SunMoonViewModel
 import de.tradebuddy.presentation.TasksViewModel
+import de.tradebuddy.validation.WasmEdgeLabValidator
 import kotlinx.browser.window
 import kotlinx.coroutines.await
 import kotlinx.coroutines.Dispatchers
@@ -200,7 +201,10 @@ class AppContainer(
         TasksViewModel(repository = tasksRepository)
 
     fun createBacktestingViewModel(): BacktestingViewModel =
-        BacktestingViewModel(repository = backtestingRepository)
+        BacktestingViewModel(
+            repository = backtestingRepository,
+            edgeLabValidator = WasmEdgeLabValidator()
+        )
 
     fun setMarketEventsApiKey(apiKey: String) {
         val normalized = apiKey.trim().ifBlank { null }

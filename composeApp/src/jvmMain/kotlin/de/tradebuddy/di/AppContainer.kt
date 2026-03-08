@@ -42,6 +42,7 @@ import de.tradebuddy.presentation.MarketEventsViewModel
 import de.tradebuddy.presentation.PortfolioViewModel
 import de.tradebuddy.presentation.SunMoonViewModel
 import de.tradebuddy.presentation.TasksViewModel
+import de.tradebuddy.validation.PythonEdgeLabValidator
 import de.tradebuddy.domain.model.BacktestExchange
 import java.io.File
 import java.net.HttpURLConnection
@@ -204,7 +205,10 @@ class AppContainer(
         TasksViewModel(repository = tasksRepository)
 
     fun createBacktestingViewModel(): BacktestingViewModel =
-        BacktestingViewModel(repository = backtestingRepository)
+        BacktestingViewModel(
+            repository = backtestingRepository,
+            edgeLabValidator = PythonEdgeLabValidator()
+        )
 
     fun setMarketEventsApiKey(apiKey: String) {
         val normalized = apiKey.trim().ifBlank { null }

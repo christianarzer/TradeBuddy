@@ -77,6 +77,13 @@ enum class BacktestSignal {
     Cover
 }
 
+enum class BacktestEdgeValidationStatus {
+    Passed,
+    Warning,
+    Failed,
+    Unavailable
+}
+
 data class OhlcvCandle(
     val openTime: Instant,
     val closeTime: Instant,
@@ -230,6 +237,20 @@ data class BacktestAnalysis(
     val monteCarlo: BacktestMonteCarloResult?
 )
 
+data class BacktestEdgeValidation(
+    val status: BacktestEdgeValidationStatus,
+    val edgeScore: Double,
+    val sampleCount: Int,
+    val cpcvSplits: Int,
+    val cpcvPaths: Int,
+    val oosSharpe: Double? = null,
+    val oosReturnPercent: Double? = null,
+    val oosPositivePathPercent: Double? = null,
+    val spaPValue: Double? = null,
+    val notes: List<String> = emptyList(),
+    val generatedAt: Instant = Instant.now()
+)
+
 data class BacktestOptimizationRun(
     val runId: String,
     val score: Double,
@@ -290,6 +311,7 @@ data class BacktestResult(
     val signalPoints: List<StrategySignalPoint>,
     val metrics: BacktestMetrics,
     val analysis: BacktestAnalysis? = null,
+    val edgeValidation: BacktestEdgeValidation? = null,
     val dataNotes: List<String>,
     val createdAt: Instant = Instant.now()
 )

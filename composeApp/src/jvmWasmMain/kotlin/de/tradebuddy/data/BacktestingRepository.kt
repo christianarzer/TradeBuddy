@@ -2,6 +2,8 @@ package de.tradebuddy.data
 
 import de.tradebuddy.domain.model.BacktestDataRequest
 import de.tradebuddy.domain.model.BacktestAnalysis
+import de.tradebuddy.domain.model.BacktestEdgeValidation
+import de.tradebuddy.domain.model.BacktestEdgeValidationStatus
 import de.tradebuddy.domain.model.BacktestExchange
 import de.tradebuddy.domain.model.BacktestExecutionSettings
 import de.tradebuddy.domain.model.BacktestExitReason
@@ -1235,6 +1237,7 @@ private data class BacktestResultDto(
     val signalPoints: List<StrategySignalPointDto>,
     val metrics: BacktestMetricsDto,
     val analysis: BacktestAnalysisDto? = null,
+    val edgeValidation: BacktestEdgeValidationDto? = null,
     val dataNotes: List<String>,
     val createdAtEpochMillis: Long
 )
@@ -1244,6 +1247,21 @@ private data class BacktestAnalysisDto(
     val monthlyReturns: List<BacktestMonthlyReturnDto> = emptyList(),
     val walkForward: BacktestWalkForwardResultDto? = null,
     val monteCarlo: BacktestMonteCarloResultDto? = null
+)
+
+@Serializable
+private data class BacktestEdgeValidationDto(
+    val status: String,
+    val edgeScore: Double,
+    val sampleCount: Int,
+    val cpcvSplits: Int,
+    val cpcvPaths: Int,
+    val oosSharpe: Double? = null,
+    val oosReturnPercent: Double? = null,
+    val oosPositivePathPercent: Double? = null,
+    val spaPValue: Double? = null,
+    val notes: List<String> = emptyList(),
+    val generatedAtEpochMillis: Long
 )
 
 @Serializable
@@ -1426,6 +1444,7 @@ private fun BacktestResult.toDto(): BacktestResultDto = BacktestResultDto(
     signalPoints = signalPoints.map { it.toDto() },
     metrics = metrics.toDto(),
     analysis = analysis?.toDto(),
+    edgeValidation = edgeValidation?.toDto(),
     dataNotes = dataNotes,
     createdAtEpochMillis = createdAt.toEpochMilli()
 )
@@ -1488,6 +1507,20 @@ private fun BacktestAnalysis.toDto(): BacktestAnalysisDto = BacktestAnalysisDto(
     monthlyReturns = monthlyReturns.map { it.toDto() },
     walkForward = walkForward?.toDto(),
     monteCarlo = monteCarlo?.toDto()
+)
+
+private fun BacktestEdgeValidation.toDto(): BacktestEdgeValidationDto = BacktestEdgeValidationDto(
+    status = status.name,
+    edgeScore = edgeScore,
+    sampleCount = sampleCount,
+    cpcvSplits = cpcvSplits,
+    cpcvPaths = cpcvPaths,
+    oosSharpe = oosSharpe,
+    oosReturnPercent = oosReturnPercent,
+    oosPositivePathPercent = oosPositivePathPercent,
+    spaPValue = spaPValue,
+    notes = notes,
+    generatedAtEpochMillis = generatedAt.toEpochMilli()
 )
 
 private fun BacktestMonthlyReturn.toDto(): BacktestMonthlyReturnDto = BacktestMonthlyReturnDto(
@@ -1612,6 +1645,7 @@ private fun BacktestResultDto.toDomainOrNull(request: BacktestRunRequest): Backt
         signalPoints = signalPointsDomain,
         metrics = metricsDomain,
         analysis = analysis?.toDomainOrNull(),
+        edgeValidation = edgeValidation?.toDomainOrNull(),
         dataNotes = dataNotes,
         createdAt = Instant.ofEpochMilli(createdAtEpochMillis)
     )
@@ -1677,6 +1711,23 @@ private fun BacktestAnalysisDto.toDomainOrNull(): BacktestAnalysis =
         walkForward = walkForward?.toDomain(),
         monteCarlo = monteCarlo?.toDomain()
     )
+
+private fun BacktestEdgeValidationDto.toDomainOrNull(): BacktestEdgeValidation? {
+    val statusValue = runCatching { BacktestEdgeValidationStatus.valueOf(status) }.getOrNull() ?: return null
+    return BacktestEdgeValidation(
+        status = statusValue,
+        edgeScore = edgeScore,
+        sampleCount = sampleCount,
+        cpcvSplits = cpcvSplits,
+        cpcvPaths = cpcvPaths,
+        oosSharpe = oosSharpe,
+        oosReturnPercent = oosReturnPercent,
+        oosPositivePathPercent = oosPositivePathPercent,
+        spaPValue = spaPValue,
+        notes = notes,
+        generatedAt = Instant.ofEpochMilli(generatedAtEpochMillis)
+    )
+}
 
 private fun BacktestMonthlyReturnDto.toDomain(): BacktestMonthlyReturn = BacktestMonthlyReturn(
     year = year,
