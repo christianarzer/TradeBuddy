@@ -22,6 +22,7 @@ showLines = input.bool(true, "Vertical lines", group="Display")
 maxVerticalLines = input.int(400, "Max vertical lines", minval=0, maxval=500, group="Display")
 showIcons = input.bool(true, "Event labels", group="Display")
 maxEventLabels = input.int(400, "Max event labels", minval=0, maxval=500, group="Display")
+labelBottomLookback = input.int(500, "Label bottom lookback bars", minval=50, maxval=5000, group="Display")
 showSun = input.bool(true, "Sun events", group="Filters")
 showMoon = input.bool(true, "Moon events", group="Filters")
 showAstro = input.bool(true, "Astro events", group="Filters")
@@ -119,6 +120,7 @@ if array.size(tsArr) > 0
     atrValue = nz(ta.atr(14), 0.0)
     baseRange = math.max(high - low, close * 0.001)
     step = math.max(atrValue, baseRange) * 0.35
+    canvasBottom = ta.lowest(low, labelBottomLookback)
     bottomStack = 0
 
     for i = 0 to array.size(tsArr) - 1
@@ -154,7 +156,7 @@ if array.size(tsArr) > 0
 
                         cityText = array.get(cityTextArr, i)
                         bottomStack += 1
-                        y = low - step * (0.6 + bottomStack * 0.8)
+                        y = canvasBottom - step * (0.6 + bottomStack * 0.8)
                         labelStyle = label.style_label_up
                         labelText = f_icon_prefix(iconId) + " | " + cityText
                         newLabel = label.new(
@@ -162,7 +164,7 @@ if array.size(tsArr) > 0
                             y = y,
                             text = labelText,
                             xloc = xloc.bar_time,
-                            yloc = yloc.belowbar,
+                            yloc = yloc.price,
                             style = labelStyle,
                             color = f_icon_color(iconId),
                             textcolor = f_icon_text_color(iconId),
