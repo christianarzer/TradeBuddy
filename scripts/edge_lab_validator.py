@@ -193,32 +193,31 @@ def _decide_status(
     positive_paths_pct: Optional[float],
     spa_p_value: Optional[float],
 ) -> Tuple[str, List[str]]:
-    notes: List[str] = []
+    advisory_notes: List[str] = []
+    failure_notes: List[str] = []
     if sample_count < 20:
-        notes.append("Sample-Groesse < 20 Trades: geringe statistische Aussagekraft.")
+        advisory_notes.append("Sample-Groesse < 20 Trades: geringe statistische Aussagekraft.")
     if oos_sharpe is None or spa_p_value is None:
-        notes.append("CPCV/SPA konnten nicht vollstaendig berechnet werden.")
-        return "unavailable", notes
+        advisory_notes.append("CPCV/SPA konnten nicht vollstaendig berechnet werden.")
+        return "unavailable", advisory_notes
 
     if oos_sharpe < 0.0:
-        notes.append("OOS Sharpe < 0: Signal ist instabil.")
+        failure_notes.append("OOS Sharpe < 0: Signal ist instabil.")
     if positive_paths_pct is not None and positive_paths_pct < 45.0:
-        notes.append("Zu wenige positive CPCV-Pfade.")
+        failure_notes.append("Zu wenige positive CPCV-Pfade.")
     if spa_p_value > 0.20:
-        notes.append("SPA p-Wert > 0.20: kein robustes Edge-Signal.")
+        failure_notes.append("SPA p-Wert > 0.20: kein robustes Edge-Signal.")
 
-    if notes:
-        return "failed", notes
+    if failure_notes:
+        return "failed", failure_notes + advisory_notes
 
     if sample_count < 20:
-        return "warning", notes
+        return "warning", advisory_notes
 
     if edge_score >= 70.0 and spa_p_value <= 0.10 and oos_sharpe > 0.20 and (positive_paths_pct or 0.0) >= 55.0:
-        notes.append("Edge erfuellt die Phase-1 Schwellenwerte.")
-        return "passed", notes
+        return "passed", ["Edge erfuellt die Phase-1 Schwellenwerte."] + advisory_notes
 
-    notes.append("Edge ist teilweise robust, aber Schwellenwerte nicht voll erreicht.")
-    return "warning", notes
+    return "warning", ["Edge ist teilweise robust, aber Schwellenwerte nicht voll erreicht."] + advisory_notes
 
 
 def _build_result(payload: Dict[str, object]) -> Dict[str, object]:

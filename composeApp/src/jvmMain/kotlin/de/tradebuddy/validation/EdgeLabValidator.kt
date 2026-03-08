@@ -90,8 +90,24 @@ class PythonEdgeLabValidator : EdgeLabValidator {
             ?.trim()
             ?.takeIf { it.isNotBlank() }
             ?.let { listOf(it) }
+        val localAppDataPython = System.getenv("LOCALAPPDATA")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "$it\\Programs\\Python\\Python312\\python.exe" }
+            ?.let(::File)
+            ?.takeIf { it.exists() && it.isFile }
+            ?.absolutePath
+            ?.let { listOf(it) }
+        val programFilesPython = System.getenv("ProgramFiles")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "$it\\Python312\\python.exe" }
+            ?.let(::File)
+            ?.takeIf { it.exists() && it.isFile }
+            ?.absolutePath
+            ?.let { listOf(it) }
         return buildList {
             envPython?.let(::add)
+            localAppDataPython?.let(::add)
+            programFilesPython?.let(::add)
             add(listOf("python3"))
             add(listOf("python"))
             add(listOf("py", "-3"))
