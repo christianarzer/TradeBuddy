@@ -119,7 +119,6 @@ if array.size(tsArr) > 0
     atrValue = nz(ta.atr(14), 0.0)
     baseRange = math.max(high - low, close * 0.001)
     step = math.max(atrValue, baseRange) * 0.35
-    topStack = 0
     bottomStack = 0
 
     for i = 0 to array.size(tsArr) - 1
@@ -135,15 +134,13 @@ if array.size(tsArr) > 0
                             line.delete(oldLine)
 
                         lineColor = color.new(f_icon_color(iconId), 35)
-                        yLow = low - step * 0.6
-                        yHigh = high + step * 0.6
                         newLine = line.new(
                             x1 = ts,
-                            y1 = yLow,
+                            y1 = 0,
                             x2 = ts,
-                            y2 = yHigh,
+                            y2 = 1,
                             xloc = xloc.bar_time,
-                            extend = extend.none,
+                            extend = extend.both,
                             color = lineColor,
                             style = line.style_dotted,
                             width = 1
@@ -156,21 +153,16 @@ if array.size(tsArr) > 0
                             label.delete(oldLabel)
 
                         cityText = array.get(cityTextArr, i)
-                        isDown = iconId == 1 or iconId == 3
-                        if isDown
-                            topStack += 1
-                        else
-                            bottomStack += 1
-
-                        y = isDown ? high + step * (0.6 + topStack * 0.8) : low - step * (0.6 + bottomStack * 0.8)
-                        labelStyle = isDown ? label.style_label_down : label.style_label_up
+                        bottomStack += 1
+                        y = low - step * (0.6 + bottomStack * 0.8)
+                        labelStyle = label.style_label_up
                         labelText = f_icon_prefix(iconId) + " | " + cityText
                         newLabel = label.new(
                             x = ts,
                             y = y,
                             text = labelText,
                             xloc = xloc.bar_time,
-                            yloc = yloc.price,
+                            yloc = yloc.belowbar,
                             style = labelStyle,
                             color = f_icon_color(iconId),
                             textcolor = f_icon_text_color(iconId),
