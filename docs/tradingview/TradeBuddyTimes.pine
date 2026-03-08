@@ -21,6 +21,8 @@ string tz = input.string("Etc/UTC", "Input timezone", group="Source")
 showLines = input.bool(true, "Vertical lines", group="Display")
 maxVerticalLines = input.int(400, "Max vertical lines", minval=0, maxval=500, group="Display")
 showBottomMarkers = input.bool(true, "Bottom markers", group="Display")
+showCityLabels = input.bool(true, "City labels", group="Display")
+maxCityLabels = input.int(250, "Max city labels", minval=0, maxval=500, group="Display")
 showEventTable = input.bool(true, "Bottom-right event table", group="Display")
 showSun = input.bool(true, "Sun events", group="Filters")
 showMoon = input.bool(true, "Moon events", group="Filters")
@@ -94,6 +96,7 @@ var iconIdArr = array.new_int()
 var cityTextArr = array.new_string()
 var shownArr = array.new_bool()
 var lineRefs = array.new_line()
+var cityLabelRefs = array.new_label()
 var table eventTable = table.new(position.bottom_right, 1, 2, border_width=1)
 
 if barstate.isfirst
@@ -161,6 +164,25 @@ if array.size(tsArr) > 0
                         array.push(lineRefs, newLine)
 
                     cityText = array.get(cityTextArr, i)
+                    if showCityLabels and maxCityLabels > 0
+                        if array.size(cityLabelRefs) >= maxCityLabels
+                            oldCityLabel = array.shift(cityLabelRefs)
+                            label.delete(oldCityLabel)
+
+                        cityLabelText = f_icon_prefix(iconId) + " | " + cityText
+                        cityLabel = label.new(
+                            x = ts,
+                            y = low,
+                            text = cityLabelText,
+                            xloc = xloc.bar_time,
+                            yloc = yloc.belowbar,
+                            style = label.style_label_up,
+                            color = f_icon_color(iconId),
+                            textcolor = f_icon_text_color(iconId),
+                            size = size.tiny
+                        )
+                        array.push(cityLabelRefs, cityLabel)
+
                     if iconId == 0
                         sunUpCount += 1
                         sunUpCities := f_join_city(sunUpCities, cityText)
