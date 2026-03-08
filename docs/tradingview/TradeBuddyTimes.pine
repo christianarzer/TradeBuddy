@@ -20,8 +20,8 @@ entriesInput = input.text_area(
 string tz = input.string("Etc/UTC", "Input timezone", group="Source")
 showLines = input.bool(true, "Vertical lines", group="Display")
 maxVerticalLines = input.int(400, "Max vertical lines", minval=0, maxval=500, group="Display")
-showIcons = input.bool(true, "Event labels", group="Display")
-maxEventLabels = input.int(400, "Max event labels", minval=0, maxval=500, group="Display")
+showBottomMarkers = input.bool(true, "Bottom markers", group="Display")
+showEventTable = input.bool(true, "Bottom-right event table", group="Display")
 showSun = input.bool(true, "Sun events", group="Filters")
 showMoon = input.bool(true, "Moon events", group="Filters")
 showAstro = input.bool(true, "Astro events", group="Filters")
@@ -66,6 +66,9 @@ f_city_text(cityRaw) =>
     city = str.trim(cityRaw)
     str.length(city) > 0 ? city : "City"
 
+f_join_city(listText, cityText) =>
+    str.length(listText) == 0 ? cityText : listText + ", " + cityText
+
 f_ts(dateTimeRaw) =>
     s = str.trim(dateTimeRaw)
     parts = str.split(s, " ")
@@ -91,7 +94,7 @@ var iconIdArr = array.new_int()
 var cityTextArr = array.new_string()
 var shownArr = array.new_bool()
 var lineRefs = array.new_line()
-var labelRefs = array.new_label()
+var table eventTable = table.new(position.bottom_right, 1, 2, border_width=1)
 
 if barstate.isfirst
     clean = entriesInput
@@ -115,11 +118,21 @@ if barstate.isfirst
                 array.push(cityTextArr, f_city_text(cityRaw))
                 array.push(shownArr, false)
 
+sunUpCount = 0
+sunDownCount = 0
+moonUpCount = 0
+moonDownCount = 0
+astroCount = 0
+otherCount = 0
+
+sunUpCities = ""
+sunDownCities = ""
+moonUpCities = ""
+moonDownCities = ""
+astroCities = ""
+otherCities = ""
+
 if array.size(tsArr) > 0
-    atrValue = nz(ta.atr(14), 0.0)
-    baseRange = math.max(high - low, close * 0.001)
-    step = math.max(atrValue, baseRange) * 0.35
-    bottomStack = 0
 
     for i = 0 to array.size(tsArr) - 1
         if not array.get(shownArr, i)
@@ -147,27 +160,69 @@ if array.size(tsArr) > 0
                         )
                         array.push(lineRefs, newLine)
 
-                    if showIcons and maxEventLabels > 0
-                        if array.size(labelRefs) >= maxEventLabels
-                            oldLabel = array.shift(labelRefs)
-                            label.delete(oldLabel)
-
-                        cityText = array.get(cityTextArr, i)
-                        bottomStack += 1
-                        y = low - step * (0.6 + (bottomStack - 1) * 0.8)
-                        labelStyle = label.style_label_up
-                        labelText = f_icon_prefix(iconId) + " | " + cityText
-                        newLabel = label.new(
-                            x = ts,
-                            y = y,
-                            text = labelText,
-                            xloc = xloc.bar_time,
-                            yloc = yloc.belowbar,
-                            style = labelStyle,
-                            color = f_icon_color(iconId),
-                            textcolor = f_icon_text_color(iconId),
-                            size = size.tiny
-                        )
-                        array.push(labelRefs, newLabel)
+                    cityText = array.get(cityTextArr, i)
+                    if iconId == 0
+                        sunUpCount += 1
+                        sunUpCities := f_join_city(sunUpCities, cityText)
+                    else if iconId == 1
+                        sunDownCount += 1
+                        sunDownCities := f_join_city(sunDownCities, cityText)
+                    else if iconId == 2
+                        moonUpCount += 1
+                        moonUpCities := f_join_city(moonUpCities, cityText)
+                    else if iconId == 3
+                        moonDownCount += 1
+                        moonDownCities := f_join_city(moonDownCities, cityText)
+                    else if iconId == 4
+                        astroCount += 1
+                        astroCities := f_join_city(astroCities, cityText)
+                    else
+                        otherCount += 1
+                        otherCities := f_join_city(otherCities, cityText)
 
                 array.set(shownArr, i, true)
+
+plotshape(showBottomMarkers and showSun and sunUpCount > 0, title="SUN_UP_MARKER", style=shape.triangleup, location=location.bottom, color=f_icon_color(0), text="SU", textcolor=f_icon_text_color(0), size=size.tiny)
+plotshape(showBottomMarkers and showSun and sunDownCount > 0, title="SUN_DOWN_MARKER", style=shape.triangledown, location=location.bottom, color=f_icon_color(1), text="SD", textcolor=f_icon_text_color(1), size=size.tiny)
+plotshape(showBottomMarkers and showMoon and moonUpCount > 0, title="MOON_UP_MARKER", style=shape.triangleup, location=location.bottom, color=f_icon_color(2), text="MU", textcolor=f_icon_text_color(2), size=size.tiny)
+plotshape(showBottomMarkers and showMoon and moonDownCount > 0, title="MOON_DOWN_MARKER", style=shape.triangledown, location=location.bottom, color=f_icon_color(3), text="MD", textcolor=f_icon_text_color(3), size=size.tiny)
+plotshape(showBottomMarkers and showAstro and astroCount > 0, title="ASTRO_MARKER", style=shape.diamond, location=location.bottom, color=f_icon_color(4), text="AS", textcolor=f_icon_text_color(4), size=size.tiny)
+plotshape(showBottomMarkers and otherCount > 0, title="OTHER_MARKER", style=shape.circle, location=location.bottom, color=f_icon_color(5), text="OT", textcolor=f_icon_text_color(5), size=size.tiny)
+
+if showEventTable
+    table.cell(
+        eventTable,
+        0,
+        0,
+        "TradeBuddy Event Details",
+        text_color=color.white,
+        text_size=size.small,
+        bgcolor=color.new(#1B1E23, 0)
+    )
+    details = ""
+    if showSun and sunUpCount > 0
+        details += "SUN UP (" + str.tostring(sunUpCount) + "): " + sunUpCities + "\n"
+    if showSun and sunDownCount > 0
+        details += "SUN DOWN (" + str.tostring(sunDownCount) + "): " + sunDownCities + "\n"
+    if showMoon and moonUpCount > 0
+        details += "MOON UP (" + str.tostring(moonUpCount) + "): " + moonUpCities + "\n"
+    if showMoon and moonDownCount > 0
+        details += "MOON DOWN (" + str.tostring(moonDownCount) + "): " + moonDownCities + "\n"
+    if showAstro and astroCount > 0
+        details += "ASTRO (" + str.tostring(astroCount) + "): " + astroCities + "\n"
+    if otherCount > 0
+        details += "OTHER (" + str.tostring(otherCount) + "): " + otherCities + "\n"
+    if str.length(details) == 0
+        details := "No events on this bar."
+    table.cell(
+        eventTable,
+        0,
+        1,
+        details,
+        text_color=color.new(color.white, 0),
+        text_size=size.tiny,
+        bgcolor=color.new(#0F1115, 0)
+    )
+else
+    table.cell(eventTable, 0, 0, "", bgcolor=color.new(color.black, 100))
+    table.cell(eventTable, 0, 1, "", bgcolor=color.new(color.black, 100))
