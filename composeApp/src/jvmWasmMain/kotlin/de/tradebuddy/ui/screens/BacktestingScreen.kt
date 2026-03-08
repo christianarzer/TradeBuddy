@@ -71,6 +71,7 @@ import de.tradebuddy.domain.model.BacktestTimeframe
 import de.tradebuddy.domain.model.BacktestTrade
 import de.tradebuddy.domain.model.BacktestTradeSide
 import de.tradebuddy.domain.util.key
+import de.tradebuddy.presentation.BacktestEdgeGatePreset
 import de.tradebuddy.presentation.BacktestOptimizationObjective
 import de.tradebuddy.presentation.BacktestTradesSort
 import de.tradebuddy.presentation.BacktestCustomPreset
@@ -174,6 +175,11 @@ import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_title
 import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_status
 import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_passed
 import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_failed
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_preset
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_preset_aggressive
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_preset_custom
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_preset_moderate
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_preset_strict
 import trade_buddy.composeapp.generated.resources.backtesting_exposure_time
 import trade_buddy.composeapp.generated.resources.backtesting_export_json
 import trade_buddy.composeapp.generated.resources.backtesting_export_trades
@@ -991,6 +997,31 @@ fun BacktestingScreen(
                     Switch(checked = state.edgeGateEnabled, onCheckedChange = viewModel::setEdgeGateEnabled)
                 }
                 if (state.edgeGateEnabled) {
+                    Text(
+                        text = stringResource(Res.string.backtesting_edge_gate_preset),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ext.sidebarTextMuted
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            BacktestEdgeGatePreset.Strict,
+                            BacktestEdgeGatePreset.Moderate,
+                            BacktestEdgeGatePreset.Aggressive
+                        ).forEach { preset ->
+                            FilterChip(
+                                selected = state.edgeGatePreset == preset,
+                                onClick = { viewModel.setEdgeGatePreset(preset) },
+                                label = { Text(edgeGatePresetLabel(preset)) }
+                            )
+                        }
+                        if (state.edgeGatePreset == BacktestEdgeGatePreset.Custom) {
+                            AssistChip(
+                                onClick = {},
+                                enabled = false,
+                                label = { Text(edgeGatePresetLabel(BacktestEdgeGatePreset.Custom)) }
+                            )
+                        }
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = stringResource(Res.string.backtesting_edge_gate_require_passed_status),
@@ -1322,6 +1353,14 @@ private fun objectiveLabel(objective: BacktestOptimizationObjective): String = w
     BacktestOptimizationObjective.Sharpe -> "Sharpe"
     BacktestOptimizationObjective.ProfitFactor -> "Profit Factor"
     BacktestOptimizationObjective.Calmar -> "Calmar"
+}
+
+@Composable
+private fun edgeGatePresetLabel(preset: BacktestEdgeGatePreset): String = when (preset) {
+    BacktestEdgeGatePreset.Strict -> stringResource(Res.string.backtesting_edge_gate_preset_strict)
+    BacktestEdgeGatePreset.Moderate -> stringResource(Res.string.backtesting_edge_gate_preset_moderate)
+    BacktestEdgeGatePreset.Aggressive -> stringResource(Res.string.backtesting_edge_gate_preset_aggressive)
+    BacktestEdgeGatePreset.Custom -> stringResource(Res.string.backtesting_edge_gate_preset_custom)
 }
 
 @Composable

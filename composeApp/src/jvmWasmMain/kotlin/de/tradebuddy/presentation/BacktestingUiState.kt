@@ -31,6 +31,13 @@ enum class BacktestOptimizationObjective {
     Calmar
 }
 
+enum class BacktestEdgeGatePreset {
+    Strict,
+    Moderate,
+    Aggressive,
+    Custom
+}
+
 data class BacktestingUiState(
     val isLoadingHistory: Boolean = true,
     val isRunning: Boolean = false,
@@ -130,6 +137,7 @@ data class BacktestingUiState(
     val optimizationBreakoutMaxInput: String = "90",
     val optimizationBreakoutStepInput: String = "5",
     val edgeGateEnabled: Boolean = true,
+    val edgeGatePreset: BacktestEdgeGatePreset = BacktestEdgeGatePreset.Moderate,
     val edgeGateRequirePassedStatus: Boolean = true,
     val edgeGateMinEdgeScoreInput: String = "70",
     val edgeGateMaxSpaPValueInput: String = "0.10",

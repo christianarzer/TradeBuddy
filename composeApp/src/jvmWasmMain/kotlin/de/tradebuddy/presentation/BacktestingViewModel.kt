@@ -178,12 +178,58 @@ class BacktestingViewModel(
     fun setOptimizationBreakoutMax(value: String) = _state.update { it.copy(optimizationBreakoutMaxInput = value) }
     fun setOptimizationBreakoutStep(value: String) = _state.update { it.copy(optimizationBreakoutStepInput = value) }
     fun setEdgeGateEnabled(value: Boolean) = _state.update { it.copy(edgeGateEnabled = value) }
-    fun setEdgeGateRequirePassedStatus(value: Boolean) = _state.update { it.copy(edgeGateRequirePassedStatus = value) }
-    fun setEdgeGateMinEdgeScore(value: String) = _state.update { it.copy(edgeGateMinEdgeScoreInput = value) }
-    fun setEdgeGateMaxSpaPValue(value: String) = _state.update { it.copy(edgeGateMaxSpaPValueInput = value) }
-    fun setEdgeGateMinPositivePaths(value: String) = _state.update { it.copy(edgeGateMinPositivePathsInput = value) }
-    fun setEdgeGateMinTrades(value: String) = _state.update { it.copy(edgeGateMinTradesInput = value) }
-    fun setEdgeGateMinOosSharpe(value: String) = _state.update { it.copy(edgeGateMinOosSharpeInput = value) }
+    fun setEdgeGatePreset(preset: BacktestEdgeGatePreset) {
+        if (preset == BacktestEdgeGatePreset.Custom) return
+        val values = edgeGatePresetValues(preset)
+        _state.update {
+            it.copy(
+                edgeGateEnabled = true,
+                edgeGatePreset = preset,
+                edgeGateRequirePassedStatus = values.requirePassedStatus,
+                edgeGateMinEdgeScoreInput = values.minEdgeScore.trimToString(),
+                edgeGateMaxSpaPValueInput = values.maxSpaPValue.trimToString(),
+                edgeGateMinPositivePathsInput = values.minPositivePathsPercent.trimToString(),
+                edgeGateMinTradesInput = values.minTrades.toString(),
+                edgeGateMinOosSharpeInput = values.minOosSharpe.trimToString()
+            )
+        }
+    }
+    fun setEdgeGateRequirePassedStatus(value: Boolean) = _state.update {
+        it.copy(
+            edgeGatePreset = BacktestEdgeGatePreset.Custom,
+            edgeGateRequirePassedStatus = value
+        )
+    }
+    fun setEdgeGateMinEdgeScore(value: String) = _state.update {
+        it.copy(
+            edgeGatePreset = BacktestEdgeGatePreset.Custom,
+            edgeGateMinEdgeScoreInput = value
+        )
+    }
+    fun setEdgeGateMaxSpaPValue(value: String) = _state.update {
+        it.copy(
+            edgeGatePreset = BacktestEdgeGatePreset.Custom,
+            edgeGateMaxSpaPValueInput = value
+        )
+    }
+    fun setEdgeGateMinPositivePaths(value: String) = _state.update {
+        it.copy(
+            edgeGatePreset = BacktestEdgeGatePreset.Custom,
+            edgeGateMinPositivePathsInput = value
+        )
+    }
+    fun setEdgeGateMinTrades(value: String) = _state.update {
+        it.copy(
+            edgeGatePreset = BacktestEdgeGatePreset.Custom,
+            edgeGateMinTradesInput = value
+        )
+    }
+    fun setEdgeGateMinOosSharpe(value: String) = _state.update {
+        it.copy(
+            edgeGatePreset = BacktestEdgeGatePreset.Custom,
+            edgeGateMinOosSharpeInput = value
+        )
+    }
     fun setWalkForwardSplits(value: String) = _state.update { it.copy(walkForwardSplitsInput = value) }
     fun selectTrade(tradeId: String?) = _state.update { current ->
         current.copy(selectedTradeId = if (current.selectedTradeId == tradeId) null else tradeId)
@@ -1136,6 +1182,35 @@ class BacktestingViewModel(
         )
     }
 
+    private fun edgeGatePresetValues(preset: BacktestEdgeGatePreset): EdgeGatePresetValues =
+        when (preset) {
+            BacktestEdgeGatePreset.Strict -> EdgeGatePresetValues(
+                requirePassedStatus = true,
+                minEdgeScore = 80.0,
+                maxSpaPValue = 0.05,
+                minPositivePathsPercent = 65.0,
+                minTrades = 40,
+                minOosSharpe = 0.35
+            )
+            BacktestEdgeGatePreset.Moderate -> EdgeGatePresetValues(
+                requirePassedStatus = true,
+                minEdgeScore = 70.0,
+                maxSpaPValue = 0.10,
+                minPositivePathsPercent = 55.0,
+                minTrades = 20,
+                minOosSharpe = 0.20
+            )
+            BacktestEdgeGatePreset.Aggressive -> EdgeGatePresetValues(
+                requirePassedStatus = false,
+                minEdgeScore = 55.0,
+                maxSpaPValue = 0.20,
+                minPositivePathsPercent = 50.0,
+                minTrades = 10,
+                minOosSharpe = 0.0
+            )
+            BacktestEdgeGatePreset.Custom -> edgeGatePresetValues(BacktestEdgeGatePreset.Moderate)
+        }
+
     private fun parseEdgeGateConfig(state: BacktestingUiState): EdgeGateConfig? {
         if (!state.edgeGateEnabled) {
             return EdgeGateConfig(
@@ -1634,6 +1709,15 @@ private data class WalkForwardFold(
 
 private data class EdgeGateConfig(
     val enabled: Boolean,
+    val requirePassedStatus: Boolean,
+    val minEdgeScore: Double,
+    val maxSpaPValue: Double,
+    val minPositivePathsPercent: Double,
+    val minTrades: Int,
+    val minOosSharpe: Double
+)
+
+private data class EdgeGatePresetValues(
     val requirePassedStatus: Boolean,
     val minEdgeScore: Double,
     val maxSpaPValue: Double,
