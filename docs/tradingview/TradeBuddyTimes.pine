@@ -17,12 +17,13 @@ entriesInput = input.text_area(
      title = "TradeBuddy Events (eine pro Zeile oder mit Komma getrennt)"
 )
 
-string tz = input.string("Etc/UTC", "Input timezone")
-showLines = input.bool(true, "Vertikale Linien")
-showIcons = input.bool(true, "Event-Icons")
-showSun = input.bool(true, "Show Sun")
-showMoon = input.bool(true, "Show Moon")
-showAstro = input.bool(true, "Show Astro")
+string tz = input.string("Etc/UTC", "Input timezone", group="Source")
+showLines = input.bool(true, "Vertikale Linien", group="Display")
+maxVerticalLines = input.int(400, "Max vertical lines", minval=0, maxval=500, group="Display")
+showIcons = input.bool(true, "Event-Icons", group="Display")
+showSun = input.bool(true, "Sun events", group="Filters")
+showMoon = input.bool(true, "Moon events", group="Filters")
+showAstro = input.bool(true, "Astro events", group="Filters")
 
 f_ts(dateTimeRaw) =>
     s = str.trim(dateTimeRaw)
@@ -93,27 +94,33 @@ if barstate.isfirst
 
             ts = f_ts(dt)
             iconId = f_icon_id(icon)
-            if not na(ts) and f_icon_enabled(iconId)
+            if not na(ts)
                 array.push(tsArr, ts)
                 array.push(iconIdArr, iconId)
                 array.push(cityIdArr, f_city_id(city))
                 array.push(shownArr, false)
 
-                if showLines
-                    lineColor = color.new(#455A64, 65)
-                    if iconId == 0 or iconId == 1
-                        lineColor := color.new(#FF6D00, 65)
-                    else if iconId == 2 or iconId == 3
-                        lineColor := color.new(#1565C0, 65)
-                    else if iconId == 4
-                        lineColor := color.new(#6A1B9A, 65)
+    if showLines and maxVerticalLines > 0 and array.size(tsArr) > 0
+        lastIdx = array.size(tsArr) - 1
+        startIdx = math.max(lastIdx - maxVerticalLines + 1, 0)
+        for i = startIdx to lastIdx
+            iconId = array.get(iconIdArr, i)
+            if f_icon_enabled(iconId)
+                ts = array.get(tsArr, i)
+                lineColor = color.new(#455A64, 65)
+                if iconId == 0 or iconId == 1
+                    lineColor := color.new(#FF6D00, 65)
+                else if iconId == 2 or iconId == 3
+                    lineColor := color.new(#1565C0, 65)
+                else if iconId == 4
+                    lineColor := color.new(#6A1B9A, 65)
 
-                    line.new(ts, 0, ts, 1,
-                        xloc=xloc.bar_time,
-                        extend=extend.both,
-                        color=lineColor,
-                        style=line.style_dotted,
-                        width=1)
+                line.new(ts, 0, ts, 1,
+                    xloc=xloc.bar_time,
+                    extend=extend.both,
+                    color=lineColor,
+                    style=line.style_dotted,
+                    width=1)
 
 // Collect first matching event per bar
 evIcon = -1
