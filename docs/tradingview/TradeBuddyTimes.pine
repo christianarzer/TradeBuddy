@@ -22,7 +22,6 @@ showLines = input.bool(true, "Vertical lines", group="Display")
 maxVerticalLines = input.int(400, "Max vertical lines", minval=0, maxval=500, group="Display")
 showIcons = input.bool(true, "Event labels", group="Display")
 maxEventLabels = input.int(400, "Max event labels", minval=0, maxval=500, group="Display")
-labelBottomPaddingSteps = input.float(6.0, "Label bottom padding (steps)", minval=0.0, maxval=40.0, step=0.5, group="Display")
 showSun = input.bool(true, "Sun events", group="Filters")
 showMoon = input.bool(true, "Moon events", group="Filters")
 showAstro = input.bool(true, "Astro events", group="Filters")
@@ -93,7 +92,6 @@ var cityTextArr = array.new_string()
 var shownArr = array.new_bool()
 var lineRefs = array.new_line()
 var labelRefs = array.new_label()
-var float globalBottomAnchor = na
 
 if barstate.isfirst
     clean = entriesInput
@@ -121,8 +119,6 @@ if array.size(tsArr) > 0
     atrValue = nz(ta.atr(14), 0.0)
     baseRange = math.max(high - low, close * 0.001)
     step = math.max(atrValue, baseRange) * 0.35
-    globalBottomAnchor := na(globalBottomAnchor) ? low : math.min(globalBottomAnchor, low)
-    labelBaseY = globalBottomAnchor - step * labelBottomPaddingSteps
     bottomStack = 0
 
     for i = 0 to array.size(tsArr) - 1
@@ -158,7 +154,7 @@ if array.size(tsArr) > 0
 
                         cityText = array.get(cityTextArr, i)
                         bottomStack += 1
-                        y = labelBaseY - step * ((bottomStack - 1) * 0.8)
+                        y = low - step * (0.6 + (bottomStack - 1) * 0.8)
                         labelStyle = label.style_label_up
                         labelText = f_icon_prefix(iconId) + " | " + cityText
                         newLabel = label.new(
@@ -166,7 +162,7 @@ if array.size(tsArr) > 0
                             y = y,
                             text = labelText,
                             xloc = xloc.bar_time,
-                            yloc = yloc.price,
+                            yloc = yloc.belowbar,
                             style = labelStyle,
                             color = f_icon_color(iconId),
                             textcolor = f_icon_text_color(iconId),
