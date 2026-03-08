@@ -504,6 +504,17 @@
     <string name="backtesting_edge_lab_positive_paths">Positive Pfade</string>
     <string name="backtesting_edge_lab_spa_pvalue">SPA p-Wert</string>
     <string name="backtesting_edge_lab_notes">Hinweise</string>
+    <string name="backtesting_edge_gate_title">Edge Gate</string>
+    <string name="backtesting_edge_gate_enabled">Edge Gate aktiv</string>
+    <string name="backtesting_edge_gate_require_passed_status">Nur Status Passed akzeptieren</string>
+    <string name="backtesting_edge_gate_min_edge_score">Min Edge Score</string>
+    <string name="backtesting_edge_gate_max_spa_pvalue">Max SPA p-Wert</string>
+    <string name="backtesting_edge_gate_min_positive_paths">Min Positive Pfade %</string>
+    <string name="backtesting_edge_gate_min_trades">Min Trades</string>
+    <string name="backtesting_edge_gate_min_oos_sharpe">Min OOS Sharpe</string>
+    <string name="backtesting_edge_gate_status">Gate-Status</string>
+    <string name="backtesting_edge_gate_passed">Bestanden</string>
+    <string name="backtesting_edge_gate_failed">Nicht bestanden</string>
     <string name="backtesting_walk_forward_fold">Fold %1$d</string>
     <string name="backtesting_history_title">Backtest-Historie</string>
     <string name="backtesting_history_empty">Noch keine Backtest-Runs gespeichert.</string>

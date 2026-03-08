@@ -2,6 +2,7 @@ package de.tradebuddy.data
 
 import de.tradebuddy.domain.model.BacktestDataRequest
 import de.tradebuddy.domain.model.BacktestAnalysis
+import de.tradebuddy.domain.model.BacktestEdgeGateDecision
 import de.tradebuddy.domain.model.BacktestEdgeValidation
 import de.tradebuddy.domain.model.BacktestEdgeValidationStatus
 import de.tradebuddy.domain.model.BacktestExchange
@@ -1238,6 +1239,7 @@ private data class BacktestResultDto(
     val metrics: BacktestMetricsDto,
     val analysis: BacktestAnalysisDto? = null,
     val edgeValidation: BacktestEdgeValidationDto? = null,
+    val edgeGateDecision: BacktestEdgeGateDecisionDto? = null,
     val dataNotes: List<String>,
     val createdAtEpochMillis: Long
 )
@@ -1262,6 +1264,20 @@ private data class BacktestEdgeValidationDto(
     val spaPValue: Double? = null,
     val notes: List<String> = emptyList(),
     val generatedAtEpochMillis: Long
+)
+
+@Serializable
+private data class BacktestEdgeGateDecisionDto(
+    val enabled: Boolean,
+    val passed: Boolean,
+    val minEdgeScore: Double,
+    val maxSpaPValue: Double,
+    val minPositivePathsPercent: Double,
+    val minTrades: Int,
+    val minOosSharpe: Double,
+    val requirePassedStatus: Boolean,
+    val reasons: List<String> = emptyList(),
+    val evaluatedAtEpochMillis: Long
 )
 
 @Serializable
@@ -1445,6 +1461,7 @@ private fun BacktestResult.toDto(): BacktestResultDto = BacktestResultDto(
     metrics = metrics.toDto(),
     analysis = analysis?.toDto(),
     edgeValidation = edgeValidation?.toDto(),
+    edgeGateDecision = edgeGateDecision?.toDto(),
     dataNotes = dataNotes,
     createdAtEpochMillis = createdAt.toEpochMilli()
 )
@@ -1521,6 +1538,19 @@ private fun BacktestEdgeValidation.toDto(): BacktestEdgeValidationDto = Backtest
     spaPValue = spaPValue,
     notes = notes,
     generatedAtEpochMillis = generatedAt.toEpochMilli()
+)
+
+private fun BacktestEdgeGateDecision.toDto(): BacktestEdgeGateDecisionDto = BacktestEdgeGateDecisionDto(
+    enabled = enabled,
+    passed = passed,
+    minEdgeScore = minEdgeScore,
+    maxSpaPValue = maxSpaPValue,
+    minPositivePathsPercent = minPositivePathsPercent,
+    minTrades = minTrades,
+    minOosSharpe = minOosSharpe,
+    requirePassedStatus = requirePassedStatus,
+    reasons = reasons,
+    evaluatedAtEpochMillis = evaluatedAt.toEpochMilli()
 )
 
 private fun BacktestMonthlyReturn.toDto(): BacktestMonthlyReturnDto = BacktestMonthlyReturnDto(
@@ -1646,6 +1676,7 @@ private fun BacktestResultDto.toDomainOrNull(request: BacktestRunRequest): Backt
         metrics = metricsDomain,
         analysis = analysis?.toDomainOrNull(),
         edgeValidation = edgeValidation?.toDomainOrNull(),
+        edgeGateDecision = edgeGateDecision?.toDomainOrNull(),
         dataNotes = dataNotes,
         createdAt = Instant.ofEpochMilli(createdAtEpochMillis)
     )
@@ -1728,6 +1759,20 @@ private fun BacktestEdgeValidationDto.toDomainOrNull(): BacktestEdgeValidation? 
         generatedAt = Instant.ofEpochMilli(generatedAtEpochMillis)
     )
 }
+
+private fun BacktestEdgeGateDecisionDto.toDomainOrNull(): BacktestEdgeGateDecision =
+    BacktestEdgeGateDecision(
+        enabled = enabled,
+        passed = passed,
+        minEdgeScore = minEdgeScore,
+        maxSpaPValue = maxSpaPValue,
+        minPositivePathsPercent = minPositivePathsPercent,
+        minTrades = minTrades,
+        minOosSharpe = minOosSharpe,
+        requirePassedStatus = requirePassedStatus,
+        reasons = reasons,
+        evaluatedAt = Instant.ofEpochMilli(evaluatedAtEpochMillis)
+    )
 
 private fun BacktestMonthlyReturnDto.toDomain(): BacktestMonthlyReturn = BacktestMonthlyReturn(
     year = year,

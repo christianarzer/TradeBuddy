@@ -2,6 +2,7 @@
 
 import de.tradebuddy.data.BacktestingRepository
 import de.tradebuddy.domain.model.BacktestDataRequest
+import de.tradebuddy.domain.model.BacktestEdgeGateDecision
 import de.tradebuddy.domain.model.BacktestEdgeValidation
 import de.tradebuddy.domain.model.BacktestEdgeValidationStatus
 import de.tradebuddy.domain.model.BacktestExchange
@@ -176,6 +177,13 @@ class BacktestingViewModel(
     fun setOptimizationBreakoutMin(value: String) = _state.update { it.copy(optimizationBreakoutMinInput = value) }
     fun setOptimizationBreakoutMax(value: String) = _state.update { it.copy(optimizationBreakoutMaxInput = value) }
     fun setOptimizationBreakoutStep(value: String) = _state.update { it.copy(optimizationBreakoutStepInput = value) }
+    fun setEdgeGateEnabled(value: Boolean) = _state.update { it.copy(edgeGateEnabled = value) }
+    fun setEdgeGateRequirePassedStatus(value: Boolean) = _state.update { it.copy(edgeGateRequirePassedStatus = value) }
+    fun setEdgeGateMinEdgeScore(value: String) = _state.update { it.copy(edgeGateMinEdgeScoreInput = value) }
+    fun setEdgeGateMaxSpaPValue(value: String) = _state.update { it.copy(edgeGateMaxSpaPValueInput = value) }
+    fun setEdgeGateMinPositivePaths(value: String) = _state.update { it.copy(edgeGateMinPositivePathsInput = value) }
+    fun setEdgeGateMinTrades(value: String) = _state.update { it.copy(edgeGateMinTradesInput = value) }
+    fun setEdgeGateMinOosSharpe(value: String) = _state.update { it.copy(edgeGateMinOosSharpeInput = value) }
     fun setWalkForwardSplits(value: String) = _state.update { it.copy(walkForwardSplitsInput = value) }
     fun selectTrade(tradeId: String?) = _state.update { current ->
         current.copy(selectedTradeId = if (current.selectedTradeId == tradeId) null else tradeId)
@@ -184,6 +192,7 @@ class BacktestingViewModel(
     fun runBacktest(forceRefreshData: Boolean = false) {
         val snapshot = _state.value
         val parsed = parseRunRequest(snapshot, forceRefreshData) ?: return
+        val edgeGate = parseEdgeGateConfig(snapshot) ?: return
         runJob?.cancel()
         runJob = scope.launch {
             _state.update {
@@ -249,9 +258,19 @@ class BacktestingViewModel(
                             notes = listOf(error.message ?: "Edge Lab konnte nicht ausgeführt werden.")
                         )
                     }
+                val edgeGateDecision = evaluateEdgeGateDecision(
+                    validation = edgeValidation,
+                    config = edgeGate
+                )
                 val finalResult = result.copy(
                     edgeValidation = edgeValidation,
-                    dataNotes = (result.dataNotes + marketData.notes + edgeValidation.notes).distinct()
+                    edgeGateDecision = edgeGateDecision,
+                    dataNotes = (
+                        result.dataNotes +
+                            marketData.notes +
+                            edgeValidation.notes +
+                            edgeGateDecision.reasons
+                        ).distinct()
                 )
                 val historyRun = BacktestHistoryRun(
                     id = finalResult.runId,
@@ -313,6 +332,7 @@ class BacktestingViewModel(
     fun runOptimization(forceRefreshData: Boolean = false) {
         val snapshot = _state.value
         val baseRequest = parseRunRequest(snapshot, forceRefreshData) ?: return
+        val edgeGate = parseEdgeGateConfig(snapshot) ?: return
         val iterations = snapshot.optimizationIterationsInput.parsePositiveInt(max = 500)
         val topK = snapshot.optimizationTopKInput.parsePositiveInt(max = 20)
         val smaFastMin = snapshot.optimizationSmaFastMinInput.parsePositiveInt(max = 500)
@@ -390,13 +410,17 @@ class BacktestingViewModel(
 
                 val startedAt = Instant.now()
                 val runs = mutableListOf<BacktestOptimizationRun>()
-                var bestResult: de.tradebuddy.domain.model.BacktestResult? = null
-                var bestScore = Double.NEGATIVE_INFINITY
+                val scoredCandidates = mutableListOf<ScoredCandidate>()
 
                 candidates.forEachIndexed { index, candidate ->
                     coroutineContext.ensureActive()
                     val candidateResult = engine.run(candidate, marketData)
                     val score = scoreResult(candidateResult, snapshot.optimizationObjective)
+                    scoredCandidates += ScoredCandidate(
+                        request = candidate,
+                        result = candidateResult,
+                        score = score
+                    )
                     runs += BacktestOptimizationRun(
                         runId = candidateResult.runId,
                         score = score,
@@ -410,10 +434,6 @@ class BacktestingViewModel(
                         takeProfitPercent = candidate.execution.takeProfitPercent,
                         trailingStopPercent = candidate.execution.trailingStopPercent
                     )
-                    if (score > bestScore) {
-                        bestScore = score
-                        bestResult = candidateResult
-                    }
                     if (index % 3 == 0) {
                         yield()
                     }
@@ -430,6 +450,36 @@ class BacktestingViewModel(
                     }
                 }
 
+                _state.update { current ->
+                    if (!current.isRunning) {
+                        current
+                    } else {
+                        current.copy(
+                            runProgress = 0.96f,
+                            runStatus = "Edge Gate bewertet Optimierungs-Kandidaten"
+                        )
+                    }
+                }
+
+                val pickedResult = selectBestCandidateByEdgeGate(
+                    scoredCandidates = scoredCandidates,
+                    gateConfig = edgeGate
+                ) { checked, total ->
+                    _state.update { current ->
+                        if (!current.isRunning) {
+                            current
+                        } else {
+                            current.copy(
+                                runProgress = 0.96f + (checked.toFloat() / total.coerceAtLeast(1).toFloat()) * 0.03f,
+                                runStatus = "Edge Gate ${checked.coerceAtLeast(1)}/$total"
+                            )
+                        }
+                    }
+                }
+                if (pickedResult == null) {
+                    error("Edge Gate: Kein Optimierungs-Kandidat erfüllt die Gate-Regeln.")
+                }
+
                 val optimizationResult = BacktestOptimizationResult(
                     mode = snapshot.optimizationMode,
                     iterations = candidates.size,
@@ -439,13 +489,12 @@ class BacktestingViewModel(
                     finishedAt = Instant.now()
                 )
 
-                val pickedResult = bestResult ?: error("Kein Ergebnis aus Optimierung")
                 val bestHistoryRun = BacktestHistoryRun(
                     id = pickedResult.runId,
                     title = "OPT ${baseRequest.data.symbol} - ${baseRequest.strategy.template.label} - ${baseRequest.data.timeframe.label}",
                     createdAt = Instant.now(),
                     request = pickedResult.request,
-                    result = pickedResult.copy(dataNotes = pickedResult.dataNotes + marketData.notes)
+                    result = pickedResult.copy(dataNotes = (pickedResult.dataNotes + marketData.notes).distinct())
                 )
                 repository.saveHistoryRun(bestHistoryRun)
                 val history = repository.loadHistory()
@@ -491,6 +540,7 @@ class BacktestingViewModel(
     fun runWalkForward(forceRefreshData: Boolean = false) {
         val snapshot = _state.value
         val baseRequest = parseRunRequest(snapshot, forceRefreshData) ?: return
+        val edgeGate = parseEdgeGateConfig(snapshot) ?: return
         val splits = snapshot.walkForwardSplitsInput.parsePositiveInt(max = 12)
         val iterations = snapshot.optimizationIterationsInput.parsePositiveInt(max = 500)
         val smaFastMin = snapshot.optimizationSmaFastMinInput.parsePositiveInt(max = 500)
@@ -584,21 +634,35 @@ class BacktestingViewModel(
                         notes = marketData.notes,
                         servedFromCache = marketData.servedFromCache
                     )
-                    var bestCandidate: BacktestRunRequest? = null
-                    var bestScore = Double.NEGATIVE_INFINITY
+                    val scoredCandidates = mutableListOf<ScoredCandidate>()
                     candidates.forEachIndexed { candidateIndex, candidate ->
                         coroutineContext.ensureActive()
                         val trainResult = engine.run(candidate, trainData)
                         val score = scoreResult(trainResult, snapshot.optimizationObjective)
-                        if (score > bestScore) {
-                            bestScore = score
-                            bestCandidate = candidate
-                        }
+                        scoredCandidates += ScoredCandidate(
+                            request = candidate,
+                            result = trainResult,
+                            score = score
+                        )
                         if (candidateIndex % 3 == 0) {
                             yield()
                         }
                     }
-                    val winner = bestCandidate ?: error("Kein bester Kandidat für Fold ${foldIndex + 1}")
+                    val selectedTrainResult = selectBestCandidateByEdgeGate(
+                        scoredCandidates = scoredCandidates,
+                        gateConfig = edgeGate
+                    ) { checked, total ->
+                        _state.update { current ->
+                            if (!current.isRunning) {
+                                current
+                            } else {
+                                current.copy(
+                                    runStatus = "Edge Gate Fold ${foldIndex + 1}: ${checked.coerceAtLeast(1)}/$total"
+                                )
+                            }
+                        }
+                    } ?: error("Edge Gate: Kein Kandidat für Fold ${foldIndex + 1} erfüllt die Gate-Regeln.")
+                    val winner = selectedTrainResult.request
 
                     val testRequest = winner.withRange(
                         from = fold.test.first().openTime,
@@ -609,7 +673,37 @@ class BacktestingViewModel(
                         notes = marketData.notes,
                         servedFromCache = marketData.servedFromCache
                     )
-                    val outResult = engine.run(testRequest, testData)
+                    val outResultRaw = engine.run(testRequest, testData)
+                    val outValidation = runCatching { edgeLabValidator.validate(outResultRaw) }
+                        .getOrElse { error ->
+                            AppLog.warn(
+                                tag = "BacktestingViewModel",
+                                message = "Edge-Lab-Validierung (Walk-Forward) fehlgeschlagen",
+                                throwable = error
+                            )
+                            BacktestEdgeValidation(
+                                status = BacktestEdgeValidationStatus.Unavailable,
+                                edgeScore = 0.0,
+                                sampleCount = outResultRaw.trades.size,
+                                cpcvSplits = 0,
+                                cpcvPaths = 0,
+                                notes = listOf(error.message ?: "Edge Lab konnte nicht ausgeführt werden.")
+                            )
+                        }
+                    val outGateDecision = evaluateEdgeGateDecision(
+                        validation = outValidation,
+                        config = edgeGate
+                    )
+                    val outResult = outResultRaw.copy(
+                        edgeValidation = outValidation,
+                        edgeGateDecision = outGateDecision,
+                        dataNotes = (
+                            outResultRaw.dataNotes +
+                                marketData.notes +
+                                outValidation.notes +
+                                outGateDecision.reasons
+                            ).distinct()
+                    )
                     latestOutResult = outResult
                     val outScore = scoreResult(outResult, snapshot.optimizationObjective)
                     foldResults += BacktestWalkForwardFoldResult(
@@ -620,7 +714,9 @@ class BacktestingViewModel(
                         outOfSampleTo = fold.test.last().closeTime,
                         bestParameterLabel = winner.toParameterLabel(),
                         outSampleMetrics = outResult.metrics,
-                        score = outScore
+                        score = outScore,
+                        edgeGatePassed = outGateDecision.passed,
+                        edgeScore = outValidation.edgeScore
                     )
                     val progress = (foldIndex + 1).toFloat() / folds.size.toFloat()
                     _state.update { current ->
@@ -869,6 +965,32 @@ class BacktestingViewModel(
                 startEquity = result.metrics.startEquity,
                 endEquity = result.metrics.endEquity
             ),
+            edgeValidation = result.edgeValidation?.let { edge ->
+                EdgeValidationExportPayload(
+                    status = edge.status.name,
+                    edgeScore = edge.edgeScore,
+                    sampleCount = edge.sampleCount,
+                    cpcvSplits = edge.cpcvSplits,
+                    cpcvPaths = edge.cpcvPaths,
+                    oosSharpe = edge.oosSharpe,
+                    oosReturnPercent = edge.oosReturnPercent,
+                    oosPositivePathPercent = edge.oosPositivePathPercent,
+                    spaPValue = edge.spaPValue
+                )
+            },
+            edgeGate = result.edgeGateDecision?.let { gate ->
+                EdgeGateExportPayload(
+                    enabled = gate.enabled,
+                    passed = gate.passed,
+                    minEdgeScore = gate.minEdgeScore,
+                    maxSpaPValue = gate.maxSpaPValue,
+                    minPositivePathsPercent = gate.minPositivePathsPercent,
+                    minTrades = gate.minTrades,
+                    minOosSharpe = gate.minOosSharpe,
+                    requirePassedStatus = gate.requirePassedStatus,
+                    reasons = gate.reasons
+                )
+            },
             notes = result.dataNotes
         )
         return json.encodeToString(payload)
@@ -1011,6 +1133,152 @@ class BacktestingViewModel(
                 killSwitchMaxDrawdownPercent = state.killSwitchDrawdownInput.parseNullablePositiveDouble(max = 100.0),
                 dailyLossLimitPercent = state.dailyLossLimitInput.parseNullablePositiveDouble(max = 100.0)
             )
+        )
+    }
+
+    private fun parseEdgeGateConfig(state: BacktestingUiState): EdgeGateConfig? {
+        if (!state.edgeGateEnabled) {
+            return EdgeGateConfig(
+                enabled = false,
+                requirePassedStatus = state.edgeGateRequirePassedStatus,
+                minEdgeScore = state.edgeGateMinEdgeScoreInput.parseNonNegativeDouble(max = 100.0) ?: 70.0,
+                maxSpaPValue = state.edgeGateMaxSpaPValueInput.parseNonNegativeDouble(max = 1.0) ?: 0.10,
+                minPositivePathsPercent = state.edgeGateMinPositivePathsInput.parseNonNegativeDouble(max = 100.0) ?: 55.0,
+                minTrades = state.edgeGateMinTradesInput.parsePositiveInt(max = 10_000) ?: 20,
+                minOosSharpe = state.edgeGateMinOosSharpeInput.parseNonNegativeDouble(max = 20.0) ?: 0.20
+            )
+        }
+        val minEdgeScore = state.edgeGateMinEdgeScoreInput.parseNonNegativeDouble(max = 100.0)
+        val maxSpaPValue = state.edgeGateMaxSpaPValueInput.parseNonNegativeDouble(max = 1.0)
+        val minPositivePaths = state.edgeGateMinPositivePathsInput.parseNonNegativeDouble(max = 100.0)
+        val minTrades = state.edgeGateMinTradesInput.parsePositiveInt(max = 10_000)
+        val minOosSharpe = state.edgeGateMinOosSharpeInput.parseNonNegativeDouble(max = 20.0)
+        if (
+            minEdgeScore == null ||
+            maxSpaPValue == null ||
+            minPositivePaths == null ||
+            minTrades == null ||
+            minOosSharpe == null
+        ) {
+            _state.update { it.copy(errorMessage = "Edge-Gate Eingaben sind ungültig") }
+            return null
+        }
+        return EdgeGateConfig(
+            enabled = state.edgeGateEnabled,
+            requirePassedStatus = state.edgeGateRequirePassedStatus,
+            minEdgeScore = minEdgeScore,
+            maxSpaPValue = maxSpaPValue,
+            minPositivePathsPercent = minPositivePaths,
+            minTrades = minTrades,
+            minOosSharpe = minOosSharpe
+        )
+    }
+
+    private suspend fun selectBestCandidateByEdgeGate(
+        scoredCandidates: List<ScoredCandidate>,
+        gateConfig: EdgeGateConfig,
+        onGateProgress: (checked: Int, total: Int) -> Unit = { _, _ -> }
+    ): de.tradebuddy.domain.model.BacktestResult? {
+        if (scoredCandidates.isEmpty()) return null
+        val sorted = scoredCandidates.sortedByDescending { it.score }
+        if (!gateConfig.enabled) {
+            val best = sorted.first()
+            val validation = runCatching { edgeLabValidator.validate(best.result) }
+                .getOrElse { error ->
+                    BacktestEdgeValidation(
+                        status = BacktestEdgeValidationStatus.Unavailable,
+                        edgeScore = 0.0,
+                        sampleCount = best.result.trades.size,
+                        cpcvSplits = 0,
+                        cpcvPaths = 0,
+                        notes = listOf(error.message ?: "Edge Lab konnte nicht ausgeführt werden.")
+                    )
+                }
+            val decision = evaluateEdgeGateDecision(validation, gateConfig)
+            return best.result.copy(
+                edgeValidation = validation,
+                edgeGateDecision = decision,
+                dataNotes = (best.result.dataNotes + validation.notes + decision.reasons).distinct()
+            )
+        }
+
+        sorted.forEachIndexed { index, candidate ->
+            onGateProgress(index + 1, sorted.size)
+            val validation = runCatching { edgeLabValidator.validate(candidate.result) }
+                .getOrElse { error ->
+                    BacktestEdgeValidation(
+                        status = BacktestEdgeValidationStatus.Unavailable,
+                        edgeScore = 0.0,
+                        sampleCount = candidate.result.trades.size,
+                        cpcvSplits = 0,
+                        cpcvPaths = 0,
+                        notes = listOf(error.message ?: "Edge Lab konnte nicht ausgeführt werden.")
+                    )
+                }
+            val decision = evaluateEdgeGateDecision(validation, gateConfig)
+            val enrichedResult = candidate.result.copy(
+                edgeValidation = validation,
+                edgeGateDecision = decision,
+                dataNotes = (candidate.result.dataNotes + validation.notes + decision.reasons).distinct()
+            )
+            if (decision.passed) {
+                return enrichedResult
+            }
+        }
+        return null
+    }
+
+    private fun evaluateEdgeGateDecision(
+        validation: BacktestEdgeValidation,
+        config: EdgeGateConfig
+    ): BacktestEdgeGateDecision {
+        if (!config.enabled) {
+            return BacktestEdgeGateDecision(
+                enabled = false,
+                passed = true,
+                minEdgeScore = config.minEdgeScore,
+                maxSpaPValue = config.maxSpaPValue,
+                minPositivePathsPercent = config.minPositivePathsPercent,
+                minTrades = config.minTrades,
+                minOosSharpe = config.minOosSharpe,
+                requirePassedStatus = config.requirePassedStatus,
+                reasons = listOf("Edge Gate deaktiviert.")
+            )
+        }
+
+        val reasons = mutableListOf<String>()
+        if (config.requirePassedStatus && validation.status != BacktestEdgeValidationStatus.Passed) {
+            reasons += "Edge-Status ist ${validation.status.name}, benötigt: Passed."
+        }
+        if (validation.edgeScore < config.minEdgeScore) {
+            reasons += "Edge Score ${validation.edgeScore.trimToString()} < ${config.minEdgeScore.trimToString()}."
+        }
+        if (validation.sampleCount < config.minTrades) {
+            reasons += "Trades ${validation.sampleCount} < ${config.minTrades}."
+        }
+        val spa = validation.spaPValue
+        if (spa == null || spa > config.maxSpaPValue) {
+            reasons += "SPA p-Wert ${spa?.trimToString() ?: "-"} > ${config.maxSpaPValue.trimToString()}."
+        }
+        val positivePaths = validation.oosPositivePathPercent
+        if (positivePaths == null || positivePaths < config.minPositivePathsPercent) {
+            reasons += "Positive Pfade ${positivePaths?.trimToString() ?: "-"}% < ${config.minPositivePathsPercent.trimToString()}%."
+        }
+        val oosSharpe = validation.oosSharpe
+        if (oosSharpe == null || oosSharpe < config.minOosSharpe) {
+            reasons += "OOS Sharpe ${oosSharpe?.trimToString() ?: "-"} < ${config.minOosSharpe.trimToString()}."
+        }
+
+        return BacktestEdgeGateDecision(
+            enabled = true,
+            passed = reasons.isEmpty(),
+            minEdgeScore = config.minEdgeScore,
+            maxSpaPValue = config.maxSpaPValue,
+            minPositivePathsPercent = config.minPositivePathsPercent,
+            minTrades = config.minTrades,
+            minOosSharpe = config.minOosSharpe,
+            requirePassedStatus = config.requirePassedStatus,
+            reasons = if (reasons.isEmpty()) listOf("Edge Gate bestanden.") else reasons
         )
     }
 
@@ -1364,6 +1632,22 @@ private data class WalkForwardFold(
     val test: List<OhlcvCandle>
 )
 
+private data class EdgeGateConfig(
+    val enabled: Boolean,
+    val requirePassedStatus: Boolean,
+    val minEdgeScore: Double,
+    val maxSpaPValue: Double,
+    val minPositivePathsPercent: Double,
+    val minTrades: Int,
+    val minOosSharpe: Double
+)
+
+private data class ScoredCandidate(
+    val request: BacktestRunRequest,
+    val result: de.tradebuddy.domain.model.BacktestResult,
+    val score: Double
+)
+
 private fun buildWalkForwardFolds(
     candles: List<OhlcvCandle>,
     splits: Int
@@ -1541,6 +1825,8 @@ private data class SummaryExportPayload(
     val from: String,
     val to: String,
     val metrics: MetricsExportPayload,
+    val edgeValidation: EdgeValidationExportPayload? = null,
+    val edgeGate: EdgeGateExportPayload? = null,
     val notes: List<String>
 )
 
@@ -1560,5 +1846,31 @@ private data class MetricsExportPayload(
     val exposureTimePercent: Double,
     val startEquity: Double,
     val endEquity: Double
+)
+
+@Serializable
+private data class EdgeValidationExportPayload(
+    val status: String,
+    val edgeScore: Double,
+    val sampleCount: Int,
+    val cpcvSplits: Int,
+    val cpcvPaths: Int,
+    val oosSharpe: Double? = null,
+    val oosReturnPercent: Double? = null,
+    val oosPositivePathPercent: Double? = null,
+    val spaPValue: Double? = null
+)
+
+@Serializable
+private data class EdgeGateExportPayload(
+    val enabled: Boolean,
+    val passed: Boolean,
+    val minEdgeScore: Double,
+    val maxSpaPValue: Double,
+    val minPositivePathsPercent: Double,
+    val minTrades: Int,
+    val minOosSharpe: Double,
+    val requirePassedStatus: Boolean,
+    val reasons: List<String>
 )
 

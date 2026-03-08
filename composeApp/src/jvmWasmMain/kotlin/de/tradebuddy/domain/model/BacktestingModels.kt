@@ -251,6 +251,19 @@ data class BacktestEdgeValidation(
     val generatedAt: Instant = Instant.now()
 )
 
+data class BacktestEdgeGateDecision(
+    val enabled: Boolean,
+    val passed: Boolean,
+    val minEdgeScore: Double,
+    val maxSpaPValue: Double,
+    val minPositivePathsPercent: Double,
+    val minTrades: Int,
+    val minOosSharpe: Double,
+    val requirePassedStatus: Boolean,
+    val reasons: List<String> = emptyList(),
+    val evaluatedAt: Instant = Instant.now()
+)
+
 data class BacktestOptimizationRun(
     val runId: String,
     val score: Double,
@@ -282,7 +295,9 @@ data class BacktestWalkForwardFoldResult(
     val outOfSampleTo: Instant,
     val bestParameterLabel: String,
     val outSampleMetrics: BacktestMetrics,
-    val score: Double
+    val score: Double,
+    val edgeGatePassed: Boolean? = null,
+    val edgeScore: Double? = null
 )
 
 data class BacktestWalkForwardBatchResult(
@@ -312,6 +327,7 @@ data class BacktestResult(
     val metrics: BacktestMetrics,
     val analysis: BacktestAnalysis? = null,
     val edgeValidation: BacktestEdgeValidation? = null,
+    val edgeGateDecision: BacktestEdgeGateDecision? = null,
     val dataNotes: List<String>,
     val createdAt: Instant = Instant.now()
 )

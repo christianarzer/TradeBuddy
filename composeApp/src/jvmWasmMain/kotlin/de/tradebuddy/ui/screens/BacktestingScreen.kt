@@ -55,6 +55,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.tradebuddy.data.DefaultCityDataSource
+import de.tradebuddy.domain.model.BacktestEdgeGateDecision
 import de.tradebuddy.domain.model.BacktestEdgeValidation
 import de.tradebuddy.domain.model.BacktestEdgeValidationStatus
 import de.tradebuddy.domain.model.BacktestExchange
@@ -162,6 +163,17 @@ import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_status_pa
 import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_status_unavailable
 import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_status_warning
 import trade_buddy.composeapp.generated.resources.backtesting_edge_lab_title
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_enabled
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_require_passed_status
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_min_edge_score
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_max_spa_pvalue
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_min_positive_paths
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_min_trades
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_min_oos_sharpe
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_title
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_status
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_passed
+import trade_buddy.composeapp.generated.resources.backtesting_edge_gate_failed
 import trade_buddy.composeapp.generated.resources.backtesting_exposure_time
 import trade_buddy.composeapp.generated.resources.backtesting_export_json
 import trade_buddy.composeapp.generated.resources.backtesting_export_trades
@@ -966,6 +978,87 @@ fun BacktestingScreen(
                     onStepChange = { viewModel.setOptimizationBreakoutStep(sanitizePositiveIntegerInput(it)) }
                 )
                 Text(
+                    text = stringResource(Res.string.backtesting_edge_gate_title),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ext.sidebarTextMuted
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(Res.string.backtesting_edge_gate_enabled),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(checked = state.edgeGateEnabled, onCheckedChange = viewModel::setEdgeGateEnabled)
+                }
+                if (state.edgeGateEnabled) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(Res.string.backtesting_edge_gate_require_passed_status),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Switch(
+                            checked = state.edgeGateRequirePassedStatus,
+                            onCheckedChange = viewModel::setEdgeGateRequirePassedStatus
+                        )
+                    }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = state.edgeGateMinEdgeScoreInput,
+                            onValueChange = { viewModel.setEdgeGateMinEdgeScore(sanitizePositiveDecimalInput(it)) },
+                            modifier = Modifier.widthIn(min = 170.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            label = { Text(stringResource(Res.string.backtesting_edge_gate_min_edge_score)) }
+                        )
+                        OutlinedTextField(
+                            value = state.edgeGateMaxSpaPValueInput,
+                            onValueChange = { viewModel.setEdgeGateMaxSpaPValue(sanitizePositiveDecimalInput(it)) },
+                            modifier = Modifier.widthIn(min = 170.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            label = { Text(stringResource(Res.string.backtesting_edge_gate_max_spa_pvalue)) }
+                        )
+                        OutlinedTextField(
+                            value = state.edgeGateMinPositivePathsInput,
+                            onValueChange = { viewModel.setEdgeGateMinPositivePaths(sanitizePositiveDecimalInput(it)) },
+                            modifier = Modifier.widthIn(min = 170.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            label = { Text(stringResource(Res.string.backtesting_edge_gate_min_positive_paths)) }
+                        )
+                        OutlinedTextField(
+                            value = state.edgeGateMinTradesInput,
+                            onValueChange = { viewModel.setEdgeGateMinTrades(sanitizePositiveIntegerInput(it)) },
+                            modifier = Modifier.widthIn(min = 170.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            label = { Text(stringResource(Res.string.backtesting_edge_gate_min_trades)) }
+                        )
+                        OutlinedTextField(
+                            value = state.edgeGateMinOosSharpeInput,
+                            onValueChange = { viewModel.setEdgeGateMinOosSharpe(sanitizePositiveDecimalInput(it)) },
+                            modifier = Modifier.widthIn(min = 170.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            label = { Text(stringResource(Res.string.backtesting_edge_gate_min_oos_sharpe)) }
+                        )
+                    }
+                }
+                state.result?.edgeGateDecision?.let { gate ->
+                    val passedLabel = if (gate.passed) {
+                        stringResource(Res.string.backtesting_edge_gate_passed)
+                    } else {
+                        stringResource(Res.string.backtesting_edge_gate_failed)
+                    }
+                    val passedColor = if (gate.passed) ext.positive else ext.negative
+                    Text(
+                        text = "${stringResource(Res.string.backtesting_edge_gate_status)}: $passedLabel",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = passedColor
+                    )
+                }
+                Text(
                     text = state.runStatus ?: stringResource(Res.string.backtesting_no_results),
                     style = MaterialTheme.typography.bodySmall,
                     color = ext.sidebarTextMuted
@@ -1068,6 +1161,22 @@ fun BacktestingScreen(
                                     stringResource(Res.string.backtesting_max_drawdown),
                                     fold.outSampleMetrics.maxDrawdownPercent.prettyPercent()
                                 )
+                                fold.edgeScore?.let { edgeScore ->
+                                    AnalysisMetricChip(
+                                        stringResource(Res.string.backtesting_edge_lab_score),
+                                        edgeScore.pretty()
+                                    )
+                                }
+                                fold.edgeGatePassed?.let { passed ->
+                                    AnalysisMetricChip(
+                                        stringResource(Res.string.backtesting_edge_gate_status),
+                                        if (passed) {
+                                            stringResource(Res.string.backtesting_edge_gate_passed)
+                                        } else {
+                                            stringResource(Res.string.backtesting_edge_gate_failed)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
@@ -1088,6 +1197,7 @@ fun BacktestingScreen(
                     )
                     MetricsGrid(result)
                     EdgeLabSection(result.edgeValidation)
+                    EdgeGateSection(result.edgeGateDecision)
                     ResultCharts(
                         result = result,
                         selectedTradeId = state.selectedTradeId,
@@ -1669,6 +1779,40 @@ private fun EdgeLabSection(validation: BacktestEdgeValidation?) {
                 color = ext.sidebarTextMuted
             )
         }
+    }
+}
+
+@Composable
+private fun EdgeGateSection(decision: BacktestEdgeGateDecision?) {
+    val gate = decision ?: return
+    val ext = MaterialTheme.extended
+    val statusLabel = if (gate.passed) {
+        stringResource(Res.string.backtesting_edge_gate_passed)
+    } else {
+        stringResource(Res.string.backtesting_edge_gate_failed)
+    }
+    val statusColor = if (gate.passed) ext.positive else ext.negative
+
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(stringResource(Res.string.backtesting_edge_gate_title), style = MaterialTheme.typography.labelMedium)
+    Text(
+        text = "${stringResource(Res.string.backtesting_edge_gate_status)}: $statusLabel",
+        style = MaterialTheme.typography.bodySmall,
+        color = statusColor
+    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AnalysisMetricChip(stringResource(Res.string.backtesting_edge_gate_min_edge_score), gate.minEdgeScore.pretty())
+        AnalysisMetricChip(stringResource(Res.string.backtesting_edge_gate_max_spa_pvalue), gate.maxSpaPValue.pretty())
+        AnalysisMetricChip(stringResource(Res.string.backtesting_edge_gate_min_positive_paths), gate.minPositivePathsPercent.prettyPercent())
+        AnalysisMetricChip(stringResource(Res.string.backtesting_edge_gate_min_trades), gate.minTrades.toString())
+        AnalysisMetricChip(stringResource(Res.string.backtesting_edge_gate_min_oos_sharpe), gate.minOosSharpe.pretty())
+    }
+    gate.reasons.take(4).forEach { reason ->
+        Text(
+            text = "- $reason",
+            style = MaterialTheme.typography.bodySmall,
+            color = ext.sidebarTextMuted
+        )
     }
 }
 

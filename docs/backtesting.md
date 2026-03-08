@@ -70,6 +70,7 @@ Die UI blockiert nicht: Datenladen und Simulation laufen asynchron, mit Fortschr
   - Trades-Tabelle mit Filter/Sort.
   - Analysebereich (Monatsrenditen, Walk-Forward, Monte-Carlo).
   - Edge Lab (Phase 1): Edge Score + Status (`Passed`, `Warning`, `Failed`, `Unavailable`) inkl. CPCV/SPA-Metriken.
+  - Edge Gate mit Schwellwerten für robuste Strategie-Selektion (Edge Score, SPA p-Wert, Positive Pfade, Trades, OOS Sharpe).
 - Optimierung:
   - Grid Search und Random Search (kostenfrei lokal).
   - Konfigurierbare Parameter-Ranges (SMA fast/slow, RSI-Periode, Breakout-Lookback).
