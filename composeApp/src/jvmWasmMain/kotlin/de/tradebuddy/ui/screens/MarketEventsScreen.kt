@@ -38,7 +38,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -66,7 +66,6 @@ import trade_buddy.composeapp.generated.resources.market_events_all_types
 import trade_buddy.composeapp.generated.resources.market_events_actual
 import trade_buddy.composeapp.generated.resources.market_events_empty
 import trade_buddy.composeapp.generated.resources.market_events_error
-import trade_buddy.composeapp.generated.resources.market_events_filter_summary
 import trade_buddy.composeapp.generated.resources.market_events_forecast
 import trade_buddy.composeapp.generated.resources.market_events_header_consensus
 import trade_buddy.composeapp.generated.resources.market_events_header_country
@@ -80,13 +79,13 @@ import trade_buddy.composeapp.generated.resources.market_events_not_available
 import trade_buddy.composeapp.generated.resources.market_events_previous
 import trade_buddy.composeapp.generated.resources.market_events_relative_ago
 import trade_buddy.composeapp.generated.resources.market_events_relative_in
+import trade_buddy.composeapp.generated.resources.market_events_loading_source
 import trade_buddy.composeapp.generated.resources.market_events_region_china
 import trade_buddy.composeapp.generated.resources.market_events_region_euro_area
 import trade_buddy.composeapp.generated.resources.market_events_region_global
 import trade_buddy.composeapp.generated.resources.market_events_region_japan
 import trade_buddy.composeapp.generated.resources.market_events_region_united_kingdom
 import trade_buddy.composeapp.generated.resources.market_events_region_united_states
-import trade_buddy.composeapp.generated.resources.market_events_showing_hint
 import trade_buddy.composeapp.generated.resources.market_events_sort_impact
 import trade_buddy.composeapp.generated.resources.market_events_sort_time_asc
 import trade_buddy.composeapp.generated.resources.market_events_sort_time_desc
@@ -117,12 +116,11 @@ fun MarketEventsScreen(
 ) {
     val ext = MaterialTheme.extended
     val zoneId = remember { ZoneId.systemDefault() }
-    val today = remember(zoneId) { LocalDate.now(zoneId) }
+    val today = remember(state.nowInstant, zoneId) { state.nowInstant.atZone(zoneId).toLocalDate() }
     val tomorrow = remember(today) { today.plusDays(1) }
     var showFilterPopup by rememberSaveable { mutableStateOf(false) }
     var showSortPopup by rememberSaveable { mutableStateOf(false) }
     var sortMode by rememberSaveable { mutableStateOf(MarketEventsSortMode.TimeAsc) }
-    val dateTimeFormatter = remember { DateTimeFormatter.ofPattern("dd.MM HH:mm", Locale.GERMANY) }
 
     val groupedRows: List<Pair<LocalDate, List<MarketEvent>>> = remember(state.filteredGroups, sortMode, zoneId) {
         val sortedEvents: List<MarketEvent> = when (sortMode) {
@@ -155,25 +153,29 @@ fun MarketEventsScreen(
             .sortedBy { entry -> entry.key }
             .map { entry -> entry.key to entry.value }
     }
-    val visibleCount = groupedRows.sumOf { row -> row.second.size }
+    val flatEvents = remember(groupedRows) {
+        groupedRows.asSequence().flatMap { row -> row.second.asSequence() }.toList()
+    }
+    val visibleCount = remember(groupedRows) { groupedRows.sumOf { row -> row.second.size } }
     val watchlistCount = state.watchPreferences.size
-    val highImpactCount = groupedRows.sumOf { row ->
-        row.second.count { event -> event.impact == MarketEventImpact.High }
+    val highImpactCount = remember(groupedRows) {
+        groupedRows.sumOf { row ->
+            row.second.count { event -> event.impact == MarketEventImpact.High }
+        }
     }
-    val mediumImpactCount = groupedRows.sumOf { row ->
-        row.second.count { event -> event.impact == MarketEventImpact.Medium }
+    val mediumImpactCount = remember(groupedRows) {
+        groupedRows.sumOf { row ->
+            row.second.count { event -> event.impact == MarketEventImpact.Medium }
+        }
     }
-    val nextCountdown = groupedRows
-        .asSequence()
-        .flatMap { row -> row.second.asSequence() }
-        .filter { event -> event.scheduledAt.isAfter(state.nowInstant) }
-        .sortedBy { event -> event.scheduledAt }
-        .firstOrNull()
-        ?.relativeLabel(state.nowInstant)
-        ?: stringResource(Res.string.market_events_not_available)
-    val lastUpdatedText = state.lastUpdated?.let { instant ->
-        instant.atZone(zoneId).format(dateTimeFormatter)
-    } ?: stringResource(Res.string.market_events_not_available)
+    val nextUpcomingEvent = remember(flatEvents, state.nowInstant) {
+        flatEvents
+            .asSequence()
+            .filter { event -> event.scheduledAt.isAfter(state.nowInstant) }
+            .minByOrNull { event -> event.scheduledAt }
+    }
+    val notAvailableLabel = stringResource(Res.string.market_events_not_available)
+    val nextCountdown = nextUpcomingEvent?.relativeLabel(state.nowInstant) ?: notAvailableLabel
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -214,10 +216,28 @@ fun MarketEventsScreen(
             sortMode = sortMode,
             onSortModeChange = { sortMode = it },
             onClearFilters = viewModel::clearFilters,
-            visibleCount = visibleCount,
-            watchlistCount = watchlistCount,
-            lastUpdatedText = lastUpdatedText
+            onRefresh = { viewModel.refresh(forceRefresh = true) },
+            refreshEnabled = !state.isLoading
         )
+
+        if (state.isLoading && state.loadingProgress != null) {
+            LinearProgressIndicator(
+                progress = { state.loadingProgress.coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (state.loadingSourceCount > 0 && !state.loadingSourceName.isNullOrBlank()) {
+                Text(
+                    text = stringResource(
+                        Res.string.market_events_loading_source,
+                        state.loadingSourceIndex.coerceIn(1, state.loadingSourceCount),
+                        state.loadingSourceCount,
+                        state.loadingSourceName.orEmpty()
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ext.sidebarTextMuted
+                )
+            }
+        }
 
         Column(modifier = Modifier.fillMaxSize()) {
             EventsTableHeader()
@@ -229,7 +249,7 @@ fun MarketEventsScreen(
             )
 
             when {
-                state.isLoading -> {
+                state.isLoading && state.allEvents.isEmpty() -> {
                     LazyColumn(modifier = Modifier.weight(1f, fill = true)) {
                         items(8) { index -> SkeletonRow(index) }
                     }
@@ -270,11 +290,7 @@ fun MarketEventsScreen(
                                     event = event,
                                     watchPreference = watchPreference,
                                     zoneId = zoneId,
-                                    now = state.nowInstant,
-                                    onToggleWatch = { enabled -> viewModel.toggleWatchlist(event.id, enabled) },
-                                    onToggleReminder = { enabled ->
-                                        viewModel.setReminder(event.id, enabled, if (enabled) 30 else null)
-                                    }
+                                    now = state.nowInstant
                                 )
                             }
                         }
@@ -282,7 +298,6 @@ fun MarketEventsScreen(
                 }
             }
 
-            FooterHintRow(visibleCount = visibleCount)
         }
     }
 }
@@ -430,11 +445,9 @@ private fun ToolbarRow(
     sortMode: MarketEventsSortMode,
     onSortModeChange: (MarketEventsSortMode) -> Unit,
     onClearFilters: () -> Unit,
-    visibleCount: Int,
-    watchlistCount: Int,
-    lastUpdatedText: String
+    onRefresh: () -> Unit,
+    refreshEnabled: Boolean
 ) {
-    val ext = MaterialTheme.extended
     SnowToolbar {
         Box {
             SnowToolbarIconButton(
@@ -495,17 +508,12 @@ private fun ToolbarRow(
                 }
             }
         }
-        Spacer(Modifier.weight(1f))
-        Text(
-            text = stringResource(
-                Res.string.market_events_filter_summary,
-                visibleCount,
-                watchlistCount,
-                lastUpdatedText
-            ),
-            style = MaterialTheme.typography.labelSmall,
-            color = ext.sidebarTextMuted
+        SnowToolbarIconButton(
+            icon = SnowIcons.Refresh,
+            onClick = onRefresh,
+            enabled = refreshEnabled
         )
+        Spacer(Modifier.weight(1f))
     }
 }
 
@@ -668,14 +676,12 @@ private fun EventsTableHeader() {
             .padding(horizontal = 2.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HeaderCell(" ", columnWeight = 0.6f)
         HeaderCell(stringResource(Res.string.market_events_header_country), columnWeight = 1.7f)
         HeaderCell(stringResource(Res.string.market_events_header_event), columnWeight = 3.0f)
         HeaderCell(stringResource(Res.string.market_events_header_type), columnWeight = 1.6f)
         HeaderCell(stringResource(Res.string.market_events_header_date), columnWeight = 1.8f)
         HeaderCell(stringResource(Res.string.market_events_header_consensus), columnWeight = 1.8f)
         HeaderCell(stringResource(Res.string.market_events_header_impact), columnWeight = 1.2f)
-        HeaderCell(" ", columnWeight = 0.8f)
     }
     Box(
         modifier = Modifier
@@ -730,17 +736,14 @@ private fun EventsTableRow(
     event: MarketEvent,
     watchPreference: EventWatchPreference?,
     zoneId: ZoneId,
-    now: Instant,
-    onToggleWatch: (Boolean) -> Unit,
-    onToggleReminder: (Boolean) -> Unit
+    now: Instant
 ) {
     val ext = MaterialTheme.extended
     val isWatchlisted = watchPreference != null
-    val reminderEnabled = watchPreference?.notifyEnabled == true
-    val rowBackground = when {
-        isWatchlisted -> ext.tableRowSelected
-        event.isMarketMoving -> ext.tableRowHover
-        else -> Color.Transparent
+    val rowBackground = if (isWatchlisted) {
+        ext.tableRowSelected.copy(alpha = 0.24f)
+    } else {
+        Color.Transparent
     }
     val statusColor = when (event.impact) {
         MarketEventImpact.Low -> ext.impactLow
@@ -766,33 +769,12 @@ private fun EventsTableRow(
             .padding(horizontal = 2.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.weight(0.6f),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { onToggleWatch(!isWatchlisted) }, modifier = Modifier.size(22.dp)) {
-                Icon(
-                    imageVector = if (isWatchlisted) SnowIcons.CheckSquare else SnowIcons.Square,
-                    contentDescription = null,
-                    tint = if (isWatchlisted) ext.watchlist else ext.sidebarTextMuted,
-                    modifier = Modifier.size(AppIconSize.xs)
-                )
-            }
-        }
-
         RegionCell(event = event, columnWeight = 1.7f)
         EventCell(event = event, columnWeight = 3.0f)
         ValueCell(eventTypeLabel(event.type), columnWeight = 1.6f)
         DateCell(text = dateText, relativeText = event.relativeLabel(now), columnWeight = 1.8f)
         ConsensusCell(event = event, columnWeight = 1.8f)
         StatusCell(text = statusText, color = statusColor, columnWeight = 1.2f)
-        ActionCell(
-            columnWeight = 0.8f,
-            watchlisted = isWatchlisted,
-            reminderEnabled = reminderEnabled,
-            onToggleWatch = { onToggleWatch(!isWatchlisted) },
-            onToggleReminder = { onToggleReminder(!reminderEnabled) }
-        )
     }
 
     Box(
@@ -882,7 +864,7 @@ private fun RowScope.RegionCell(
             )
         }
         Text(
-            text = regionLabel(event.region),
+            text = event.countryName?.takeIf { it.isNotBlank() } ?: regionLabel(event.region),
             style = MaterialTheme.typography.bodySmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -897,13 +879,12 @@ private fun RowScope.ConsensusCell(
 ) {
     val ext = MaterialTheme.extended
     val emptyValue = stringResource(Res.string.market_events_not_available)
-    val primaryText = event.actual?.let { "${stringResource(Res.string.market_events_actual)} $it" }
-        ?: "${stringResource(Res.string.market_events_forecast)} ${event.forecast ?: emptyValue}"
-    val secondaryText = if (event.actual != null) {
-        "${stringResource(Res.string.market_events_forecast)} ${event.forecast ?: emptyValue} | ${stringResource(Res.string.market_events_previous)} ${event.previous ?: emptyValue}"
-    } else {
-        "${stringResource(Res.string.market_events_previous)} ${event.previous ?: emptyValue}"
-    }
+    val actualText = event.actual ?: emptyValue
+    val consensusText = event.consensus ?: emptyValue
+    val forecastText = event.forecast ?: emptyValue
+    val previousText = event.previous ?: emptyValue
+    val primaryText = "${stringResource(Res.string.market_events_actual)} $actualText | ${stringResource(Res.string.market_events_header_consensus)} $consensusText"
+    val secondaryText = "${stringResource(Res.string.market_events_forecast)} $forecastText | ${stringResource(Res.string.market_events_previous)} $previousText"
 
     Column(
         modifier = Modifier
@@ -970,41 +951,6 @@ private fun RowScope.StatusCell(
 }
 
 @Composable
-private fun RowScope.ActionCell(
-    columnWeight: Float,
-    watchlisted: Boolean,
-    reminderEnabled: Boolean,
-    onToggleWatch: () -> Unit,
-    onToggleReminder: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .weight(columnWeight)
-            .padding(end = 4.dp),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onToggleWatch, modifier = Modifier.size(22.dp)) {
-            Icon(
-                imageVector = if (watchlisted) SnowIcons.Bookmark else SnowIcons.Bookmark,
-                contentDescription = null,
-                modifier = Modifier.size(AppIconSize.xs),
-                tint = if (watchlisted) MaterialTheme.extended.watchlist else MaterialTheme.extended.sidebarTextMuted
-            )
-        }
-        IconButton(onClick = onToggleReminder, modifier = Modifier.size(22.dp)) {
-            Icon(
-                imageVector = if (reminderEnabled) SnowIcons.BellActive else SnowIcons.Bell,
-                contentDescription = null,
-                modifier = Modifier.size(AppIconSize.xs),
-                tint = if (reminderEnabled) MaterialTheme.extended.watchlist else MaterialTheme.extended.sidebarTextMuted
-            )
-        }
-        Icon(SnowIcons.Dots, contentDescription = null, modifier = Modifier.size(AppIconSize.xs), tint = MaterialTheme.extended.sidebarTextMuted)
-    }
-}
-
-@Composable
 private fun SkeletonRow(index: Int) {
     val ext = MaterialTheme.extended
     val alpha = if (index % 2 == 0) 0.45f else 0.28f
@@ -1014,16 +960,14 @@ private fun SkeletonRow(index: Int) {
             .padding(horizontal = 2.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        repeat(8) { cell ->
+        repeat(6) { cell ->
             val width = when (cell) {
-                0 -> 20.dp
-                1 -> 78.dp
-                2 -> 160.dp
-                3 -> 90.dp
-                4 -> 96.dp
-                5 -> 120.dp
-                6 -> 72.dp
-                else -> 32.dp
+                0 -> 84.dp
+                1 -> 176.dp
+                2 -> 104.dp
+                3 -> 112.dp
+                4 -> 136.dp
+                else -> 72.dp
             }
             Box(
                 modifier = Modifier
@@ -1056,26 +1000,6 @@ private fun MessageRow(
         contentAlignment = Alignment.CenterStart
     ) {
         Text(message, style = MaterialTheme.typography.bodySmall, color = ext.sidebarTextMuted)
-    }
-}
-
-@Composable
-private fun FooterHintRow(
-    visibleCount: Int
-) {
-    val ext = MaterialTheme.extended
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = stringResource(Res.string.market_events_showing_hint, visibleCount),
-            style = MaterialTheme.typography.labelSmall,
-            color = ext.sidebarTextMuted
-        )
     }
 }
 

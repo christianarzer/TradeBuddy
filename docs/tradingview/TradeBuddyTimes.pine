@@ -1,5 +1,5 @@
-// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// © arzerchriskry
+// This Pine Script code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Copyright arzerchriskry
 
 //@version=6
 indicator("TradeBuddy Times + Events", overlay=true, max_lines_count=500, max_labels_count=500)
@@ -13,14 +13,16 @@ entriesInput = input.text_area(
      defval =
          "2026-02-09 00:16|SUN_UP|Berlin\n" +
          "2026-02-09 01:41|MOON_UP|Berlin\n" +
-         "2026-02-09 02:04|ASTRO|Berlin\n",
+         "2026-02-09 02:04|ASTRO|Astro\n",
      title = "TradeBuddy Events (eine pro Zeile oder mit Komma getrennt)"
 )
 
-string tz = "Etc/UTC"
-
+string tz = input.string("Etc/UTC", "Input timezone")
 showLines = input.bool(true, "Vertikale Linien")
 showIcons = input.bool(true, "Event-Icons")
+showSun = input.bool(true, "Show Sun")
+showMoon = input.bool(true, "Show Moon")
+showAstro = input.bool(true, "Show Astro")
 
 f_ts(dateTimeRaw) =>
     s = str.trim(dateTimeRaw)
@@ -35,14 +37,13 @@ f_ts(dateTimeRaw) =>
         if array.size(dparts) != 3 or array.size(tparts) < 2
             na
         else
-            y   = int(str.tonumber(array.get(dparts, 0)))
-            m   = int(str.tonumber(array.get(dparts, 1)))
+            y = int(str.tonumber(array.get(dparts, 0)))
+            m = int(str.tonumber(array.get(dparts, 1)))
             day = int(str.tonumber(array.get(dparts, 2)))
-            hh  = int(str.tonumber(array.get(tparts, 0)))
-            mm  = int(str.tonumber(array.get(tparts, 1)))
+            hh = int(str.tonumber(array.get(tparts, 0)))
+            mm = int(str.tonumber(array.get(tparts, 1)))
             timestamp(tz, y, m, day, hh, mm)
 
-// Returns a numeric city ID for matching against const strings
 // 0=NY, 1=FRA, 2=LDN, 3=TYO, 4=BER, 5=OTHER
 f_city_id(cityRaw) =>
     c = str.trim(cityRaw)
@@ -54,20 +55,21 @@ f_city_id(cityRaw) =>
      str.contains(lc, "berlin") or str.contains(lc, "ber") ? 4 :
      5
 
-// Returns a numeric icon ID for matching
-// 0=SUN↑, 1=SUN↓, 2=MOON↑, 3=MOON↓, 4=ASTRO, 5=OTHER
+// 0=SUN_UP, 1=SUN_DOWN, 2=MOON_UP, 3=MOON_DOWN, 4=ASTRO, 5=OTHER
 f_icon_id(iconRaw) =>
     u = str.upper(str.trim(iconRaw))
-    str.contains(u, "SUN") and (str.contains(u, "UP") or str.contains(u, "↑")) ? 0 :
-     str.contains(u, "SUN") and (str.contains(u, "DOWN") or str.contains(u, "↓")) ? 1 :
-     str.contains(u, "MOON") and (str.contains(u, "UP") or str.contains(u, "↑")) ? 2 :
-     str.contains(u, "MOON") and (str.contains(u, "DOWN") or str.contains(u, "↓")) ? 3 :
-     str.contains(u, "ASTRO") or str.contains(u, "✨") ? 4 :
-     str.contains(u, "☀") and str.contains(u, "↑") ? 0 :
-     str.contains(u, "☀") and str.contains(u, "↓") ? 1 :
-     str.contains(u, "🌙") and str.contains(u, "↑") ? 2 :
-     str.contains(u, "🌙") and str.contains(u, "↓") ? 3 :
+    str.contains(u, "SUN") and str.contains(u, "UP") ? 0 :
+     str.contains(u, "SUN") and str.contains(u, "DOWN") ? 1 :
+     str.contains(u, "MOON") and str.contains(u, "UP") ? 2 :
+     str.contains(u, "MOON") and str.contains(u, "DOWN") ? 3 :
+     str.contains(u, "ASTRO") ? 4 :
      5
+
+f_icon_enabled(iconId) =>
+    iconId == 0 or iconId == 1 ? showSun :
+     iconId == 2 or iconId == 3 ? showMoon :
+     iconId == 4 ? showAstro :
+     true
 
 var tsArr = array.new_int()
 var iconIdArr = array.new_int()
@@ -86,26 +88,26 @@ if barstate.isfirst
         if str.length(raw) > 0 and not str.startswith(raw, "#")
             fields = str.split(raw, "|")
             dt = array.size(fields) >= 1 ? str.trim(array.get(fields, 0)) : ""
-            icon = array.size(fields) >= 2 ? str.trim(array.get(fields, 1)) : "•"
+            icon = array.size(fields) >= 2 ? str.trim(array.get(fields, 1)) : ""
             city = array.size(fields) >= 3 ? str.trim(array.get(fields, 2)) : ""
 
             ts = f_ts(dt)
-            if not na(ts)
+            iconId = f_icon_id(icon)
+            if not na(ts) and f_icon_enabled(iconId)
                 array.push(tsArr, ts)
-                array.push(iconIdArr, f_icon_id(icon))
+                array.push(iconIdArr, iconId)
                 array.push(cityIdArr, f_city_id(city))
                 array.push(shownArr, false)
 
-                lineColor = color.new(#455A64, 65)
-                iconId = f_icon_id(icon)
-                if iconId == 0 or iconId == 1
-                    lineColor := color.new(#FF6D00, 65)
-                else if iconId == 2 or iconId == 3
-                    lineColor := color.new(#1565C0, 65)
-                else if iconId == 4
-                    lineColor := color.new(#6A1B9A, 65)
-
                 if showLines
+                    lineColor = color.new(#455A64, 65)
+                    if iconId == 0 or iconId == 1
+                        lineColor := color.new(#FF6D00, 65)
+                    else if iconId == 2 or iconId == 3
+                        lineColor := color.new(#1565C0, 65)
+                    else if iconId == 4
+                        lineColor := color.new(#6A1B9A, 65)
+
                     line.new(ts, 0, ts, 1,
                         xloc=xloc.bar_time,
                         extend=extend.both,
@@ -113,73 +115,68 @@ if barstate.isfirst
                         style=line.style_dotted,
                         width=1)
 
-// Collect first event per bar
+// Collect first matching event per bar
 evIcon = -1
 evCity = -1
 evCount = 0
 
 if array.size(tsArr) > 0
     for i = 0 to array.size(tsArr) - 1
-        wasShown = array.get(shownArr, i)
-        if not wasShown
+        if not array.get(shownArr, i)
             ts = array.get(tsArr, i)
+            iconId = array.get(iconIdArr, i)
             inBar = time <= ts and ts < time_close
-            if inBar and showIcons
+            if inBar and showIcons and f_icon_enabled(iconId)
                 if evCount == 0
-                    evIcon := array.get(iconIdArr, i)
+                    evIcon := iconId
                     evCity := array.get(cityIdArr, i)
                 evCount += 1
                 array.set(shownArr, i, true)
 
 hasEvt = showIcons and evCount >= 1
 
-// (colors defined as constants in plotshape section below)
-
-// ══════════════════════════════════════════════════════════════
-// plotshape per icon × city – bottom-pinned, auto-stacked
-// 27 plotshapes × ~2 = ~54 plots, under 64 limit
-// Multiple events on same bar stack vertically automatically
-// ══════════════════════════════════════════════════════════════
-
 // Colors per event type
-color SUN_COL   = color.new(#FF6D00, 0)   // warm orange
-color SUN_TXT   = #FFF3E0                  // light cream
-color MOON_COL  = color.new(#1565C0, 0)   // deep blue
-color MOON_TXT  = #E3F2FD                  // light blue
-color ASTRO_COL = color.new(#6A1B9A, 0)   // rich purple
-color ASTRO_TXT = #F3E5F5                  // light purple
+color SUN_COL = color.new(#FF6D00, 0)
+color SUN_TXT = #FFF3E0
+color MOON_COL = color.new(#1565C0, 0)
+color MOON_TXT = #E3F2FD
+color ASTRO_COL = color.new(#6A1B9A, 0)
+color ASTRO_TXT = #F3E5F5
 
-// Use shape.arrowup for the icon, plotchar won't work.
-// plotshape text is single-line only, so combine icon+city compactly.
-// --- Sunrise (icon 0) × 6 cities ---
-plotshape(hasEvt and evIcon==0 and evCity==0, title="SU_NY",  style=shape.triangleup, location=location.bottom, text="NY",  textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==1, title="SU_FRA", style=shape.triangleup, location=location.bottom, text="FRA", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==2, title="SU_LDN", style=shape.triangleup, location=location.bottom, text="LDN", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==3, title="SU_TYO", style=shape.triangleup, location=location.bottom, text="TYO", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==4, title="SU_BER", style=shape.triangleup, location=location.bottom, text="BER", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-plotshape(hasEvt and evIcon==0 and evCity==5, title="SU_OTH", style=shape.triangleup, location=location.bottom, text="",    textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-// --- Sunset (icon 1) × 6 cities ---
-plotshape(hasEvt and evIcon==1 and evCity==0, title="SD_NY",  style=shape.triangledown, location=location.bottom, text="NY",  textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==1, title="SD_FRA", style=shape.triangledown, location=location.bottom, text="FRA", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==2, title="SD_LDN", style=shape.triangledown, location=location.bottom, text="LDN", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==3, title="SD_TYO", style=shape.triangledown, location=location.bottom, text="TYO", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==4, title="SD_BER", style=shape.triangledown, location=location.bottom, text="BER", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-plotshape(hasEvt and evIcon==1 and evCity==5, title="SD_OTH", style=shape.triangledown, location=location.bottom, text="",    textcolor=SUN_TXT, color=SUN_COL, size=size.small)
-// --- Moonrise (icon 2) × 6 cities ---
-plotshape(hasEvt and evIcon==2 and evCity==0, title="MU_NY",  style=shape.triangleup, location=location.bottom, text="NY",  textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==1, title="MU_FRA", style=shape.triangleup, location=location.bottom, text="FRA", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==2, title="MU_LDN", style=shape.triangleup, location=location.bottom, text="LDN", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==3, title="MU_TYO", style=shape.triangleup, location=location.bottom, text="TYO", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==4, title="MU_BER", style=shape.triangleup, location=location.bottom, text="BER", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-plotshape(hasEvt and evIcon==2 and evCity==5, title="MU_OTH", style=shape.triangleup, location=location.bottom, text="",    textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-// --- Moonset (icon 3) × 6 cities ---
-plotshape(hasEvt and evIcon==3 and evCity==0, title="MD_NY",  style=shape.triangledown, location=location.bottom, text="NY",  textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==1, title="MD_FRA", style=shape.triangledown, location=location.bottom, text="FRA", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==2, title="MD_LDN", style=shape.triangledown, location=location.bottom, text="LDN", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==3, title="MD_TYO", style=shape.triangledown, location=location.bottom, text="TYO", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==4, title="MD_BER", style=shape.triangledown, location=location.bottom, text="BER", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-plotshape(hasEvt and evIcon==3 and evCity==5, title="MD_OTH", style=shape.triangledown, location=location.bottom, text="",    textcolor=MOON_TXT, color=MOON_COL, size=size.small)
-// --- Astro (icon 4) – diamond shape, no city ---
-plotshape(hasEvt and evIcon==4, title="ASTRO", style=shape.diamond, location=location.bottom, text="", textcolor=ASTRO_TXT, color=ASTRO_COL, size=size.small)
-// --- OTHER icon (icon 5) ---
-plotshape(hasEvt and evIcon==5, title="OTHER", style=shape.circle, location=location.bottom, text="", textcolor=color.white, color=color.new(#455A64, 0), size=size.small)
+// Sunrise (icon 0) x 6 cities
+plotshape(hasEvt and evIcon == 0 and evCity == 0, title="SU_NY", style=shape.triangleup, location=location.bottom, text="NY", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+plotshape(hasEvt and evIcon == 0 and evCity == 1, title="SU_FRA", style=shape.triangleup, location=location.bottom, text="FRA", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+plotshape(hasEvt and evIcon == 0 and evCity == 2, title="SU_LDN", style=shape.triangleup, location=location.bottom, text="LDN", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+plotshape(hasEvt and evIcon == 0 and evCity == 3, title="SU_TYO", style=shape.triangleup, location=location.bottom, text="TYO", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+plotshape(hasEvt and evIcon == 0 and evCity == 4, title="SU_BER", style=shape.triangleup, location=location.bottom, text="BER", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+plotshape(hasEvt and evIcon == 0 and evCity == 5, title="SU_OTH", style=shape.triangleup, location=location.bottom, text="", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+
+// Sunset (icon 1) x 6 cities
+plotshape(hasEvt and evIcon == 1 and evCity == 0, title="SD_NY", style=shape.triangledown, location=location.bottom, text="NY", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+plotshape(hasEvt and evIcon == 1 and evCity == 1, title="SD_FRA", style=shape.triangledown, location=location.bottom, text="FRA", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+plotshape(hasEvt and evIcon == 1 and evCity == 2, title="SD_LDN", style=shape.triangledown, location=location.bottom, text="LDN", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+plotshape(hasEvt and evIcon == 1 and evCity == 3, title="SD_TYO", style=shape.triangledown, location=location.bottom, text="TYO", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+plotshape(hasEvt and evIcon == 1 and evCity == 4, title="SD_BER", style=shape.triangledown, location=location.bottom, text="BER", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+plotshape(hasEvt and evIcon == 1 and evCity == 5, title="SD_OTH", style=shape.triangledown, location=location.bottom, text="", textcolor=SUN_TXT, color=SUN_COL, size=size.small)
+
+// Moonrise (icon 2) x 6 cities
+plotshape(hasEvt and evIcon == 2 and evCity == 0, title="MU_NY", style=shape.triangleup, location=location.bottom, text="NY", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+plotshape(hasEvt and evIcon == 2 and evCity == 1, title="MU_FRA", style=shape.triangleup, location=location.bottom, text="FRA", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+plotshape(hasEvt and evIcon == 2 and evCity == 2, title="MU_LDN", style=shape.triangleup, location=location.bottom, text="LDN", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+plotshape(hasEvt and evIcon == 2 and evCity == 3, title="MU_TYO", style=shape.triangleup, location=location.bottom, text="TYO", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+plotshape(hasEvt and evIcon == 2 and evCity == 4, title="MU_BER", style=shape.triangleup, location=location.bottom, text="BER", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+plotshape(hasEvt and evIcon == 2 and evCity == 5, title="MU_OTH", style=shape.triangleup, location=location.bottom, text="", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+
+// Moonset (icon 3) x 6 cities
+plotshape(hasEvt and evIcon == 3 and evCity == 0, title="MD_NY", style=shape.triangledown, location=location.bottom, text="NY", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+plotshape(hasEvt and evIcon == 3 and evCity == 1, title="MD_FRA", style=shape.triangledown, location=location.bottom, text="FRA", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+plotshape(hasEvt and evIcon == 3 and evCity == 2, title="MD_LDN", style=shape.triangledown, location=location.bottom, text="LDN", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+plotshape(hasEvt and evIcon == 3 and evCity == 3, title="MD_TYO", style=shape.triangledown, location=location.bottom, text="TYO", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+plotshape(hasEvt and evIcon == 3 and evCity == 4, title="MD_BER", style=shape.triangledown, location=location.bottom, text="BER", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+plotshape(hasEvt and evIcon == 3 and evCity == 5, title="MD_OTH", style=shape.triangledown, location=location.bottom, text="", textcolor=MOON_TXT, color=MOON_COL, size=size.small)
+
+// Astro (icon 4)
+plotshape(hasEvt and evIcon == 4, title="ASTRO", style=shape.diamond, location=location.bottom, text="", textcolor=ASTRO_TXT, color=ASTRO_COL, size=size.small)
+
+// Other (icon 5)
+plotshape(hasEvt and evIcon == 5, title="OTHER", style=shape.circle, location=location.bottom, text="", textcolor=color.white, color=color.new(#455A64, 0), size=size.small)

@@ -20,6 +20,8 @@ data class SettingsSnapshot(
     val themeMode: AppThemeMode?,
     val accentColor: AppAccentColor?,
     val displayCurrency: AppDisplayCurrency?,
+    val marketEventsApiKey: String?,
+    val marketEventsFmpApiKey: String?,
     val selectedCityKeys: Set<String>?,
     val sunTimeOffsetMinutes: Int?,
     val moonTimeOffsetMinutes: Int?,
@@ -55,6 +57,8 @@ class FileSettingsRepository(
             val themeMode = props.getProperty("themeMode")?.let { AppThemeMode.fromKey(it) }
             val accentColor = props.getProperty("accentColor")?.let { AppAccentColor.fromKey(it) }
             val displayCurrency = props.getProperty("displayCurrency")?.let { AppDisplayCurrency.fromKey(it) }
+            val marketEventsApiKey = props.getProperty("marketEventsApiKey")?.trim()
+            val marketEventsFmpApiKey = props.getProperty("marketEventsFmpApiKey")?.trim()
             val darkTheme = props.getProperty("darkTheme")?.toBooleanStrictOrNull()
             val showUtcTime = props.getProperty("showUtcTime")?.toBooleanStrictOrNull()
             val showAzimuth = props.getProperty("showAzimuth")?.toBooleanStrictOrNull()
@@ -73,7 +77,9 @@ class FileSettingsRepository(
                 ?.filter { it.isNotEmpty() }
                 ?.toSet()
 
-            if (themeMode == null && accentColor == null && displayCurrency == null && darkTheme == null &&
+            if (themeMode == null && accentColor == null && displayCurrency == null &&
+                marketEventsApiKey.isNullOrEmpty() && marketEventsFmpApiKey.isNullOrEmpty() &&
+                darkTheme == null &&
                 selectedCityKeys == null && showUtcTime == null && showAzimuth == null &&
                 showSun == null && showMoon == null && showRise == null && showSet == null &&
                 sunTimeOffsetMinutes == null && moonTimeOffsetMinutes == null &&
@@ -86,6 +92,8 @@ class FileSettingsRepository(
                 },
                 accentColor = accentColor,
                 displayCurrency = displayCurrency,
+                marketEventsApiKey = marketEventsApiKey,
+                marketEventsFmpApiKey = marketEventsFmpApiKey,
                 selectedCityKeys = selectedCityKeys,
                 sunTimeOffsetMinutes = sunTimeOffsetMinutes,
                 moonTimeOffsetMinutes = moonTimeOffsetMinutes,
@@ -114,6 +122,8 @@ class FileSettingsRepository(
             props.setProperty("themeMode", settings.themeMode.key)
             props.setProperty("accentColor", settings.accentColor.key)
             props.setProperty("displayCurrency", settings.displayCurrency.key)
+            props.setProperty("marketEventsApiKey", settings.marketEventsApiKey.trim())
+            props.setProperty("marketEventsFmpApiKey", settings.marketEventsFmpApiKey.trim())
             props.setProperty("selectedCities", settings.selectedCityKeys.joinToString(";"))
             props.setProperty("sunTimeOffsetMinutes", settings.sunTimeOffsetMinutes.toString())
             props.setProperty("moonTimeOffsetMinutes", settings.moonTimeOffsetMinutes.toString())

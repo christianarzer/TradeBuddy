@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -48,6 +49,7 @@ import org.jetbrains.compose.resources.stringResource
 import trade_buddy.composeapp.generated.resources.Res
 import trade_buddy.composeapp.generated.resources.settings_logs_clear
 import trade_buddy.composeapp.generated.resources.settings_logs_copy
+import trade_buddy.composeapp.generated.resources.settings_logs_copy_entry
 import trade_buddy.composeapp.generated.resources.settings_logs_desc
 import trade_buddy.composeapp.generated.resources.settings_logs_empty
 import trade_buddy.composeapp.generated.resources.settings_logs_filter_all
@@ -100,11 +102,7 @@ fun LogsConsoleScreen(
     fun copyLogs(rows: List<AppLogEntry>) {
         val payload = buildString {
             rows.forEach { entry ->
-                append(formatLogEntry(entry))
-                if (!entry.details.isNullOrBlank()) {
-                    append('\n')
-                    append(entry.details)
-                }
+                append(formatLogEntryWithDetails(entry))
                 append("\n\n")
             }
         }.trim()
@@ -256,11 +254,27 @@ fun LogsConsoleScreen(
                             .padding(vertical = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(
-                            formatLogEntry(entry),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                formatLogEntry(entry),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { copyToClipboard(formatLogEntryWithDetails(entry)) },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = SnowIcons.Copy,
+                                    contentDescription = stringResource(Res.string.settings_logs_copy_entry),
+                                    modifier = Modifier.size(AppIconSize.xs)
+                                )
+                            }
+                        }
                         if (!entry.details.isNullOrBlank()) {
                             Text(
                                 entry.details,
@@ -295,6 +309,15 @@ private fun formatLogEntry(entry: AppLogEntry): String {
         .format(LogTimeFormatter)
     return "$timestamp [${entry.level.name}] ${entry.tag}: ${entry.message}"
 }
+
+private fun formatLogEntryWithDetails(entry: AppLogEntry): String =
+    buildString {
+        append(formatLogEntry(entry))
+        if (!entry.details.isNullOrBlank()) {
+            append('\n')
+            append(entry.details)
+        }
+    }
 
 private val LogTimeFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT)

@@ -1,15 +1,19 @@
 package java.time.format
 
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZonedDateTime
 import java.util.Locale
 
 class DateTimeFormatter private constructor(
-    private val pattern: String,
-    private val locale: Locale
+    internal val pattern: String,
+    internal val locale: Locale
 ) {
     companion object {
+        val BASIC_ISO_DATE: DateTimeFormatter = DateTimeFormatter("yyyyMMdd", Locale.ROOT)
+        val ISO_LOCAL_DATE: DateTimeFormatter = DateTimeFormatter("yyyy-MM-dd", Locale.ROOT)
+
         fun ofPattern(pattern: String, locale: Locale = Locale.ROOT): DateTimeFormatter =
             DateTimeFormatter(pattern, locale)
     }
@@ -36,6 +40,20 @@ class DateTimeFormatter private constructor(
         val local = value.localDateTime()
         val date = local.date
         val time = local.time
+        val weekday = weekdayIndex(date.year, date.month.ordinal + 1, date.day)
+        return render(
+            pattern = pattern,
+            year = date.year,
+            month = date.month.ordinal + 1,
+            day = date.day,
+            weekday = weekday,
+            time = TimeParts(time.hour, time.minute, time.second)
+        )
+    }
+
+    fun format(value: LocalDateTime): String {
+        val date = value.raw.date
+        val time = value.raw.time
         val weekday = weekdayIndex(date.year, date.month.ordinal + 1, date.day)
         return render(
             pattern = pattern,

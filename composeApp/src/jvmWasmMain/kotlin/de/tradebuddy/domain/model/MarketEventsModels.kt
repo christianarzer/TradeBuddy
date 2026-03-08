@@ -35,11 +35,13 @@ data class MarketEvent(
     val type: MarketEventType,
     val region: MarketRegion,
     val countryCode: String,
+    val countryName: String? = null,
     val scheduledAt: Instant,
     val impact: MarketEventImpact,
     val source: String,
     val description: String? = null,
     val actual: String? = null,
+    val consensus: String? = null,
     val forecast: String? = null,
     val previous: String? = null
 ) {
@@ -66,4 +68,3 @@ data class EventWatchPreference(
     val notifyEnabled: Boolean = false,
     val reminderMinutesBefore: Int? = null
 )
-

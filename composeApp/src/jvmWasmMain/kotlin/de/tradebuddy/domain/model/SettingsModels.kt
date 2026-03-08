@@ -36,6 +36,8 @@ data class UserSettings(
     val themeMode: AppThemeMode,
     val accentColor: AppAccentColor,
     val displayCurrency: AppDisplayCurrency,
+    val marketEventsApiKey: String,
+    val marketEventsFmpApiKey: String,
     val selectedCityKeys: Set<String>,
     val sunTimeOffsetMinutes: Int,
     val moonTimeOffsetMinutes: Int,

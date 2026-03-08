@@ -32,6 +32,7 @@ import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.FolderOpen
 import com.adamglin.phosphoricons.regular.Funnel
 import com.adamglin.phosphoricons.regular.GearSix
+import com.adamglin.phosphoricons.regular.Info
 import com.adamglin.phosphoricons.regular.List
 import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.Minus
@@ -100,6 +101,8 @@ object SnowIcons {
         get() = PhosphorIcons.Regular.Funnel
     val Gear: ImageVector
         get() = PhosphorIcons.Regular.GearSix
+    val Info: ImageVector
+        get() = PhosphorIcons.Regular.Info
     val Menu: ImageVector
         get() = PhosphorIcons.Regular.List
     val Search: ImageVector

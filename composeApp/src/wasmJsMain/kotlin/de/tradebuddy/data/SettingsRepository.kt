@@ -19,6 +19,8 @@ data class SettingsSnapshot(
     val themeMode: AppThemeMode?,
     val accentColor: AppAccentColor?,
     val displayCurrency: AppDisplayCurrency?,
+    val marketEventsApiKey: String?,
+    val marketEventsFmpApiKey: String?,
     val selectedCityKeys: Set<String>?,
     val sunTimeOffsetMinutes: Int?,
     val moonTimeOffsetMinutes: Int?,
@@ -56,6 +58,8 @@ class FileSettingsRepository(
             val themeMode = props["themeMode"]?.let { AppThemeMode.fromKey(it) }
             val accentColor = props["accentColor"]?.let { AppAccentColor.fromKey(it) }
             val displayCurrency = props["displayCurrency"]?.let { AppDisplayCurrency.fromKey(it) }
+            val marketEventsApiKey = props["marketEventsApiKey"]?.trim()
+            val marketEventsFmpApiKey = props["marketEventsFmpApiKey"]?.trim()
             val showUtcTime = props["showUtcTime"]?.toBooleanStrictOrNull()
             val showAzimuth = props["showAzimuth"]?.toBooleanStrictOrNull()
             val showSun = props["showSun"]?.toBooleanStrictOrNull()
@@ -85,6 +89,8 @@ class FileSettingsRepository(
                 themeMode = themeMode,
                 accentColor = accentColor,
                 displayCurrency = displayCurrency,
+                marketEventsApiKey = marketEventsApiKey,
+                marketEventsFmpApiKey = marketEventsFmpApiKey,
                 selectedCityKeys = selectedCityKeys,
                 sunTimeOffsetMinutes = sunTimeOffsetMinutes,
                 moonTimeOffsetMinutes = moonTimeOffsetMinutes,
@@ -117,6 +123,8 @@ class FileSettingsRepository(
                 "themeMode" to settings.themeMode.key,
                 "accentColor" to settings.accentColor.key,
                 "displayCurrency" to settings.displayCurrency.key,
+                "marketEventsApiKey" to settings.marketEventsApiKey.trim(),
+                "marketEventsFmpApiKey" to settings.marketEventsFmpApiKey.trim(),
                 "selectedCities" to settings.selectedCityKeys.joinToString(";"),
                 "sunTimeOffsetMinutes" to settings.sunTimeOffsetMinutes.toString(),
                 "moonTimeOffsetMinutes" to settings.moonTimeOffsetMinutes.toString(),

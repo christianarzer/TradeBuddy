@@ -136,129 +136,107 @@ fun PortfolioScreen(
     displayCurrency: AppDisplayCurrency
 ) {
     CompositionLocalProvider(LocalPortfolioDisplayCurrency provides displayCurrency) {
-    var editingGroup by remember { mutableStateOf<PortfolioGroup?>(null) }
-    var showGroupDialog by rememberSaveable { mutableStateOf(false) }
-    var editingPosition by remember { mutableStateOf<PortfolioPositionMetrics?>(null) }
-    var showPositionDialog by rememberSaveable { mutableStateOf(false) }
+        var editingGroup by remember { mutableStateOf<PortfolioGroup?>(null) }
+        var showGroupDialog by rememberSaveable { mutableStateOf(false) }
+        var editingPosition by remember { mutableStateOf<PortfolioPositionMetrics?>(null) }
+        var showPositionDialog by rememberSaveable { mutableStateOf(false) }
 
-    val bestPosition = state.positions.maxByOrNull { it.profitLossPercent }
-    val topPositions = state.positions.take(6)
-    val history = state.history
-    val latestValue = history.lastOrNull()?.totalValue
-    val previousValue = history.dropLast(1).lastOrNull()?.totalValue
-    val periodDeltaPercent = if (latestValue != null && previousValue != null && previousValue != 0.0) {
-        ((latestValue - previousValue) / previousValue) * 100.0
-    } else {
-        0.0
-    }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(AppSpacing.s)
-    ) {
-        item {
-            PortfolioHeaderCard(
-                onRefresh = viewModel::refresh,
-                onAddGroup = {
-                    editingGroup = null
-                    showGroupDialog = true
-                },
-                onAddPosition = {
-                    editingPosition = null
-                    showPositionDialog = true
-                },
-                hasGroups = state.groups.isNotEmpty()
+        val bestPosition = remember(state.positions) { state.positions.maxByOrNull { it.profitLossPercent } }
+        val topPositions = remember(state.positions) { state.positions.take(6) }
+        val history = state.history
+        val historyValues = remember(history) { history.map { it.totalValue } }
+        val historySummary = remember(history) {
+            val latestValue = history.lastOrNull()?.totalValue
+            val previousValue = history.dropLast(1).lastOrNull()?.totalValue
+            val periodDeltaPercent = if (latestValue != null && previousValue != null && previousValue != 0.0) {
+                ((latestValue - previousValue) / previousValue) * 100.0
+            } else {
+                0.0
+            }
+            PortfolioHistorySummary(
+                latestValue = latestValue,
+                periodDeltaPercent = periodDeltaPercent
             )
         }
 
-        item {
-            MetricsGrid(
-                totalValue = state.summary.totalValue,
-                totalDeltaPercent = state.summary.profitLossPercent,
-                totalProfitLoss = state.summary.profitLoss,
-                totalCost = state.summary.totalCostBasis,
-                positionCount = state.positions.size,
-                groupCount = state.groups.size,
-                bestPosition = bestPosition
-            )
-        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(AppSpacing.s)
+        ) {
+            item {
+                PortfolioHeaderCard(
+                    onRefresh = viewModel::refresh,
+                    onAddGroup = {
+                        editingGroup = null
+                        showGroupDialog = true
+                    },
+                    onAddPosition = {
+                        editingPosition = null
+                        showPositionDialog = true
+                    },
+                    hasGroups = state.groups.isNotEmpty()
+                )
+            }
 
-        item {
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val stacked = maxWidth < 980.dp
-                if (stacked) {
-                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.s)) {
-                        PerformanceCard(
-                            historyValues = history.map { it.totalValue },
-                            selectedRange = state.selectedRange,
-                            onRangeSelected = viewModel::setRange,
-                            latestValue = latestValue,
-                            periodDeltaPercent = periodDeltaPercent
-                        )
-                        AllocationCard(
-                            title = stringResource(Res.string.portfolio_allocation_category),
-                            values = state.allocationByCategory
-                        )
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.s)
-                    ) {
-                        Box(modifier = Modifier.weight(2f)) {
+            item {
+                MetricsGrid(
+                    totalValue = state.summary.totalValue,
+                    totalDeltaPercent = state.summary.profitLossPercent,
+                    totalProfitLoss = state.summary.profitLoss,
+                    totalCost = state.summary.totalCostBasis,
+                    positionCount = state.positions.size,
+                    groupCount = state.groups.size,
+                    bestPosition = bestPosition
+                )
+            }
+
+            item {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val stacked = maxWidth < 980.dp
+                    if (stacked) {
+                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.s)) {
                             PerformanceCard(
-                                historyValues = history.map { it.totalValue },
+                                historyValues = historyValues,
                                 selectedRange = state.selectedRange,
                                 onRangeSelected = viewModel::setRange,
-                                latestValue = latestValue,
-                                periodDeltaPercent = periodDeltaPercent
+                                latestValue = historySummary.latestValue,
+                                periodDeltaPercent = historySummary.periodDeltaPercent
                             )
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
                             AllocationCard(
                                 title = stringResource(Res.string.portfolio_allocation_category),
                                 values = state.allocationByCategory
                             )
                         }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.s)
+                        ) {
+                            Box(modifier = Modifier.weight(2f)) {
+                                PerformanceCard(
+                                    historyValues = historyValues,
+                                    selectedRange = state.selectedRange,
+                                    onRangeSelected = viewModel::setRange,
+                                    latestValue = historySummary.latestValue,
+                                    periodDeltaPercent = historySummary.periodDeltaPercent
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                AllocationCard(
+                                    title = stringResource(Res.string.portfolio_allocation_category),
+                                    values = state.allocationByCategory
+                                )
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        item {
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val stacked = maxWidth < 980.dp
-                if (stacked) {
-                    Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.s)) {
-                        TopPositionsCard(
-                            positions = topPositions,
-                            onEdit = { metrics ->
-                                editingPosition = metrics
-                                showPositionDialog = true
-                            },
-                            onDelete = { positionId -> viewModel.deletePosition(positionId) }
-                        )
-                        GroupsCard(
-                            groups = state.groups,
-                            selectedGroupId = state.selectedGroupId,
-                            onSelectGroup = viewModel::setSelectedGroup,
-                            onAddGroup = {
-                                editingGroup = null
-                                showGroupDialog = true
-                            },
-                            onEditGroup = { group ->
-                                editingGroup = group
-                                showGroupDialog = true
-                            },
-                            onDeleteGroup = { group -> viewModel.deleteGroup(group.id) }
-                        )
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(AppSpacing.s)
-                    ) {
-                        Box(modifier = Modifier.weight(2f)) {
+            item {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val stacked = maxWidth < 980.dp
+                    if (stacked) {
+                        Column(verticalArrangement = Arrangement.spacedBy(AppSpacing.s)) {
                             TopPositionsCard(
                                 positions = topPositions,
                                 onEdit = { metrics ->
@@ -267,8 +245,6 @@ fun PortfolioScreen(
                                 },
                                 onDelete = { positionId -> viewModel.deletePosition(positionId) }
                             )
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
                             GroupsCard(
                                 groups = state.groups,
                                 selectedGroupId = state.selectedGroupId,
@@ -284,79 +260,115 @@ fun PortfolioScreen(
                                 onDeleteGroup = { group -> viewModel.deleteGroup(group.id) }
                             )
                         }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(AppSpacing.s)
+                        ) {
+                            Box(modifier = Modifier.weight(2f)) {
+                                TopPositionsCard(
+                                    positions = topPositions,
+                                    onEdit = { metrics ->
+                                        editingPosition = metrics
+                                        showPositionDialog = true
+                                    },
+                                    onDelete = { positionId -> viewModel.deletePosition(positionId) }
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                GroupsCard(
+                                    groups = state.groups,
+                                    selectedGroupId = state.selectedGroupId,
+                                    onSelectGroup = viewModel::setSelectedGroup,
+                                    onAddGroup = {
+                                        editingGroup = null
+                                        showGroupDialog = true
+                                    },
+                                    onEditGroup = { group ->
+                                        editingGroup = group
+                                        showGroupDialog = true
+                                    },
+                                    onDeleteGroup = { group -> viewModel.deleteGroup(group.id) }
+                                )
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        item {
-            PositionsCard(
-                state = state,
-                onSearchChange = viewModel::setSearchQuery,
-                onAddPosition = {
-                    editingPosition = null
-                    showPositionDialog = true
-                },
-                onEdit = { metrics ->
-                    editingPosition = metrics
-                    showPositionDialog = true
-                },
-                onDelete = { metrics -> viewModel.deletePosition(metrics.position.id) }
-            )
-        }
-
-        item {
-            AllocationCard(
-                title = stringResource(Res.string.portfolio_allocation_group),
-                values = state.allocationByGroup
-            )
-        }
-    }
-
-    if (showGroupDialog) {
-        GroupEditorDialog(
-            initialGroup = editingGroup,
-            onDismiss = {
-                showGroupDialog = false
-                editingGroup = null
-            },
-            onSave = { name, colorHex ->
-                viewModel.saveGroup(editingGroup?.id, name, colorHex)
-                showGroupDialog = false
-                editingGroup = null
-            }
-        )
-    }
-
-    if (showPositionDialog) {
-        PositionEditorDialog(
-            groups = state.groups,
-            initial = editingPosition,
-            defaultCurrency = displayCurrency,
-            onDismiss = {
-                showPositionDialog = false
-                editingPosition = null
-            },
-            onSave = { form ->
-                viewModel.savePosition(
-                    positionId = editingPosition?.position?.id,
-                    groupId = form.groupId,
-                    name = form.name,
-                    symbol = form.symbol,
-                    category = form.category,
-                    quantity = form.quantity,
-                    averagePrice = form.averagePrice,
-                    currentPrice = form.currentPrice,
-                    currency = form.currency,
-                    tags = form.tags
+            item {
+                PositionsCard(
+                    state = state,
+                    onSearchChange = viewModel::setSearchQuery,
+                    onAddPosition = {
+                        editingPosition = null
+                        showPositionDialog = true
+                    },
+                    onEdit = { metrics ->
+                        editingPosition = metrics
+                        showPositionDialog = true
+                    },
+                    onDelete = { metrics -> viewModel.deletePosition(metrics.position.id) }
                 )
-                showPositionDialog = false
-                editingPosition = null
             }
-        )
-    }
+
+            item {
+                AllocationCard(
+                    title = stringResource(Res.string.portfolio_allocation_group),
+                    values = state.allocationByGroup
+                )
+            }
+        }
+
+        if (showGroupDialog) {
+            GroupEditorDialog(
+                initialGroup = editingGroup,
+                onDismiss = {
+                    showGroupDialog = false
+                    editingGroup = null
+                },
+                onSave = { name, colorHex ->
+                    viewModel.saveGroup(editingGroup?.id, name, colorHex)
+                    showGroupDialog = false
+                    editingGroup = null
+                }
+            )
+        }
+
+        if (showPositionDialog) {
+            PositionEditorDialog(
+                groups = state.groups,
+                initial = editingPosition,
+                defaultCurrency = displayCurrency,
+                onDismiss = {
+                    showPositionDialog = false
+                    editingPosition = null
+                },
+                onSave = { form ->
+                    viewModel.savePosition(
+                        positionId = editingPosition?.position?.id,
+                        groupId = form.groupId,
+                        name = form.name,
+                        symbol = form.symbol,
+                        category = form.category,
+                        quantity = form.quantity,
+                        averagePrice = form.averagePrice,
+                        currentPrice = form.currentPrice,
+                        currency = form.currency,
+                        tags = form.tags
+                    )
+                    showPositionDialog = false
+                    editingPosition = null
+                }
+            )
+        }
     }
 }
+
+private data class PortfolioHistorySummary(
+    val latestValue: Double?,
+    val periodDeltaPercent: Double
+)
 
 @Composable
 private fun MetricsGrid(

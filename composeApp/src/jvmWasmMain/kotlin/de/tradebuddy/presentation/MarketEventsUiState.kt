@@ -12,6 +12,10 @@ import java.time.LocalDate
 
 data class MarketEventsUiState(
     val isLoading: Boolean = true,
+    val loadingProgress: Float? = null,
+    val loadingSourceName: String? = null,
+    val loadingSourceIndex: Int = 0,
+    val loadingSourceCount: Int = 0,
     val errorMessage: String? = null,
     val nowInstant: Instant = Instant.now(),
     val searchQuery: String = "",

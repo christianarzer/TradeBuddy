@@ -7,6 +7,6 @@ class Locale private constructor(
         val ROOT: Locale = Locale("en-US")
         val GERMANY: Locale = Locale("de-DE")
         val US: Locale = Locale("en-US")
+        val ENGLISH: Locale = Locale("en-US")
     }
 }
-

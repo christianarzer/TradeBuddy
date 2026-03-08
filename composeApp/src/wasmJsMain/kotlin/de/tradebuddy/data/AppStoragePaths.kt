@@ -20,4 +20,13 @@ object AppStoragePaths {
 
     fun tasksPath(appName: String = DefaultAppName): String =
         "browser://localStorage/$appName/tasks"
+
+    fun backtestingHistoryPath(appName: String = DefaultAppName): String =
+        "browser://localStorage/$appName/backtesting_history"
+
+    fun backtestingCandleCachePath(appName: String = DefaultAppName): String =
+        "browser://localStorage/$appName/backtesting_candles_cache"
+
+    fun backtestingSymbolsCachePath(appName: String = DefaultAppName): String =
+        "browser://localStorage/$appName/backtesting_symbols_cache"
 }

@@ -600,27 +600,49 @@ private fun buildTradingViewInputText(
     data class TradingViewEvent(
         val instant: java.time.Instant,
         val icon: String,
-        val cityLabel: String
+        val cityLabel: String,
+        val category: String
     )
 
     val exportZone = if (useUtcTimes) ZoneId.of("UTC") else userZone
     val events = mutableListOf<TradingViewEvent>()
+    val seenEventKeys = linkedSetOf<String>()
     val astroInstants = linkedSetOf<java.time.Instant>()
+
+    fun addEvent(
+        instant: java.time.Instant,
+        icon: String,
+        cityLabel: String,
+        category: String
+    ) {
+        val key = "$instant|$icon|$cityLabel"
+        if (seenEventKeys.add(key)) {
+            events += TradingViewEvent(instant = instant, icon = icon, cityLabel = cityLabel, category = category)
+        }
+    }
 
     cityRows.forEach { (city, rows) ->
         rows.forEach { row ->
             if (includeSun) {
-                row.sunrise?.toInstant()?.let { events += TradingViewEvent(it, "SUN_UP", city.label) }
-                row.sunset?.toInstant()?.let { events += TradingViewEvent(it, "SUN_DOWN", city.label) }
+                row.sunrise?.toInstant()?.let {
+                    addEvent(it, "SUN_UP", city.label, "sun")
+                }
+                row.sunset?.toInstant()?.let {
+                    addEvent(it, "SUN_DOWN", city.label, "sun")
+                }
             }
             if (includeMoon) {
-                row.moonrise?.toInstant()?.let { events += TradingViewEvent(it, "MOON_UP", city.label) }
-                row.moonset?.toInstant()?.let { events += TradingViewEvent(it, "MOON_DOWN", city.label) }
+                row.moonrise?.toInstant()?.let {
+                    addEvent(it, "MOON_UP", city.label, "moon")
+                }
+                row.moonset?.toInstant()?.let {
+                    addEvent(it, "MOON_DOWN", city.label, "moon")
+                }
             }
             if (includeAstro) {
                 row.astroInstants.forEach { instant ->
                     if (astroInstants.add(instant)) {
-                        events += TradingViewEvent(instant, "ASTRO", "Astro")
+                        addEvent(instant, "ASTRO", "Astro", "astro")
                     }
                 }
             }
@@ -629,11 +651,20 @@ private fun buildTradingViewInputText(
 
     if (events.isEmpty()) return ""
 
-    val sorted = events.sortedWith(compareBy<TradingViewEvent> { it.instant }.thenBy { it.cityLabel })
+    val sunCount = events.count { it.category == "sun" }
+    val moonCount = events.count { it.category == "moon" }
+    val astroCount = events.count { it.category == "astro" }
+    val sorted = events.sortedWith(
+        compareBy<TradingViewEvent> { it.instant }
+            .thenBy { it.icon }
+            .thenBy { it.cityLabel }
+    )
     return buildString {
         appendLine("# TradeBuddy TradingView Input")
         appendLine("# month=$month")
         appendLine("# timezone=${exportZone.id}")
+        appendLine("# categories=sun,moon,astro")
+        appendLine("# counts sun=$sunCount moon=$moonCount astro=$astroCount total=${events.size}")
         appendLine("# format=yyyy-MM-dd HH:mm|icon|city")
         sorted.forEach { event ->
             val dateTime = event.instant.atZone(exportZone).format(dateTimeFmt)

@@ -4,6 +4,8 @@ import de.tradebuddy.di.AppContainer
 import de.tradebuddy.domain.model.AppThemeMode
 import de.tradebuddy.domain.model.AppDisplayCurrency
 import de.tradebuddy.presentation.AppScreen
+import de.tradebuddy.presentation.BacktestingUiState
+import de.tradebuddy.presentation.BacktestingViewModel
 import de.tradebuddy.presentation.MarketEventsUiState
 import de.tradebuddy.presentation.MarketEventsViewModel
 import de.tradebuddy.presentation.PortfolioUiState
@@ -13,6 +15,7 @@ import de.tradebuddy.presentation.SunMoonViewModel
 import de.tradebuddy.presentation.TasksUiState
 import de.tradebuddy.presentation.TasksViewModel
 import de.tradebuddy.ui.screens.LogsConsoleScreen
+import de.tradebuddy.ui.screens.BacktestingScreen
 import de.tradebuddy.ui.screens.MarketEventsScreen
 import de.tradebuddy.ui.screens.PortfolioScreen
 import de.tradebuddy.ui.screens.SettingsScreen
@@ -98,6 +101,7 @@ import trade_buddy.composeapp.generated.resources.currency_eur
 import trade_buddy.composeapp.generated.resources.currency_usd
 import trade_buddy.composeapp.generated.resources.logo_tradebuddy_dark
 import trade_buddy.composeapp.generated.resources.logo_tradebuddy_light
+import trade_buddy.composeapp.generated.resources.nav_backtesting
 import trade_buddy.composeapp.generated.resources.nav_market_events
 import trade_buddy.composeapp.generated.resources.nav_portfolio
 import trade_buddy.composeapp.generated.resources.nav_settings
@@ -113,13 +117,15 @@ actual fun AppRoot() {
     val marketEventsViewModel = remember(container) { container.createMarketEventsViewModel() }
     val portfolioViewModel = remember(container) { container.createPortfolioViewModel() }
     val tasksViewModel = remember(container) { container.createTasksViewModel() }
+    val backtestingViewModel = remember(container) { container.createBacktestingViewModel() }
 
-    DisposableEffect(sunMoonViewModel, marketEventsViewModel, portfolioViewModel, tasksViewModel) {
+    DisposableEffect(sunMoonViewModel, marketEventsViewModel, portfolioViewModel, tasksViewModel, backtestingViewModel) {
         onDispose {
             sunMoonViewModel.close()
             marketEventsViewModel.close()
             portfolioViewModel.close()
             tasksViewModel.close()
+            backtestingViewModel.close()
         }
     }
 
@@ -127,6 +133,36 @@ actual fun AppRoot() {
     val marketEventsState by marketEventsViewModel.state.collectAsState()
     val portfolioState by portfolioViewModel.state.collectAsState()
     val tasksState by tasksViewModel.state.collectAsState()
+    val backtestingState by backtestingViewModel.state.collectAsState()
+    var lastMarketEventsApiKey by remember { mutableStateOf<String?>(null) }
+    var lastMarketEventsFmpApiKey by remember { mutableStateOf<String?>(null) }
+    var pendingMarketEventsForceRefresh by remember { mutableStateOf(false) }
+    val currentScreen = normalizedScreen(sunMoonState.screen)
+
+    LaunchedEffect(sunMoonState.marketEventsApiKey, sunMoonState.marketEventsFmpApiKey) {
+        val currentFredKey = sunMoonState.marketEventsApiKey
+        val currentFmpKey = sunMoonState.marketEventsFmpApiKey
+        container.setMarketEventsApiKey(currentFredKey)
+        container.setMarketEventsFmpApiKey(currentFmpKey)
+        if ((lastMarketEventsApiKey != null && lastMarketEventsApiKey != currentFredKey) ||
+            (lastMarketEventsFmpApiKey != null && lastMarketEventsFmpApiKey != currentFmpKey)
+        ) {
+            pendingMarketEventsForceRefresh = true
+        }
+        lastMarketEventsApiKey = currentFredKey
+        lastMarketEventsFmpApiKey = currentFmpKey
+        if (currentScreen == AppScreen.MarketEvents && pendingMarketEventsForceRefresh) {
+            marketEventsViewModel.refreshIfNeeded(forceRefresh = true)
+            pendingMarketEventsForceRefresh = false
+        }
+    }
+
+    LaunchedEffect(currentScreen) {
+        if (currentScreen == AppScreen.MarketEvents) {
+            marketEventsViewModel.refreshIfNeeded(forceRefresh = pendingMarketEventsForceRefresh)
+            pendingMarketEventsForceRefresh = false
+        }
+    }
 
     AppTheme(
         themeMode = sunMoonState.themeMode,
@@ -142,7 +178,9 @@ actual fun AppRoot() {
                     portfolioState = portfolioState,
                     portfolioViewModel = portfolioViewModel,
                     tasksState = tasksState,
-                    tasksViewModel = tasksViewModel
+                    tasksViewModel = tasksViewModel,
+                    backtestingState = backtestingState,
+                    backtestingViewModel = backtestingViewModel
                 )
             } else {
                 MobileDashboardShell(
@@ -153,7 +191,9 @@ actual fun AppRoot() {
                     portfolioState = portfolioState,
                     portfolioViewModel = portfolioViewModel,
                     tasksState = tasksState,
-                    tasksViewModel = tasksViewModel
+                    tasksViewModel = tasksViewModel,
+                    backtestingState = backtestingState,
+                    backtestingViewModel = backtestingViewModel
                 )
             }
         }
@@ -169,7 +209,9 @@ private fun DesktopDashboardShell(
     portfolioState: PortfolioUiState,
     portfolioViewModel: PortfolioViewModel,
     tasksState: TasksUiState,
-    tasksViewModel: TasksViewModel
+    tasksViewModel: TasksViewModel,
+    backtestingState: BacktestingUiState,
+    backtestingViewModel: BacktestingViewModel
 ) {
     val ext = MaterialTheme.extended
     var toolbarSearchQuery by rememberSaveable { mutableStateOf("") }
@@ -179,14 +221,16 @@ private fun DesktopDashboardShell(
         tasksState.searchQuery,
         portfolioState.searchQuery,
         marketEventsState.searchQuery,
-        sunMoonState.logsSearchQuery
+        sunMoonState.logsSearchQuery,
+        backtestingState.tradesSearchQuery
     ) {
         toolbarSearchQuery = currentScreenSearchQuery(
             screen = normalizedScreen(sunMoonState.screen),
             tasksQuery = tasksState.searchQuery,
             portfolioQuery = portfolioState.searchQuery,
             marketEventsQuery = marketEventsState.searchQuery,
-            logsQuery = sunMoonState.logsSearchQuery
+            logsQuery = sunMoonState.logsSearchQuery,
+            backtestingQuery = backtestingState.tradesSearchQuery
         )
     }
 
@@ -204,6 +248,7 @@ private fun DesktopDashboardShell(
             AppScreen.Tasks -> tasksViewModel.setSearchQuery(normalizedQuery)
             AppScreen.Portfolio -> portfolioViewModel.setSearchQuery(normalizedQuery)
             AppScreen.MarketEvents -> marketEventsViewModel.setSearchQuery(normalizedQuery)
+            AppScreen.Backtesting -> backtestingViewModel.setTradesSearchQuery(normalizedQuery)
             AppScreen.Logs -> sunMoonViewModel.setLogsSearchQuery(normalizedQuery)
             else -> Unit
         }
@@ -238,6 +283,7 @@ private fun DesktopDashboardShell(
                             AppScreen.Tasks -> tasksViewModel.setSearchQuery(query)
                             AppScreen.Portfolio -> portfolioViewModel.setSearchQuery(query)
                             AppScreen.MarketEvents -> marketEventsViewModel.setSearchQuery(query)
+                            AppScreen.Backtesting -> backtestingViewModel.setTradesSearchQuery(query)
                             AppScreen.Logs -> sunMoonViewModel.setLogsSearchQuery(query)
                             else -> Unit
                         }
@@ -258,7 +304,9 @@ private fun DesktopDashboardShell(
                         portfolioState = portfolioState,
                         portfolioViewModel = portfolioViewModel,
                         tasksState = tasksState,
-                        tasksViewModel = tasksViewModel
+                        tasksViewModel = tasksViewModel,
+                        backtestingState = backtestingState,
+                        backtestingViewModel = backtestingViewModel
                     )
                 }
             }
@@ -276,7 +324,9 @@ private fun MobileDashboardShell(
     portfolioState: PortfolioUiState,
     portfolioViewModel: PortfolioViewModel,
     tasksState: TasksUiState,
-    tasksViewModel: TasksViewModel
+    tasksViewModel: TasksViewModel,
+    backtestingState: BacktestingUiState,
+    backtestingViewModel: BacktestingViewModel
 ) {
     val ext = MaterialTheme.extended
     Scaffold(
@@ -315,6 +365,12 @@ private fun MobileDashboardShell(
                     onClick = { sunMoonViewModel.setScreen(AppScreen.Portfolio) },
                     icon = { Icon(SnowIcons.ChartPie, contentDescription = null) },
                     label = { Text(stringResource(Res.string.nav_portfolio)) }
+                )
+                NavigationBarItem(
+                    selected = sunMoonState.screen == AppScreen.Backtesting,
+                    onClick = { sunMoonViewModel.setScreen(AppScreen.Backtesting) },
+                    icon = { Icon(SnowIcons.ChartLine, contentDescription = null) },
+                    label = { Text(stringResource(Res.string.nav_backtesting)) }
                 )
                 NavigationBarItem(
                     selected = sunMoonState.screen == AppScreen.SunMoon || sunMoonState.screen == AppScreen.AstroCalendar,
@@ -356,7 +412,9 @@ private fun MobileDashboardShell(
                 portfolioState = portfolioState,
                 portfolioViewModel = portfolioViewModel,
                 tasksState = tasksState,
-                tasksViewModel = tasksViewModel
+                tasksViewModel = tasksViewModel,
+                backtestingState = backtestingState,
+                backtestingViewModel = backtestingViewModel
             )
         }
     }
@@ -371,7 +429,9 @@ private fun ScreenContent(
     portfolioState: PortfolioUiState,
     portfolioViewModel: PortfolioViewModel,
     tasksState: TasksUiState,
-    tasksViewModel: TasksViewModel
+    tasksViewModel: TasksViewModel,
+    backtestingState: BacktestingUiState,
+    backtestingViewModel: BacktestingViewModel
 ) {
     when (sunMoonState.screen) {
         AppScreen.SunMoon -> SunMoonScreen(state = sunMoonState, viewModel = sunMoonViewModel)
@@ -383,6 +443,7 @@ private fun ScreenContent(
             displayCurrency = sunMoonState.displayCurrency
         )
         AppScreen.Tasks -> TasksScreen(state = tasksState, viewModel = tasksViewModel)
+        AppScreen.Backtesting -> BacktestingScreen(state = backtestingState, viewModel = backtestingViewModel)
         AppScreen.Settings -> SettingsScreen(state = sunMoonState, viewModel = sunMoonViewModel)
         AppScreen.Logs -> LogsConsoleScreen(
             viewModel = sunMoonViewModel,
@@ -448,6 +509,12 @@ private fun DashboardSidebar(
             icon = SnowIcons.ChartPie,
             selected = selectedScreen == AppScreen.Portfolio,
             onClick = { onScreenChange(AppScreen.Portfolio) }
+        )
+        SidebarNavItem(
+            label = stringResource(Res.string.nav_backtesting),
+            icon = SnowIcons.ChartLine,
+            selected = selectedScreen == AppScreen.Backtesting,
+            onClick = { onScreenChange(AppScreen.Backtesting) }
         )
         SidebarBrandNavItem(
             label = stringResource(Res.string.nav_sun_moon),
@@ -830,6 +897,7 @@ private fun ToolbarSearchField(
 private fun screenLabel(screen: AppScreen): String = when (screen) {
     AppScreen.MarketEvents -> stringResource(Res.string.nav_market_events)
     AppScreen.Portfolio -> stringResource(Res.string.nav_portfolio)
+    AppScreen.Backtesting -> stringResource(Res.string.nav_backtesting)
     AppScreen.Tasks -> stringResource(Res.string.tasks_title)
     AppScreen.SunMoon -> stringResource(Res.string.nav_sun_moon)
     AppScreen.AstroCalendar -> stringResource(Res.string.nav_sun_moon)
@@ -841,6 +909,7 @@ private fun screenLabel(screen: AppScreen): String = when (screen) {
 private fun screenIcon(screen: AppScreen): ImageVector = when (screen) {
     AppScreen.MarketEvents -> SnowIcons.CalendarEvent
     AppScreen.Portfolio -> SnowIcons.ChartPie
+    AppScreen.Backtesting -> SnowIcons.ChartLine
     AppScreen.Tasks -> SnowIcons.CheckSquare
     AppScreen.Settings -> SnowIcons.Gear
     AppScreen.Logs -> SnowIcons.Bell
@@ -853,11 +922,13 @@ private fun currentScreenSearchQuery(
     tasksQuery: String,
     portfolioQuery: String,
     marketEventsQuery: String,
-    logsQuery: String
+    logsQuery: String,
+    backtestingQuery: String
 ): String = when (screen) {
     AppScreen.Tasks -> tasksQuery
     AppScreen.Portfolio -> portfolioQuery
     AppScreen.MarketEvents -> marketEventsQuery
+    AppScreen.Backtesting -> backtestingQuery
     AppScreen.Logs -> logsQuery
     else -> ""
 }
@@ -865,11 +936,12 @@ private fun currentScreenSearchQuery(
 private fun screenSortOrder(screen: AppScreen): Int = when (screen) {
     AppScreen.Tasks -> 0
     AppScreen.Portfolio -> 1
-    AppScreen.SunMoon, AppScreen.AstroCalendar -> 2
-    AppScreen.MarketEvents -> 3
-    AppScreen.Settings -> 4
-    AppScreen.TimeOptimizer -> 5
-    AppScreen.Logs -> 6
+    AppScreen.Backtesting -> 2
+    AppScreen.SunMoon, AppScreen.AstroCalendar -> 3
+    AppScreen.MarketEvents -> 4
+    AppScreen.Settings -> 5
+    AppScreen.TimeOptimizer -> 6
+    AppScreen.Logs -> 7
 }
 
 private fun normalizedScreen(screen: AppScreen): AppScreen =
@@ -892,6 +964,9 @@ private fun resolveToolbarSearchScreen(query: String): AppScreen? {
         normalized.contains("portfolio") ||
             normalized.contains("asset") ||
             normalized.contains("position") -> AppScreen.Portfolio
+        normalized.contains("backtest") ||
+            normalized.contains("strategie") ||
+            normalized.contains("strategy") -> AppScreen.Backtesting
         normalized.contains("aufgabe") ||
             normalized.contains("task") ||
             normalized.contains("ziel") ||
@@ -908,7 +983,7 @@ private fun resolveToolbarSearchScreen(query: String): AppScreen? {
 
 @Composable
 private fun screenSectionLabel(screen: AppScreen): String = when (screen) {
-    AppScreen.MarketEvents, AppScreen.Portfolio, AppScreen.Tasks, AppScreen.SunMoon, AppScreen.AstroCalendar ->
+    AppScreen.MarketEvents, AppScreen.Portfolio, AppScreen.Backtesting, AppScreen.Tasks, AppScreen.SunMoon, AppScreen.AstroCalendar ->
         stringResource(Res.string.app_section_dashboards)
     AppScreen.Settings -> stringResource(Res.string.nav_settings)
     AppScreen.Logs, AppScreen.TimeOptimizer -> stringResource(Res.string.app_section_tools)

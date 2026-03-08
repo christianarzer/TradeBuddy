@@ -197,6 +197,16 @@ class SunMoonViewModel(
         persistSettings()
     }
 
+    fun setMarketEventsApiKey(apiKey: String) {
+        _state.update { it.copy(marketEventsApiKey = apiKey.trim()) }
+        persistSettings()
+    }
+
+    fun setMarketEventsFmpApiKey(apiKey: String) {
+        _state.update { it.copy(marketEventsFmpApiKey = apiKey.trim()) }
+        persistSettings()
+    }
+
     fun setShowUtcTime(enabled: Boolean) {
         _state.update { it.copy(showUtcTime = enabled) }
         persistSettings()
@@ -1066,6 +1076,8 @@ class SunMoonViewModel(
                     themeMode = snapshot.themeMode ?: current.themeMode,
                     accentColor = snapshot.accentColor ?: current.accentColor,
                     displayCurrency = snapshot.displayCurrency ?: current.displayCurrency,
+                    marketEventsApiKey = snapshot.marketEventsApiKey ?: current.marketEventsApiKey,
+                    marketEventsFmpApiKey = snapshot.marketEventsFmpApiKey ?: current.marketEventsFmpApiKey,
                     selectedCityKeys = resolvedKeys,
                     sunTimeOffsetMinutes = snapshot.sunTimeOffsetMinutes ?: current.sunTimeOffsetMinutes,
                     moonTimeOffsetMinutes = snapshot.moonTimeOffsetMinutes ?: current.moonTimeOffsetMinutes,
@@ -1114,6 +1126,8 @@ class SunMoonViewModel(
                         themeMode = current.themeMode,
                         accentColor = current.accentColor,
                         displayCurrency = current.displayCurrency,
+                        marketEventsApiKey = current.marketEventsApiKey,
+                        marketEventsFmpApiKey = current.marketEventsFmpApiKey,
                         selectedCityKeys = current.selectedCityKeys,
                         sunTimeOffsetMinutes = current.sunTimeOffsetMinutes,
                         moonTimeOffsetMinutes = current.moonTimeOffsetMinutes,

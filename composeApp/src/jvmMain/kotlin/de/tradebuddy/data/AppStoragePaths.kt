@@ -22,6 +22,15 @@ object AppStoragePaths {
 
     fun tasksPath(appName: String = DefaultAppName): File =
         File(appStorageDir(appName), "tasks.json")
+
+    fun backtestingHistoryPath(appName: String = DefaultAppName): File =
+        File(appStorageDir(appName), "backtesting_history.json")
+
+    fun backtestingCandleCachePath(appName: String = DefaultAppName): File =
+        File(appStorageDir(appName), "backtesting_candles_cache.json")
+
+    fun backtestingSymbolsCachePath(appName: String = DefaultAppName): File =
+        File(appStorageDir(appName), "backtesting_symbols_cache.json")
 }
 
 expect fun appStorageDir(appName: String = DefaultAppName): File

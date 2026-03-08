@@ -27,6 +27,25 @@ Trading-orientierte Zeitplanung mit Sonne, Mond und Astro-Kalender auf Kotlin Mu
 - Settings mit moderner Theme-Auswahl, City-Filter, Log-Konsole und Monats-Export
 - Monats-Export zum direkten Kopieren von Sun/Moon/Astro Zeiten
 - TradingView-Paste Export mit Event-Icons (`yyyy-MM-dd HH:mm|icon|city`)
+- Backtesting-Tab fuer Krypto-Strategien (Binance/Bybit/OKX Spot, lokale Historie, CSV/JSON-Export)
+
+## Backtesting
+
+- Datenquellen: Binance Public REST, Bybit Public REST, OKX Public REST (jeweils ohne API-Key)
+- Zusaetzlicher Datenweg: CSV-Import in den lokalen Candle-Cache
+- Unterstuetzte Timeframes: `1m`, `5m`, `15m`, `1h`, `4h`, `1d`
+- Strategien: SMA Crossover, RSI Mean Reversion, Breakout, Custom
+- Execution-Modell: Market + Limit, Maker/Taker Fees, Slippage, Fill-Ratio, Volumen-Partizipation
+- Risiko/Portfolio: Long/Short, optional Hedging, Leverage, Margin-Modus, Funding, SL/TP/Trailing, Kill-Switch, Daily-Loss-Limit
+- Analyse: Equity/Drawdown/Trade-PnL, Monatsrenditen, Walk-Forward, Monte-Carlo
+- Persistenz: Candle-Cache und Run-Historie lokal gespeichert (Datei/Browser Storage je Plattform)
+- Architektur + Erweiterung: siehe `docs/backtesting.md`
+
+### Einschraenkungen
+
+- Exchange-Ratelimits werden per Retry/Backoff behandelt, bei laengeren Zeitraeumen kann der Initial-Load dauern.
+- Konsens/Forecast-Felder sind nicht Bestandteil der genutzten OHLCV-Endpunkte.
+- TradingView ist nicht als Datenquelle integriert (kann spaeter optional ergaenzt werden).
 
 ## Platform Status
 
@@ -117,3 +136,4 @@ git push origin v1.0.0
 ## License
 
 Apache-2.0 (`LICENSE`)
+

@@ -62,8 +62,18 @@ import trade_buddy.composeapp.generated.resources.settings_open_settings_dir
 import trade_buddy.composeapp.generated.resources.settings_open_stats_dir
 import trade_buddy.composeapp.generated.resources.settings_section_cities
 import trade_buddy.composeapp.generated.resources.settings_section_compact
+import trade_buddy.composeapp.generated.resources.settings_section_market_events
 import trade_buddy.composeapp.generated.resources.settings_section_storage
 import trade_buddy.composeapp.generated.resources.settings_section_themes
+import trade_buddy.composeapp.generated.resources.settings_market_events_desc
+import trade_buddy.composeapp.generated.resources.settings_market_events_api_key_label
+import trade_buddy.composeapp.generated.resources.settings_market_events_api_key_placeholder
+import trade_buddy.composeapp.generated.resources.settings_market_events_fmp_api_key_label
+import trade_buddy.composeapp.generated.resources.settings_market_events_fmp_api_key_placeholder
+import trade_buddy.composeapp.generated.resources.settings_market_events_api_key_save
+import trade_buddy.composeapp.generated.resources.settings_market_events_api_key_clear
+import trade_buddy.composeapp.generated.resources.settings_market_events_api_key_status_set
+import trade_buddy.composeapp.generated.resources.settings_market_events_api_key_status_empty
 import trade_buddy.composeapp.generated.resources.settings_select_all
 import trade_buddy.composeapp.generated.resources.settings_select_none
 import trade_buddy.composeapp.generated.resources.settings_show_azimuth
@@ -105,6 +115,8 @@ fun SettingsScreen(
     val scroll = rememberScrollState()
     val cityScroll = rememberScrollState()
     var cityQuery by rememberSaveable { mutableStateOf("") }
+    var marketEventsApiKeyDraft by rememberSaveable(state.marketEventsApiKey) { mutableStateOf(state.marketEventsApiKey) }
+    var marketEventsFmpApiKeyDraft by rememberSaveable(state.marketEventsFmpApiKey) { mutableStateOf(state.marketEventsFmpApiKey) }
     val storageUi = remember { settingsStorageSectionUi() }
 
     Column(
@@ -146,6 +158,115 @@ fun SettingsScreen(
                     selected = state.accentColor,
                     onSelect = viewModel::setAccentColor
                 )
+            }
+        }
+
+        ElevatedCard(
+            Modifier.fillMaxWidth(),
+            colors = appBlockCardColors(),
+            elevation = appFlatCardElevation(),
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(AppSpacing.cardPadding),
+                verticalArrangement = Arrangement.spacedBy(AppSpacing.itemGap)
+            ) {
+                SectionHeader(
+                    icon = SnowIcons.CalendarEvent,
+                    title = stringResource(Res.string.settings_section_market_events),
+                    subtitle = stringResource(Res.string.settings_market_events_desc)
+                )
+                OutlinedTextField(
+                    value = marketEventsApiKeyDraft,
+                    onValueChange = { marketEventsApiKeyDraft = it.trimStart() },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    label = { Text(stringResource(Res.string.settings_market_events_api_key_label)) },
+                    placeholder = { Text(stringResource(Res.string.settings_market_events_api_key_placeholder)) }
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilledTonalButton(
+                        onClick = { viewModel.setMarketEventsApiKey(marketEventsApiKeyDraft) }
+                    ) {
+                        Text(stringResource(Res.string.settings_market_events_api_key_save))
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            marketEventsApiKeyDraft = ""
+                            viewModel.setMarketEventsApiKey("")
+                        }
+                    ) {
+                        Text(stringResource(Res.string.settings_market_events_api_key_clear))
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = if (state.marketEventsApiKey.isNotBlank()) {
+                            stringResource(Res.string.settings_market_events_api_key_status_set)
+                        } else {
+                            stringResource(Res.string.settings_market_events_api_key_status_empty)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                OutlinedTextField(
+                    value = marketEventsFmpApiKeyDraft,
+                    onValueChange = { marketEventsFmpApiKeyDraft = it.trimStart() },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    label = { Text(stringResource(Res.string.settings_market_events_fmp_api_key_label)) },
+                    placeholder = { Text(stringResource(Res.string.settings_market_events_fmp_api_key_placeholder)) }
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    FilledTonalButton(
+                        onClick = { viewModel.setMarketEventsFmpApiKey(marketEventsFmpApiKeyDraft) }
+                    ) {
+                        Text(stringResource(Res.string.settings_market_events_api_key_save))
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            marketEventsFmpApiKeyDraft = ""
+                            viewModel.setMarketEventsFmpApiKey("")
+                        }
+                    ) {
+                        Text(stringResource(Res.string.settings_market_events_api_key_clear))
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = if (state.marketEventsFmpApiKey.isNotBlank()) {
+                            stringResource(Res.string.settings_market_events_api_key_status_set)
+                        } else {
+                            stringResource(Res.string.settings_market_events_api_key_status_empty)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 

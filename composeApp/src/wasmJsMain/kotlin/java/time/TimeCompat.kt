@@ -107,10 +107,19 @@ class Instant internal constructor(
 class LocalDate internal constructor(
     internal val raw: KLocalDate
 ) : Comparable<LocalDate> {
+    val year: Int get() = raw.year
+    val monthValue: Int get() = raw.month.ordinal + 1
     val dayOfMonth: Int get() = raw.day
 
     companion object {
         fun now(zoneId: ZoneId): LocalDate = Instant.now().raw.toLocalDate(zoneId)
+
+        fun of(year: Int, month: Int, dayOfMonth: Int): LocalDate =
+            KLocalDate(year, month, dayOfMonth).toCompat()
+
+        fun parse(value: CharSequence, formatter: DateTimeFormatter): LocalDate =
+            parseLocalDateWithFormatter(value.toString(), formatter)
+                ?: throw IllegalArgumentException("Unable to parse LocalDate '${value}' with pattern '${formatter.pattern}'")
     }
 
     fun plusDays(days: Long): LocalDate = raw.plus(DatePeriod(days = days.toInt())).toCompat()
@@ -141,12 +150,50 @@ class LocalDate internal constructor(
 class LocalDateTime internal constructor(
     internal val raw: KLocalDateTime
 ) {
+    val year: Int get() = raw.year
+    val monthValue: Int get() = raw.month.ordinal + 1
+    val dayOfMonth: Int get() = raw.day
+    val hour: Int get() = raw.hour
+    val minute: Int get() = raw.minute
+    val second: Int get() = raw.second
+
+    companion object {
+        fun of(
+            year: Int,
+            month: Int,
+            dayOfMonth: Int,
+            hour: Int,
+            minute: Int,
+            second: Int = 0
+        ): LocalDateTime = LocalDateTime(KLocalDateTime(year, month, dayOfMonth, hour, minute, second))
+
+        fun of(date: LocalDate, time: LocalTime): LocalDateTime =
+            LocalDateTime(
+                KLocalDateTime(
+                    date.year,
+                    date.monthValue,
+                    date.dayOfMonth,
+                    time.hour,
+                    time.minute,
+                    time.second
+                )
+            )
+
+        fun parse(value: CharSequence, formatter: DateTimeFormatter): LocalDateTime =
+            parseLocalDateTimeWithFormatter(value.toString(), formatter)
+                ?: throw IllegalArgumentException("Unable to parse LocalDateTime '${value}' with pattern '${formatter.pattern}'")
+    }
+
     fun atZone(zone: ZoneId): ZonedDateTime =
         ZonedDateTime(
             if (zone.useIntlNamedZone) localDateTimeToInstant(raw, zone).toCompat()
             else raw.toInstant(zone.timeZone).toCompat(),
             zone
         )
+
+    fun toLocalTime(): LocalTime = LocalTime(raw.hour, raw.minute, raw.second)
+
+    fun toLocalDate(): LocalDate = raw.date.toCompat()
 }
 
 class LocalTime internal constructor(
@@ -187,6 +234,7 @@ class ZonedDateTime internal constructor(
     private val instant: Instant,
     private val zone: ZoneId
 ) : Comparable<ZonedDateTime> {
+    val year: Int get() = toLocalDate().year
 
     fun toInstant(): Instant = instant
 
@@ -375,6 +423,161 @@ private fun parseIsoLocalDateTime(value: String): KLocalDateTime? {
             match.groupValues[6].toInt()
         )
     }.getOrNull()
+}
+
+private fun parseLocalDateWithFormatter(value: String, formatter: DateTimeFormatter): LocalDate? {
+    val trimmed = value.trim()
+    return when (formatter.pattern) {
+        "yyyy-MM-dd", "yyyy-M-d" -> {
+            val match = Regex("""^(\d{4})-(\d{1,2})-(\d{1,2})$""").matchEntire(trimmed) ?: return null
+            runCatching {
+                LocalDate.of(
+                    match.groupValues[1].toInt(),
+                    match.groupValues[2].toInt(),
+                    match.groupValues[3].toInt()
+                )
+            }.getOrNull()
+        }
+
+        "yyyyMMdd" -> {
+            val match = Regex("""^(\d{4})(\d{2})(\d{2})$""").matchEntire(trimmed) ?: return null
+            runCatching {
+                LocalDate.of(
+                    match.groupValues[1].toInt(),
+                    match.groupValues[2].toInt(),
+                    match.groupValues[3].toInt()
+                )
+            }.getOrNull()
+        }
+
+        "M/d/yyyy", "MM/dd/yyyy" -> {
+            val match = Regex("""^(\d{1,2})/(\d{1,2})/(\d{4})$""").matchEntire(trimmed) ?: return null
+            runCatching {
+                LocalDate.of(
+                    match.groupValues[3].toInt(),
+                    match.groupValues[1].toInt(),
+                    match.groupValues[2].toInt()
+                )
+            }.getOrNull()
+        }
+
+        "MMMM d, yyyy", "MMM d, yyyy" -> {
+            val match = Regex("""^([A-Za-zÄÖÜäöü\.]+)\s+(\d{1,2}),\s*(\d{4})$""").matchEntire(trimmed) ?: return null
+            val month = parseMonthName(match.groupValues[1], formatter.locale) ?: return null
+            runCatching {
+                LocalDate.of(
+                    match.groupValues[3].toInt(),
+                    month,
+                    match.groupValues[2].toInt()
+                )
+            }.getOrNull()
+        }
+
+        "EEEE, MMMM d, yyyy" -> {
+            val match = Regex("""^[^,]+,\s+([A-Za-zÄÖÜäöü\.]+)\s+(\d{1,2}),\s*(\d{4})$""").matchEntire(trimmed) ?: return null
+            val month = parseMonthName(match.groupValues[1], formatter.locale) ?: return null
+            runCatching {
+                LocalDate.of(
+                    match.groupValues[3].toInt(),
+                    month,
+                    match.groupValues[2].toInt()
+                )
+            }.getOrNull()
+        }
+
+        else -> null
+    }
+}
+
+private fun parseLocalDateTimeWithFormatter(value: String, formatter: DateTimeFormatter): LocalDateTime? {
+    val trimmed = value.trim()
+    return when (formatter.pattern) {
+        "yyyy-MM-dd hh:mm a" -> {
+            val match = Regex("""^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})\s+([AP]M)$""").matchEntire(trimmed) ?: return null
+            val hour12 = match.groupValues[4].toInt()
+            val minute = match.groupValues[5].toInt()
+            val meridiem = match.groupValues[6]
+            val hour24 = when {
+                meridiem == "AM" && hour12 == 12 -> 0
+                meridiem == "PM" && hour12 != 12 -> hour12 + 12
+                else -> hour12
+            }
+            runCatching {
+                LocalDateTime.of(
+                    match.groupValues[1].toInt(),
+                    match.groupValues[2].toInt(),
+                    match.groupValues[3].toInt(),
+                    hour24,
+                    minute
+                )
+            }.getOrNull()
+        }
+
+        "yyyyMMdd'T'HHmmss" -> {
+            val match = Regex("""^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$""").matchEntire(trimmed) ?: return null
+            runCatching {
+                LocalDateTime.of(
+                    match.groupValues[1].toInt(),
+                    match.groupValues[2].toInt(),
+                    match.groupValues[3].toInt(),
+                    match.groupValues[4].toInt(),
+                    match.groupValues[5].toInt(),
+                    match.groupValues[6].toInt()
+                )
+            }.getOrNull()
+        }
+
+        "yyyyMMdd'T'HHmm" -> {
+            val match = Regex("""^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})$""").matchEntire(trimmed) ?: return null
+            runCatching {
+                LocalDateTime.of(
+                    match.groupValues[1].toInt(),
+                    match.groupValues[2].toInt(),
+                    match.groupValues[3].toInt(),
+                    match.groupValues[4].toInt(),
+                    match.groupValues[5].toInt()
+                )
+            }.getOrNull()
+        }
+
+        else -> null
+    }
+}
+
+private fun parseMonthName(rawMonth: String, locale: java.util.Locale): Int? {
+    val normalized = rawMonth.trim().trimEnd('.').lowercase()
+    val english = mapOf(
+        "january" to 1, "jan" to 1,
+        "february" to 2, "feb" to 2,
+        "march" to 3, "mar" to 3,
+        "april" to 4, "apr" to 4,
+        "may" to 5,
+        "june" to 6, "jun" to 6,
+        "july" to 7, "jul" to 7,
+        "august" to 8, "aug" to 8,
+        "september" to 9, "sep" to 9, "sept" to 9,
+        "october" to 10, "oct" to 10,
+        "november" to 11, "nov" to 11,
+        "december" to 12, "dec" to 12
+    )
+    val german = mapOf(
+        "januar" to 1, "jan" to 1,
+        "februar" to 2, "feb" to 2,
+        "maerz" to 3, "märz" to 3, "mrz" to 3, "mar" to 3,
+        "april" to 4, "apr" to 4,
+        "mai" to 5,
+        "juni" to 6, "jun" to 6,
+        "juli" to 7, "jul" to 7,
+        "august" to 8, "aug" to 8,
+        "september" to 9, "sep" to 9,
+        "oktober" to 10, "okt" to 10, "oct" to 10,
+        "november" to 11, "nov" to 11,
+        "dezember" to 12, "dez" to 12, "dec" to 12
+    )
+    return when (locale.languageTag) {
+        "de-DE" -> german[normalized] ?: english[normalized]
+        else -> english[normalized] ?: german[normalized]
+    }
 }
 
 private val IsoLocalDateTimeRegex = Regex(

@@ -8,6 +8,7 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import de.tradebuddy.logging.AppLog
 import de.tradebuddy.ui.AppRoot
 import java.awt.Color
 import java.awt.Dimension
@@ -104,48 +105,58 @@ private fun createTradeBuddyWindowIcon(size: Int): BufferedImage {
     return image
 }
 
-fun main() = application {
-    val persisted = remember { DesktopWindowStateStore.load() }
-    val initialPosition = remember(persisted) {
-        if (persisted.xDp != null && persisted.yDp != null) {
-            WindowPosition(persisted.xDp.dp, persisted.yDp.dp)
-        } else {
-            WindowPosition.PlatformDefault
-        }
+fun main() {
+    Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+        AppLog.error(
+            tag = "DesktopRuntime",
+            message = "Unbehandelter Fehler in Thread ${thread.name}",
+            throwable = throwable
+        )
     }
-    val windowState = rememberWindowState(
-        width = persisted.widthDp.dp,
-        height = persisted.heightDp.dp,
-        position = initialPosition,
-        placement = if (persisted.maximized) WindowPlacement.Maximized else WindowPlacement.Floating
-    )
 
-    Window(
-        onCloseRequest = {
-            val absolutePosition = windowState.position as? WindowPosition.Absolute
-            val isFloating = windowState.placement == WindowPlacement.Floating
-            DesktopWindowStateStore.save(
-                widthDp = windowState.size.width.value,
-                heightDp = windowState.size.height.value,
-                xDp = absolutePosition?.x?.value,
-                yDp = absolutePosition?.y?.value,
-                maximized = !isFloating
-            )
-            exitApplication()
-        },
-        title = "",
-        state = windowState
-    ) {
-        DisposableEffect(window) {
-            window.minimumSize = Dimension(MinWindowWidthPx, MinWindowHeightPx)
-            window.iconImages = TradeBuddyWindowIcons
-            runCatching {
-                if (Taskbar.isTaskbarSupported()) {
-                    Taskbar.getTaskbar().iconImage = TradeBuddyWindowIcons.last()
-                }
+    application {
+        val persisted = remember { DesktopWindowStateStore.load() }
+        val initialPosition = remember(persisted) {
+            if (persisted.xDp != null && persisted.yDp != null) {
+                WindowPosition(persisted.xDp.dp, persisted.yDp.dp)
+            } else {
+                WindowPosition.PlatformDefault
             }
-            onDispose {}
         }
-        AppRoot()
+        val windowState = rememberWindowState(
+            width = persisted.widthDp.dp,
+            height = persisted.heightDp.dp,
+            position = initialPosition,
+            placement = if (persisted.maximized) WindowPlacement.Maximized else WindowPlacement.Floating
+        )
+
+        Window(
+            onCloseRequest = {
+                val absolutePosition = windowState.position as? WindowPosition.Absolute
+                val isFloating = windowState.placement == WindowPlacement.Floating
+                DesktopWindowStateStore.save(
+                    widthDp = windowState.size.width.value,
+                    heightDp = windowState.size.height.value,
+                    xDp = absolutePosition?.x?.value,
+                    yDp = absolutePosition?.y?.value,
+                    maximized = !isFloating
+                )
+                exitApplication()
+            },
+            title = "",
+            state = windowState
+        ) {
+            DisposableEffect(window) {
+                window.minimumSize = Dimension(MinWindowWidthPx, MinWindowHeightPx)
+                window.iconImages = TradeBuddyWindowIcons
+                runCatching {
+                    if (Taskbar.isTaskbarSupported()) {
+                        Taskbar.getTaskbar().iconImage = TradeBuddyWindowIcons.last()
+                    }
+                }
+                onDispose {}
+            }
+            AppRoot()
+        }
     }
 }
