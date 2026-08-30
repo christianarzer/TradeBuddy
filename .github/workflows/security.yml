@@ -140,7 +140,7 @@ jobs:
 
       - name: Analyze
         if: steps.detect.outputs.has_sources == 'true' && (matrix.language != 'java-kotlin' || steps.kotlin_compat.outputs.supported == 'true')
-        uses: github/codeql-action/analyze@9e907b5e64f6b83e7804b09294d44122997950d6 # v4
+        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
         with:
           category: "/language:${{ matrix.language }}"
 
