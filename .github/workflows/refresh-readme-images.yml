@@ -34,7 +34,7 @@ jobs:
           java-version: 21
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@fbcece063590cf3e99cc8f93ed063231c98bf95b # v5
+        uses: gradle/actions/setup-gradle@f29f5a9d7b09a7c6b29859002d29d24e1674c884 # v5
 
       - name: Build web distribution
         run: |
